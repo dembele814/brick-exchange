@@ -21,7 +21,8 @@ export type Conversation = {
 const minutes = (n: number) => Date.now() - n * 60_000;
 
 function seed(): Conversation[] {
-  const [a, b] = listings;
+  const a = listings[0]!;
+  const b = listings[1]!;
   return [
     {
       id: "c1",
@@ -65,7 +66,9 @@ export function useConversations() {
     const l = () => setState([...conversations]);
     listeners.add(l);
     l();
-    return () => listeners.delete(l);
+    return () => {
+      listeners.delete(l);
+    };
   }, []);
   return state;
 }
