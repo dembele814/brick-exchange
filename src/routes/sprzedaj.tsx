@@ -72,10 +72,10 @@ function Chips({
 function SellPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dragging, setDragging] = useState(false);
-  const [category, setCategory] = useState(categories[0]);
-  const [motif, setMotif] = useState(motifs[0]);
-  const [used, setUsed] = useState(usage[1]);
-  const [box, setBox] = useState(boxState[0]);
+  const [category, setCategory] = useState(categories[0]!);
+  const [motif, setMotif] = useState(motifs[0]!);
+  const [used, setUsed] = useState(usage[1]!);
+  const [box, setBox] = useState(boxState[0]!);
   const [hasFlaws, setHasFlaws] = useState(false);
   const [price, setPrice] = useState("");
   const [parcel, setParcel] = useState(true);
@@ -117,7 +117,7 @@ function SellPage() {
       if (i <= 0) return p;
       const copy = [...p];
       const [item] = copy.splice(i, 1);
-      copy.unshift(item);
+      if (item) copy.unshift(item);
       return copy;
     });
 
