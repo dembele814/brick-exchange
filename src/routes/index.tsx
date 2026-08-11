@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { ListingCard } from "@/components/listing-card";
 import { listings, themes } from "@/data/listings";
-import { ShieldCheck, Sparkles, Truck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
