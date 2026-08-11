@@ -12,7 +12,7 @@ import {
 
 export const Route = createFileRoute("/wiadomosci")({
   validateSearch: (search: Record<string, unknown>) => ({
-    c: typeof search.c === "string" ? search.c : undefined,
+    c: typeof search["c"] === "string" ? (search["c"] as string) : undefined,
   }),
   head: () => ({
     meta: [
