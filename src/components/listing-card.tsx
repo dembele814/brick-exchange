@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { MessageCircle } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Heart, MessageCircle } from "lucide-react";
 import { startConversation } from "@/data/messages";
 import type { Listing } from "@/data/listings";
 
