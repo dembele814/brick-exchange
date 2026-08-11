@@ -44,6 +44,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </div>
       </Link>
 
+      <button
+        type="button"
+        aria-label="Dodaj do ulubionych"
+        className="absolute right-2 top-2 rounded-full bg-card/90 p-2 text-muted-foreground shadow-card transition-colors hover:text-brand"
+      >
+        <Heart className="size-4" />
+      </button>
+
       <div className="px-3 pb-3">
         <button
           type="button"
