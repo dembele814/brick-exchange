@@ -1,8 +1,10 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { startConversation } from "@/data/messages";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ListingCard } from "@/components/listing-card";
 import { getListing, listings } from "@/data/listings";
-import { ArrowLeft, Check, Heart, MapPin, Star, X } from "lucide-react";
+import { ArrowLeft, Check, Heart, MapPin, MessageCircle, Star, X } from "lucide-react";
 
 export const Route = createFileRoute("/oferta/$id")({
   loader: ({ params }) => {
@@ -33,6 +35,7 @@ export const Route = createFileRoute("/oferta/$id")({
 
 function OfferPage() {
   const { listing } = Route.useLoaderData();
+  const navigate = useNavigate();
   const similar = listings.filter((l) => l.id !== listing.id).slice(0, 4);
 
   const facts: [string, boolean][] = [
@@ -99,9 +102,14 @@ function OfferPage() {
               </button>
               <button
                 type="button"
-                className="rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+                onClick={() => {
+                  const id = startConversation(listing.id);
+                  navigate({ to: "/wiadomosci", search: { c: id } });
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
               >
-                Napisz
+                <MessageCircle className="size-4" aria-hidden />
+                Napisz do sprzedającego
               </button>
               <button
                 type="button"
@@ -153,6 +161,7 @@ function OfferPage() {
           </div>
         </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }
