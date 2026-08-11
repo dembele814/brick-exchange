@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { ListingCard } from "@/components/listing-card";
 import { listings, themes } from "@/data/listings";
-import { ShieldCheck, Sparkles, Truck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,47 +44,9 @@ function Index() {
       <SiteHeader />
 
       <main>
-        <section className="border-b border-border bg-surface">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
-              Marketplace dla fanów klocków
-            </p>
-            <h1 className="mt-3 max-w-2xl text-4xl font-bold leading-[1.05] sm:text-5xl">
-              Drugie życie każdego zestawu.
-            </h1>
-            <p className="mt-4 max-w-xl text-base text-muted-foreground">
-              Kupuj kompletne zestawy, pojedyncze minifigurki i klocki na wagę — od
-              kolekcjonerów, którzy dokładnie opisują stan każdego elementu.
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link
-                to="/sprzedaj"
-                className="rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
-              >
-                Wystaw zestaw w 2 minuty
-              </Link>
-              <span className="text-sm text-muted-foreground">
-                Bez opłat za wystawienie
-              </span>
-            </div>
+        <section className="mx-auto max-w-6xl px-4 pb-10 pt-5">
+          <h1 className="sr-only">Oferty zestawów i klocków LEGO</h1>
 
-            <dl className="mt-10 grid gap-4 sm:grid-cols-3">
-              {[
-                { icon: ShieldCheck, t: "Ochrona kupującego", d: "Pieniądze trafiają do sprzedającego po odbiorze paczki." },
-                { icon: Sparkles, t: "Weryfikacja kompletności", d: "Każda oferta ma listę braków i stan instrukcji." },
-                { icon: Truck, t: "Wysyłka od 9 zł", d: "Paczkomaty i kurier w jednym kliknięciu." },
-              ].map(({ icon: Icon, t, d }) => (
-                <div key={t} className="card-surface p-4">
-                  <Icon className="size-5 text-brand" aria-hidden />
-                  <dt className="mt-3 text-sm font-semibold">{t}</dt>
-                  <dd className="mt-1 text-sm text-muted-foreground">{d}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-6xl px-4 py-10">
           <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
             {themes.map((t) => (
               <button
@@ -131,12 +93,7 @@ function Index() {
         </section>
       </main>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground">
-          <p>© 2026 Klockownia — niezależny serwis społeczności budujących.</p>
-          <p>Nie jesteśmy powiązani z producentem klocków.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

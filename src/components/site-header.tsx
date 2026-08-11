@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, Plus, Search, User } from "lucide-react";
+import { Heart, MessageCircle, Plus, Search, User } from "lucide-react";
+import { useUnreadCount } from "@/data/messages";
 
 export function SiteHeader() {
+  const unread = useUnreadCount();
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
@@ -25,6 +28,18 @@ export function SiteHeader() {
         </label>
 
         <nav className="ml-auto flex items-center gap-1">
+          <Link
+            to="/wiadomosci"
+            aria-label={unread > 0 ? `Wiadomości, ${unread} nowe` : "Wiadomości"}
+            className="relative rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <MessageCircle className="size-5" />
+            {unread > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold leading-4 text-brand-foreground">
+                {unread}
+              </span>
+            )}
+          </Link>
           <button
             type="button"
             aria-label="Ulubione"
