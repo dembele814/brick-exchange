@@ -4,7 +4,16 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ListingCard } from "@/components/listing-card";
 import { getListing, listings } from "@/data/listings";
-import { ArrowLeft, Check, Heart, MapPin, MessageCircle, Star, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Heart,
+  MapPin,
+  MessageCircle,
+  ShieldCheck,
+  Star,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/oferta/$id")({
   loader: ({ params }) => {
@@ -37,6 +46,9 @@ function OfferPage() {
   const { listing } = Route.useLoaderData();
   const navigate = useNavigate();
   const similar = listings.filter((l) => l.id !== listing.id).slice(0, 4);
+
+  const safeBuy = Math.round((listing.price * 0.05 + 1) * 100) / 100;
+  const total = Math.round((listing.price + safeBuy) * 100) / 100;
 
   const facts: [string, boolean][] = [
     ["Komplet elementów", listing.complete],
@@ -80,6 +92,24 @@ function OfferPage() {
                 </span>
               )}
             </p>
+
+            <div className="card-surface mt-4 space-y-1.5 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                  <ShieldCheck className="size-4 text-brand" aria-hidden />
+                  Bezpieczny zakup
+                </span>
+                <span>{safeBuy.toFixed(2)} zł</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-border pt-1.5 font-semibold">
+                <span>Do zapłaty</span>
+                <span>{total.toFixed(2)} zł</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Bezpieczny zakup obejmuje ochronę płatności i pomoc, jeśli przesyłka nie dotrze
+                zgodnie z opisem.
+              </p>
+            </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-foreground">
