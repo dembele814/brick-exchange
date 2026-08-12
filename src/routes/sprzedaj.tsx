@@ -27,11 +27,10 @@ export const Route = createFileRoute("/sprzedaj")({
 });
 
 const MAX_PHOTOS = 20;
-const COMMISSION = 0.05;
 
 const categories = ["Zestawy LEGO", "Minifigurki", "Części na sztuki", "Klocki luzem"];
 const popularMotifs = ["City", "Star Wars", "Technic", "Harry Potter", "Ninjago", "Marvel"];
-const usage = ["Nowy", "Używany"];
+const conditionLevels = ["Popękane", "Lekko zarysowane", "W porządku", "Błyszczące", "Nowe"];
 const boxState = ["Z pudełkiem", "Bez pudełka"];
 
 type Photo = { id: string; url: string; name: string };
