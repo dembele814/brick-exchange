@@ -121,8 +121,6 @@ function SellPage() {
     });
 
   const priceNum = Number(price) || 0;
-  const fee = Math.round(priceNum * COMMISSION * 100) / 100;
-  const payoutValue = Math.round((priceNum - fee) * 100) / 100;
 
   return (
     <div className="min-h-screen">
@@ -307,32 +305,22 @@ function SellPage() {
           {/* Stan */}
           <section className="space-y-5">
             <h2 className="text-sm font-semibold">Stan</h2>
-            <Chips name="Zużycie" options={usage} value={used} onChange={setUsed} />
-            <Chips name="Pudełko" options={boxState} value={box} onChange={setBox} />
-
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="size-4 accent-brand"
-                checked={hasFlaws}
-                onChange={(e) => setHasFlaws(e.target.checked)}
+            <div>
+              <span className="text-sm font-medium">Rodzaj stanu</span>
+              <Chips
+                name="Rodzaj stanu"
+                options={conditionLevels}
+                value={condition}
+                onChange={setCondition}
               />
-              Widoczne braki lub uszkodzenia
-            </label>
-            {hasFlaws && (
-              <label className="block text-sm font-medium">
-                Opisz braki
-                <textarea
-                  rows={3}
-                  maxLength={500}
-                  placeholder="np. brak 3 elementów dekoracyjnych, przetarty nadruk na torsie"
-                  className={field}
-                />
-              </label>
-            )}
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Od najgorszego do najlepszego: popękane → nowe.
+              </p>
+            </div>
+            <Chips name="Pudełko" options={boxState} value={box} onChange={setBox} />
           </section>
 
-          {/* Cena i prowizja */}
+          {/* Cena */}
           <section className="space-y-4">
             <h2 className="text-sm font-semibold">Cena</h2>
             <label className="block text-sm font-medium">
@@ -348,21 +336,12 @@ function SellPage() {
                 className={field}
               />
             </label>
-            <div className="card-surface space-y-1.5 p-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cena dla kupującego</span>
-                <span>{priceNum.toFixed(2)} zł</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Prowizja platformy (5%)</span>
-                <span>−{fee.toFixed(2)} zł</span>
-              </div>
-              <div className="flex justify-between border-t border-border pt-1.5 font-semibold">
-                <span>Otrzymasz</span>
-                <span>{Math.max(payoutValue, 0).toFixed(2)} zł</span>
-              </div>
+            <div className="card-surface flex justify-between p-4 text-sm font-semibold">
+              <span>Otrzymasz</span>
+              <span>{priceNum.toFixed(2)} zł</span>
             </div>
           </section>
+
 
           {/* Dostawa */}
           <section className="space-y-3">
@@ -456,7 +435,8 @@ function SellPage() {
 
           {sent && (
             <p className="rounded-lg bg-brand-soft px-4 py-3 text-sm">
-              Podgląd oferty gotowy: {category} · {motif} · {used}, {box.toLowerCase()} ·{" "}
+              Podgląd oferty gotowy: {category} · {motif} · {condition.toLowerCase()},{" "}
+              {box.toLowerCase()} ·{" "}
               {priceNum.toFixed(2)} zł. Publikacja na żywo pojawi się, gdy podłączymy konta
               użytkowników i płatności.
             </p>
