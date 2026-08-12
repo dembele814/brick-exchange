@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ListingCard } from "@/components/listing-card";
-import { listings, themes } from "@/data/listings";
+import { legoSeries, listings, themes } from "@/data/listings";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -63,6 +63,21 @@ function Index() {
                 {t}
               </button>
             ))}
+            <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+              Wszystkie serie
+              <select
+                value={themes.includes(theme) ? "" : theme}
+                onChange={(e) => setTheme(e.target.value || "Wszystkie")}
+                className="max-w-[15rem] rounded-full border border-border bg-card px-3 py-1.5 text-foreground outline-none focus:ring-2 focus:ring-ring/40"
+              >
+                <option value="">Wybierz serię…</option>
+                {legoSeries.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className="mt-6 flex items-center justify-between">

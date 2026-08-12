@@ -1,3 +1,4 @@
+import { legoSeries } from "@/data/listings";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
@@ -29,7 +30,7 @@ const MAX_PHOTOS = 20;
 const COMMISSION = 0.05;
 
 const categories = ["Zestawy LEGO", "Minifigurki", "Części na sztuki", "Klocki luzem"];
-const motifs = ["City", "Star Wars", "Technic", "Castle", "Space", "Ninjago", "Marvel"];
+const popularMotifs = ["City", "Star Wars", "Technic", "Harry Potter", "Ninjago", "Marvel"];
 const usage = ["Nowy", "Używany"];
 const boxState = ["Z pudełkiem", "Bez pudełka"];
 
@@ -73,7 +74,7 @@ function SellPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dragging, setDragging] = useState(false);
   const [category, setCategory] = useState(categories[0]!);
-  const [motif, setMotif] = useState(motifs[0]!);
+  const [motif, setMotif] = useState(popularMotifs[0]!);
   const [used, setUsed] = useState(usage[1]!);
   const [box, setBox] = useState(boxState[0]!);
   const [hasFlaws, setHasFlaws] = useState(false);
@@ -277,8 +278,21 @@ function SellPage() {
             </div>
 
             <div>
-              <span className="text-sm font-medium">Motyw</span>
-              <Chips name="Motyw" options={motifs} value={motif} onChange={setMotif} />
+              <span className="text-sm font-medium">Motyw / seria</span>
+              <Chips name="Motyw" options={popularMotifs} value={motif} onChange={setMotif} />
+              <select
+                value={popularMotifs.includes(motif) ? "" : motif}
+                onChange={(e) => e.target.value && setMotif(e.target.value)}
+                aria-label="Wszystkie serie LEGO"
+                className={field}
+              >
+                <option value="">Inna seria LEGO…</option>
+                {legoSeries.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <label className="block text-sm font-medium">
