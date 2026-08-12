@@ -30,6 +30,7 @@ export function SiteHeader() {
         <nav className="ml-auto flex items-center gap-1">
           <Link
             to="/wiadomosci"
+            search={{ c: undefined }}
             aria-label={unread > 0 ? `Wiadomości, ${unread} nowe` : "Wiadomości"}
             className="relative rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
