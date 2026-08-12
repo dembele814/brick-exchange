@@ -47,6 +47,9 @@ function OfferPage() {
   const navigate = useNavigate();
   const similar = listings.filter((l) => l.id !== listing.id).slice(0, 4);
 
+  const safeBuy = Math.round((listing.price * 0.05 + 1) * 100) / 100;
+  const total = Math.round((listing.price + safeBuy) * 100) / 100;
+
   const facts: [string, boolean][] = [
     ["Komplet elementów", listing.complete],
     ["Instrukcja", listing.instructions],
