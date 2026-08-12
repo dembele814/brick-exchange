@@ -1,3 +1,4 @@
+import { legoSeries } from "@/data/listings";
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
@@ -73,7 +74,7 @@ function SellPage() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dragging, setDragging] = useState(false);
   const [category, setCategory] = useState(categories[0]!);
-  const [motif, setMotif] = useState(motifs[0]!);
+  const [motif, setMotif] = useState(popularMotifs[0]!);
   const [used, setUsed] = useState(usage[1]!);
   const [box, setBox] = useState(boxState[0]!);
   const [hasFlaws, setHasFlaws] = useState(false);
