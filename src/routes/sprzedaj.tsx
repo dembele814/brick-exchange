@@ -421,8 +421,8 @@ function SellPage() {
               />
             </label>
             <p className="text-xs text-muted-foreground">
-              Środki trafiają do Ciebie po potwierdzeniu odbioru przez kupującego. Prowizja 5%
-              pobierana jest tylko od sprzedanych ofert.
+              Środki trafiają do Ciebie po potwierdzeniu odbioru przez kupującego. Wystawienie
+              oferty jest darmowe.
             </p>
           </section>
 
