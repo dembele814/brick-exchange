@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Sparkles } from "lucide-react";
 import { startConversation } from "@/data/messages";
 import type { Listing } from "@/data/listings";
 
@@ -25,6 +25,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
           {listing.condition === "Nowy w pudełku" && (
             <span className="absolute left-2 top-2 rounded-full bg-sun px-2.5 py-1 text-xs font-semibold text-sun-foreground">
               Nowy
+            </span>
+          )}
+          {listing.promoted && (
+            <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-xs font-semibold text-brand-foreground shadow-sm">
+              <Sparkles className="size-3" aria-hidden />
+              Wyróżnione
             </span>
           )}
         </div>

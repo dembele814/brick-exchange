@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -39,6 +40,9 @@ function Index() {
     return sorted;
   }, [theme, sort]);
 
+  const promoted = useMemo(() => visible.filter((l) => l.promoted), [visible]);
+  const regular = useMemo(() => visible.filter((l) => !l.promoted), [visible]);
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -46,6 +50,20 @@ function Index() {
       <main>
         <section className="mx-auto max-w-6xl px-4 pb-10 pt-5">
           <h1 className="sr-only">Oferty zestawów i klocków LEGO</h1>
+
+          {promoted.length > 0 && (
+            <section className="mb-8 rounded-2xl border border-border bg-gradient-to-r from-sun/10 to-transparent p-4 sm:p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Sparkles className="size-5 text-sun-foreground" aria-hidden />
+                Wyróżnione oferty
+              </h2>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {promoted.map((l) => (
+                  <ListingCard key={`promoted-${l.id}`} listing={l} />
+                ))}
+              </div>
+            </section>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
             {themes.map((t) => (
@@ -101,7 +119,7 @@ function Index() {
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {visible.map((l) => (
+            {regular.map((l) => (
               <ListingCard key={l.id} listing={l} />
             ))}
           </div>
