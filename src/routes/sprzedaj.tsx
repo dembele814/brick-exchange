@@ -74,9 +74,8 @@ function SellPage() {
   const [dragging, setDragging] = useState(false);
   const [category, setCategory] = useState(categories[0]!);
   const [motif, setMotif] = useState(popularMotifs[0]!);
-  const [used, setUsed] = useState(usage[1]!);
+  const [condition, setCondition] = useState(conditionLevels[2]!);
   const [box, setBox] = useState(boxState[0]!);
-  const [hasFlaws, setHasFlaws] = useState(false);
   const [price, setPrice] = useState("");
   const [parcel, setParcel] = useState(true);
   const [courier, setCourier] = useState(false);
