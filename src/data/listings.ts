@@ -24,6 +24,7 @@ export type Listing = {
   city: string;
   seller: { name: string; rating: number; sales: number };
   description: string;
+  promoted?: boolean;
 };
 
 // Pełna lista oficjalnych serii LEGO dostępnych jako motyw oferty
@@ -122,6 +123,7 @@ export const listings: Listing[] = [
     seller: { name: "Marta K.", rating: 4.9, sales: 214 },
     description:
       "Kompletna remiza, złożona raz i trzymana w witrynie. Wszystkie części sprawdzone i przemyte, instrukcja w idealnym stanie. Wysyłka w kartonie z wypełnieniem.",
+    promoted: true,
   },
   {
     id: "2",
@@ -159,6 +161,7 @@ export const listings: Listing[] = [
     seller: { name: "Tomasz W.", rating: 4.7, sales: 87 },
     description:
       "Klasyk z lat 90. Brakuje 3 elementów dekoracyjnych (lista w opisie zdjęć). Chorągwie oryginalne, lekko wyblakłe.",
+    promoted: true,
   },
   {
     id: "4",
@@ -195,6 +198,7 @@ export const listings: Listing[] = [
     seller: { name: "MinifigLab", rating: 4.9, sales: 402 },
     description:
       "Pięć figurek z akcesoriami, bez śladów użytkowania. Nadruki bez przetarć, sprawdzone pod lampą.",
+    promoted: true,
   },
   {
     id: "6",
