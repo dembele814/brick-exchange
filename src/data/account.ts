@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import avatarMe from "@/assets/avatar-me.jpg";
 import { listings, type Condition } from "./listings";
 
 export type ListingStatus = "active" | "hidden" | "draft";
@@ -70,8 +71,7 @@ const pick = (i: number) => listings[i % listings.length]!;
 let state: State = {
   profile: {
     name: "klockowy_maks",
-    avatar:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=70",
+    avatar: avatarMe,
     bio: "Zbieram klasyczne zestawy Castle i Space od 15 lat. Wszystko myte, sprawdzone i pakowane z głową. Chętnie wymienię się częściami.",
     country: "Polska",
     city: "Wrocław",
