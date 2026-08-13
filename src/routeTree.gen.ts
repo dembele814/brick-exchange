@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
+import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as WiadomosciRouteImport } from './routes/wiadomosci'
 import { Route as ZamowieniaRouteImport } from './routes/zamowienia'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
@@ -37,6 +38,11 @@ const SprzedajRoute = SprzedajRouteImport.update({
   path: '/sprzedaj',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UstawieniaRoute = UstawieniaRouteImport.update({
+  id: '/ustawienia',
+  path: '/ustawienia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WiadomosciRoute = WiadomosciRouteImport.update({
   id: '/wiadomosci',
   path: '/wiadomosci',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
+  '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/oferta/$id': typeof OfertaIdRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
+  '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/oferta/$id': typeof OfertaIdRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
+  '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/oferta/$id': typeof OfertaIdRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
+    | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
     | '/oferta/$id'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
+    | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
     | '/oferta/$id'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
+    | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
     | '/oferta/$id'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   PortfelRoute: typeof PortfelRoute
   ProfilRoute: typeof ProfilRoute
   SprzedajRoute: typeof SprzedajRoute
+  UstawieniaRoute: typeof UstawieniaRoute
   WiadomosciRoute: typeof WiadomosciRoute
   ZamowieniaRoute: typeof ZamowieniaRoute
   OfertaIdRoute: typeof OfertaIdRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SprzedajRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ustawienia': {
+      id: '/ustawienia'
+      path: '/ustawienia'
+      fullPath: '/ustawienia'
+      preLoaderRoute: typeof UstawieniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/wiadomosci': {
       id: '/wiadomosci'
       path: '/wiadomosci'
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortfelRoute: PortfelRoute,
   ProfilRoute: ProfilRoute,
   SprzedajRoute: SprzedajRoute,
+  UstawieniaRoute: UstawieniaRoute,
   WiadomosciRoute: WiadomosciRoute,
   ZamowieniaRoute: ZamowieniaRoute,
   OfertaIdRoute: OfertaIdRoute,
