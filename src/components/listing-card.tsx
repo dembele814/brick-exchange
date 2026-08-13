@@ -34,18 +34,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
             </span>
           )}
         </div>
-        <div className="space-y-1 p-3">
+        <div className="space-y-1 p-3 pb-14">
           <p className="truncate text-sm font-medium">{listing.title}</p>
           <p className="text-xs text-muted-foreground">
             {listing.theme} · {listing.pieces} el. · {listing.condition}
-          </p>
-          <p className="pt-1 text-base font-bold">
-            {listing.price} zł
-            {listing.original && (
-              <span className="ml-2 text-xs font-normal text-muted-foreground line-through">
-                {listing.original} zł
-              </span>
-            )}
           </p>
         </div>
       </Link>
@@ -58,17 +50,26 @@ export function ListingCard({ listing }: { listing: Listing }) {
         <Heart className="size-4" />
       </button>
 
-      <div className="px-3 pb-3">
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-3 pb-3">
+        <p className="text-base font-bold">
+          {listing.price} zł
+          {listing.original && (
+            <span className="ml-1.5 text-xs font-normal text-muted-foreground line-through">
+              {listing.original} zł
+            </span>
+          )}
+        </p>
         <button
           type="button"
           onClick={() => {
             const id = startConversation(listing.id);
             navigate({ to: "/wiadomosci", search: { c: id } });
           }}
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-brand-soft"
+          title="Napisz do sprzedającego"
         >
           <MessageCircle className="size-3.5" aria-hidden />
-          Napisz do sprzedającego
+          Napisz
         </button>
       </div>
     </article>

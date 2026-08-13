@@ -38,6 +38,12 @@
   --color-brand-soft: var(--brand-soft);
   --color-sun: var(--sun);
   --color-sun-foreground: var(--sun-foreground);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-grape: var(--grape);
+  --color-grape-soft: var(--grape-soft);
   --shadow-card: 0 1px 2px oklch(0.2 0.03 40 / 6%), 0 8px 24px -16px oklch(0.2 0.03 40 / 18%);
   --shadow-lift: 0 2px 4px oklch(0.2 0.03 40 / 8%), 0 18px 40px -20px oklch(0.2 0.03 40 / 26%);
 }
@@ -69,6 +75,12 @@
   --brand-soft: oklch(0.94 0.04 40);
   --sun: oklch(0.86 0.16 88);
   --sun-foreground: oklch(0.26 0.04 70);
+  --sky: oklch(0.62 0.14 245);
+  --sky-soft: oklch(0.94 0.04 240);
+  --mint: oklch(0.66 0.13 155);
+  --mint-soft: oklch(0.94 0.05 155);
+  --grape: oklch(0.55 0.16 300);
+  --grape-soft: oklch(0.94 0.045 300);
 }
 
 @layer base {

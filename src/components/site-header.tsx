@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Plus, Search, User } from "lucide-react";
+import { Heart, MessageCircle, Plus, Search } from "lucide-react";
 import { useUnreadCount } from "@/data/messages";
+import { UserMenu } from "@/components/user-menu";
 
 export function SiteHeader() {
   const unread = useUnreadCount();
@@ -48,13 +49,7 @@ export function SiteHeader() {
           >
             <Heart className="size-5" />
           </button>
-          <button
-            type="button"
-            aria-label="Konto"
-            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <User className="size-5" />
-          </button>
+          <UserMenu />
           <Link
             to="/sprzedaj"
             className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"

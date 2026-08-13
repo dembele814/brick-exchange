@@ -105,9 +105,11 @@ function Index() {
           </div>
 
           {promoted.length > 0 && (
-            <section className="mt-6 rounded-2xl border border-border bg-gradient-to-r from-sun/10 to-transparent p-4 sm:p-6">
+            <section className="mt-6 rounded-3xl border border-border bg-gradient-to-br from-sun/25 via-grape-soft to-sky-soft p-4 sm:p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-                <Sparkles className="size-5 text-sun-foreground" aria-hidden />
+                <span className="grid size-8 place-items-center rounded-full bg-card shadow-card">
+                  <Sparkles className="size-4 text-brand" aria-hidden />
+                </span>
                 Wyróżnione oferty
               </h2>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
