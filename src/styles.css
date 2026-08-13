@@ -38,6 +38,12 @@
   --color-brand-soft: var(--brand-soft);
   --color-sun: var(--sun);
   --color-sun-foreground: var(--sun-foreground);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-grape: var(--grape);
+  --color-grape-soft: var(--grape-soft);
   --shadow-card: 0 1px 2px oklch(0.2 0.03 40 / 6%), 0 8px 24px -16px oklch(0.2 0.03 40 / 18%);
   --shadow-lift: 0 2px 4px oklch(0.2 0.03 40 / 8%), 0 18px 40px -20px oklch(0.2 0.03 40 / 26%);
 }
