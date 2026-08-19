@@ -2,9 +2,15 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Heart, MessageCircle, Sparkles } from "lucide-react";
 import { startConversation } from "@/data/messages";
 import type { Listing } from "@/data/listings";
+import { toggleFavorite, useAccount } from "@/data/account";
+import { useAuthGate } from "@/hooks/use-auth-gate";
+import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const navigate = useNavigate();
+  const { guard } = useAuthGate();
+  const { favorites } = useAccount();
+  const liked = favorites.includes(listing.id);
 
   return (
     <article className="group relative">
@@ -44,10 +50,15 @@ export function ListingCard({ listing }: { listing: Listing }) {
 
       <button
         type="button"
-        aria-label="Dodaj do ulubionych"
-        className="absolute right-2 top-2 rounded-full bg-card/90 p-2 text-muted-foreground shadow-card transition-colors hover:text-brand"
+        aria-label={liked ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+        aria-pressed={liked}
+        onClick={() => guard(() => toggleFavorite(listing.id))}
+        className={cn(
+          "absolute right-2 top-2 rounded-full bg-card/90 p-2 shadow-card transition-colors hover:text-brand",
+          liked ? "text-brand" : "text-muted-foreground",
+        )}
       >
-        <Heart className="size-4" />
+        <Heart className={cn("size-4", liked && "fill-brand")} />
       </button>
 
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-3 pb-3">
@@ -61,10 +72,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </p>
         <button
           type="button"
-          onClick={() => {
-            const id = startConversation(listing.id);
-            navigate({ to: "/wiadomosci", search: { c: id } });
-          }}
+          onClick={() =>
+            guard(() => {
+              const id = startConversation(listing.id);
+              navigate({ to: "/wiadomosci", search: { c: id } });
+            })
+          }
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-brand-soft"
           title="Napisz do sprzedającego"
         >

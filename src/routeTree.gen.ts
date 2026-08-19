@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LogowanieRouteImport } from './routes/logowanie'
 import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
@@ -17,10 +18,16 @@ import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as WiadomosciRouteImport } from './routes/wiadomosci'
 import { Route as ZamowieniaRouteImport } from './routes/zamowienia'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
+import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogowanieRoute = LogowanieRouteImport.update({
+  id: '/logowanie',
+  path: '/logowanie',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortfelRoute = PortfelRouteImport.update({
@@ -58,9 +65,15 @@ const OfertaIdRoute = OfertaIdRouteImport.update({
   path: '/oferta/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UzytkownikNameRoute = UzytkownikNameRouteImport.update({
+  id: '/uzytkownik/$name',
+  path: '/uzytkownik/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
@@ -68,9 +81,11 @@ export interface FileRoutesByFullPath {
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/oferta/$id': typeof OfertaIdRoute
+  '/uzytkownik/$name': typeof UzytkownikNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
@@ -78,10 +93,12 @@ export interface FileRoutesByTo {
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/oferta/$id': typeof OfertaIdRoute
+  '/uzytkownik/$name': typeof UzytkownikNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
@@ -89,11 +106,13 @@ export interface FileRoutesById {
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/oferta/$id': typeof OfertaIdRoute
+  '/uzytkownik/$name': typeof UzytkownikNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/logowanie'
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
@@ -101,9 +120,11 @@ export interface FileRouteTypes {
     | '/wiadomosci'
     | '/zamowienia'
     | '/oferta/$id'
+    | '/uzytkownik/$name'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/logowanie'
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
@@ -111,9 +132,11 @@ export interface FileRouteTypes {
     | '/wiadomosci'
     | '/zamowienia'
     | '/oferta/$id'
+    | '/uzytkownik/$name'
   id:
     | '__root__'
     | '/'
+    | '/logowanie'
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
@@ -121,10 +144,12 @@ export interface FileRouteTypes {
     | '/wiadomosci'
     | '/zamowienia'
     | '/oferta/$id'
+    | '/uzytkownik/$name'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LogowanieRoute: typeof LogowanieRoute
   PortfelRoute: typeof PortfelRoute
   ProfilRoute: typeof ProfilRoute
   SprzedajRoute: typeof SprzedajRoute
@@ -132,6 +157,7 @@ export interface RootRouteChildren {
   WiadomosciRoute: typeof WiadomosciRoute
   ZamowieniaRoute: typeof ZamowieniaRoute
   OfertaIdRoute: typeof OfertaIdRoute
+  UzytkownikNameRoute: typeof UzytkownikNameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logowanie': {
+      id: '/logowanie'
+      path: '/logowanie'
+      fullPath: '/logowanie'
+      preLoaderRoute: typeof LogowanieRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfel': {
@@ -192,11 +225,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfertaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/uzytkownik/$name': {
+      id: '/uzytkownik/$name'
+      path: '/uzytkownik/$name'
+      fullPath: '/uzytkownik/$name'
+      preLoaderRoute: typeof UzytkownikNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LogowanieRoute: LogowanieRoute,
   PortfelRoute: PortfelRoute,
   ProfilRoute: ProfilRoute,
   SprzedajRoute: SprzedajRoute,
@@ -204,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   WiadomosciRoute: WiadomosciRoute,
   ZamowieniaRoute: ZamowieniaRoute,
   OfertaIdRoute: OfertaIdRoute,
+  UzytkownikNameRoute: UzytkownikNameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

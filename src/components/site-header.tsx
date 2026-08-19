@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle, Plus, Search } from "lucide-react";
 import { useUnreadCount } from "@/data/messages";
+import { useAuthGate } from "@/hooks/use-auth-gate";
 import { UserMenu } from "@/components/user-menu";
 
 export function SiteHeader() {
   const unread = useUnreadCount();
+  const { loggedIn, guard } = useAuthGate();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -30,8 +32,8 @@ export function SiteHeader() {
 
         <nav className="ml-auto flex items-center gap-1">
           <Link
-            to="/wiadomosci"
-            search={{ c: undefined }}
+            to={loggedIn ? "/wiadomosci" : "/logowanie"}
+            search={loggedIn ? { c: undefined } : undefined}
             aria-label={unread > 0 ? `Wiadomości, ${unread} nowe` : "Wiadomości"}
             className="relative rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
@@ -45,13 +47,14 @@ export function SiteHeader() {
           <button
             type="button"
             aria-label="Ulubione"
+            onClick={() => guard(() => {})}
             className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             <Heart className="size-5" />
           </button>
           <UserMenu />
           <Link
-            to="/sprzedaj"
+            to={loggedIn ? "/sprzedaj" : "/logowanie"}
             className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
             <Plus className="size-4" />

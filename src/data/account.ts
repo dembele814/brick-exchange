@@ -64,6 +64,7 @@ type State = {
   orders: Order[];
   wallet: { balance: number; transactions: WalletTx[] };
   loggedIn: boolean;
+  favorites: string[];
 };
 
 const pick = (i: number) => listings[i % listings.length]!;
@@ -195,7 +196,8 @@ let state: State = {
       { id: "t4", label: "Podbicie oferty", amount: -9.99, at: "1 sierpnia 2026" },
     ],
   },
-  loggedIn: true,
+  loggedIn: false,
+  favorites: [],
 };
 
 const listeners = new Set<() => void>();
@@ -262,8 +264,30 @@ export function logout() {
   emit();
 }
 
-export function login() {
+export function login(email: string) {
   state.loggedIn = true;
+  if (email) state.profile = { ...state.profile, email };
+  emit();
+}
+
+export function register(input: { name: string; email: string }) {
+  state.loggedIn = true;
+  state.profile = {
+    ...state.profile,
+    name: input.name || state.profile.name,
+    email: input.email || state.profile.email,
+  };
+  emit();
+}
+
+export function isFavorite(id: string) {
+  return state.favorites.includes(id);
+}
+
+export function toggleFavorite(id: string) {
+  state.favorites = state.favorites.includes(id)
+    ? state.favorites.filter((f) => f !== id)
+    : [...state.favorites, id];
   emit();
 }
 
