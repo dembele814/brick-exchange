@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LogowanieRouteImport } from './routes/logowanie'
 import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
@@ -21,6 +22,11 @@ import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogowanieRoute = LogowanieRouteImport.update({
+  id: '/logowanie',
+  path: '/logowanie',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortfelRoute = PortfelRouteImport.update({
@@ -61,6 +67,7 @@ const OfertaIdRoute = OfertaIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/logowanie'
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/logowanie'
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/logowanie'
     | '/portfel'
     | '/profil'
     | '/sprzedaj'
@@ -125,6 +137,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LogowanieRoute: typeof LogowanieRoute
   PortfelRoute: typeof PortfelRoute
   ProfilRoute: typeof ProfilRoute
   SprzedajRoute: typeof SprzedajRoute
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logowanie': {
+      id: '/logowanie'
+      path: '/logowanie'
+      fullPath: '/logowanie'
+      preLoaderRoute: typeof LogowanieRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfel': {
@@ -197,6 +217,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LogowanieRoute: LogowanieRoute,
   PortfelRoute: PortfelRoute,
   ProfilRoute: ProfilRoute,
   SprzedajRoute: SprzedajRoute,
