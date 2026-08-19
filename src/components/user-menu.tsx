@@ -46,7 +46,30 @@ export function UserMenu() {
         )}
       </button>
 
-      {open && (
+      {open && !loggedIn && (
+        <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-lift">
+          <p className="px-3 py-2 text-sm text-muted-foreground">
+            Oferty przeglądasz bez konta. Zaloguj się, aby kupować, polubić ofertę i pisać do
+            sprzedających.
+          </p>
+          <Link
+            to="/logowanie"
+            onClick={() => setOpen(false)}
+            className="mt-1 block rounded-xl bg-brand px-3 py-2.5 text-center text-sm font-semibold text-brand-foreground"
+          >
+            Zaloguj się
+          </Link>
+          <Link
+            to="/logowanie"
+            onClick={() => setOpen(false)}
+            className="mt-1.5 block rounded-xl border border-border px-3 py-2.5 text-center text-sm font-semibold hover:bg-secondary"
+          >
+            Załóż konto
+          </Link>
+        </div>
+      )}
+
+      {open && loggedIn && (
         <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-lift">
           <div className="flex items-center gap-3 rounded-xl bg-secondary/70 px-3 py-2.5">
             <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-card">

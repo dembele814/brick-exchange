@@ -31,7 +31,6 @@ const MAX_PHOTOS = 20;
 const categories = ["Zestawy LEGO", "Minifigurki", "Części na sztuki", "Klocki luzem"];
 const popularMotifs = ["City", "Star Wars", "Technic", "Harry Potter", "Ninjago", "Marvel"];
 const conditionLevels = ["Popękane", "Lekko zarysowane", "W porządku", "Błyszczące", "Nowe"];
-const boxState = ["Z pudełkiem", "Bez pudełka"];
 
 type Photo = { id: string; url: string; name: string };
 
@@ -75,12 +74,9 @@ function SellPage() {
   const [category, setCategory] = useState(categories[0]!);
   const [motif, setMotif] = useState(popularMotifs[0]!);
   const [condition, setCondition] = useState(conditionLevels[2]!);
-  const [box, setBox] = useState(boxState[0]!);
+  const [hasManual, setHasManual] = useState(false);
+  const [hasBox, setHasBox] = useState(false);
   const [price, setPrice] = useState("");
-  const [parcel, setParcel] = useState(true);
-  const [courier, setCourier] = useState(false);
-  const [pickup, setPickup] = useState(false);
-  const [payout, setPayout] = useState("Przelew na konto");
   const [sent, setSent] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -317,7 +313,32 @@ function SellPage() {
                 Od najgorszego do najlepszego: popękane → nowe.
               </p>
             </div>
-            <Chips name="Pudełko" options={boxState} value={box} onChange={setBox} />
+            <fieldset>
+              <legend className="text-sm font-medium">Co dołączasz do zestawu?</legend>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Zaznacz, jeśli masz — możesz też zostawić odznaczone.
+              </p>
+              <div className="mt-2 space-y-2">
+                <label className="card-surface flex items-center gap-3 p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-brand"
+                    checked={hasManual}
+                    onChange={(e) => setHasManual(e.target.checked)}
+                  />
+                  Instrukcja
+                </label>
+                <label className="card-surface flex items-center gap-3 p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-brand"
+                    checked={hasBox}
+                    onChange={(e) => setHasBox(e.target.checked)}
+                  />
+                  Oryginalne pudełko
+                </label>
+              </div>
+            </fieldset>
           </section>
 
           {/* Cena */}
@@ -343,89 +364,6 @@ function SellPage() {
           </section>
 
 
-          {/* Dostawa */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold">Dostawa</h2>
-            <label className="card-surface flex items-center gap-3 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="size-4 accent-brand"
-                checked={parcel}
-                onChange={(e) => setParcel(e.target.checked)}
-              />
-              <span>
-                Paczkomat
-                <span className="block text-xs text-muted-foreground">
-                  Najtańsza opcja, kupujący wybiera punkt.
-                </span>
-              </span>
-            </label>
-            <label className="card-surface flex items-center gap-3 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="size-4 accent-brand"
-                checked={courier}
-                onChange={(e) => setCourier(e.target.checked)}
-              />
-              <span>
-                Kurier
-                <span className="block text-xs text-muted-foreground">
-                  Dla dużych zestawów i przesyłek ponad 10 kg.
-                </span>
-              </span>
-            </label>
-            <label className="card-surface flex items-center gap-3 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="size-4 accent-brand"
-                checked={pickup}
-                onChange={(e) => setPickup(e.target.checked)}
-              />
-              <span>
-                Odbiór osobisty
-                <span className="block text-xs text-muted-foreground">
-                  Bez kosztów dostawy, płatność przy odbiorze.
-                </span>
-              </span>
-            </label>
-            {pickup && (
-              <label className="block text-sm font-medium">
-                Miasto odbioru
-                <input placeholder="np. Warszawa" className={field} />
-              </label>
-            )}
-          </section>
-
-          {/* Płatności */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold">Płatności</h2>
-            <label className="block text-sm font-medium">
-              Wypłata środków
-              <select
-                className={field}
-                value={payout}
-                onChange={(e) => setPayout(e.target.value)}
-              >
-                <option>Przelew na konto</option>
-                <option>BLIK na numer telefonu</option>
-                <option>Saldo w Klockowni</option>
-              </select>
-            </label>
-            <label className="block text-sm font-medium">
-              {payout === "BLIK na numer telefonu" ? "Numer telefonu" : "Numer konta / dane"}
-              <input
-                placeholder={
-                  payout === "BLIK na numer telefonu" ? "600 000 000" : "PL00 0000 0000 0000"
-                }
-                className={field}
-              />
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Środki trafiają do Ciebie po potwierdzeniu odbioru przez kupującego. Wystawienie
-              oferty jest darmowe.
-            </p>
-          </section>
-
           <button
             type="submit"
             className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
@@ -436,8 +374,8 @@ function SellPage() {
           {sent && (
             <p className="rounded-lg bg-brand-soft px-4 py-3 text-sm">
               Podgląd oferty gotowy: {category} · {motif} · {condition.toLowerCase()},{" "}
-              {box.toLowerCase()} ·{" "}
-              {priceNum.toFixed(2)} zł. Publikacja na żywo pojawi się, gdy podłączymy konta
+              {hasManual ? "z instrukcją" : "bez instrukcji"} ·{" "}
+              {hasBox ? "z pudełkiem" : "bez pudełka"} · {priceNum.toFixed(2)} zł. Publikacja na żywo pojawi się, gdy podłączymy konta
               użytkowników i płatności.
             </p>
           )}
