@@ -1,5 +1,8 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { startConversation } from "@/data/messages";
+import { toggleFavorite, useAccount } from "@/data/account";
+import { useAuthGate } from "@/hooks/use-auth-gate";
+import { cn } from "@/lib/utils";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ListingCard } from "@/components/listing-card";
@@ -10,7 +13,6 @@ import {
   Heart,
   MapPin,
   MessageCircle,
-  ShieldCheck,
   Star,
   X,
 } from "lucide-react";
@@ -45,10 +47,10 @@ export const Route = createFileRoute("/oferta/$id")({
 function OfferPage() {
   const { listing } = Route.useLoaderData();
   const navigate = useNavigate();
+  const { guard } = useAuthGate();
+  const { favorites } = useAccount();
+  const liked = favorites.includes(listing.id);
   const similar = listings.filter((l) => l.id !== listing.id).slice(0, 4);
-
-  const safeBuy = Math.round((listing.price * 0.05 + 1) * 100) / 100;
-  const total = Math.round((listing.price + safeBuy) * 100) / 100;
 
   const facts: [string, boolean][] = [
     ["Komplet elementów", listing.complete],
@@ -93,24 +95,6 @@ function OfferPage() {
               )}
             </p>
 
-            <div className="card-surface mt-4 space-y-1.5 p-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                  <ShieldCheck className="size-4 text-brand" aria-hidden />
-                  Bezpieczny zakup
-                </span>
-                <span>{safeBuy.toFixed(2)} zł</span>
-              </div>
-              <div className="flex items-center justify-between border-t border-border pt-1.5 font-semibold">
-                <span>Do zapłaty</span>
-                <span>{total.toFixed(2)} zł</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Bezpieczny zakup obejmuje ochronę płatności i pomoc, jeśli przesyłka nie dotrze
-                zgodnie z opisem.
-              </p>
-            </div>
-
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-foreground">
                 {listing.condition}
@@ -126,16 +110,19 @@ function OfferPage() {
             <div className="mt-6 flex gap-2">
               <button
                 type="button"
+                onClick={() => guard(() => navigate({ to: "/zamowienia" }))}
                 className="flex-1 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
               >
                 Kup teraz
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  const id = startConversation(listing.id);
-                  navigate({ to: "/wiadomosci", search: { c: id } });
-                }}
+                onClick={() =>
+                  guard(() => {
+                    const id = startConversation(listing.id);
+                    navigate({ to: "/wiadomosci", search: { c: id } });
+                  })
+                }
                 className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
               >
                 <MessageCircle className="size-4" aria-hidden />
@@ -143,10 +130,15 @@ function OfferPage() {
               </button>
               <button
                 type="button"
-                aria-label="Dodaj do ulubionych"
-                className="rounded-full border border-border bg-card p-3 text-muted-foreground transition-colors hover:text-brand"
+                aria-label={liked ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+                aria-pressed={liked}
+                onClick={() => guard(() => toggleFavorite(listing.id))}
+                className={cn(
+                  "rounded-full border border-border bg-card p-3 transition-colors hover:text-brand",
+                  liked ? "text-brand" : "text-muted-foreground",
+                )}
               >
-                <Heart className="size-5" />
+                <Heart className={cn("size-5", liked && "fill-brand")} />
               </button>
             </div>
 
@@ -167,7 +159,11 @@ function OfferPage() {
               {listing.description}
             </p>
 
-            <div className="card-surface mt-7 flex items-center gap-3 p-4">
+            <Link
+              to="/uzytkownik/$name"
+              params={{ name: listing.seller.name }}
+              className="card-surface mt-7 flex items-center gap-3 p-4 transition-shadow hover:shadow-lift"
+            >
               <span className="grid size-11 place-items-center rounded-full bg-secondary text-sm font-bold">
                 {listing.seller.name.slice(0, 1)}
               </span>
@@ -177,8 +173,11 @@ function OfferPage() {
                   <Star className="size-3.5 fill-sun text-sun" aria-hidden />
                   {listing.seller.rating} · {listing.seller.sales} sprzedaży
                 </p>
+                <p className="mt-0.5 text-xs font-semibold text-brand">
+                  Zobacz profil i wszystkie ogłoszenia
+                </p>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
 
