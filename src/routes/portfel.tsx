@@ -40,6 +40,7 @@ function WalletPage() {
   >("loading");
   const [connectError, setConnectError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -55,14 +56,6 @@ function WalletPage() {
   const startConnect = async () => {
     setConnecting(true);
     setConnectError(null);
-    // Stripe-hosted onboarding refuses to render inside Lovable's preview iframe.
-    // Open a real browser tab synchronously so popup blockers recognise the click.
-    const stripeWindow = window.open("about:blank", "_blank");
-    if (stripeWindow) {
-      stripeWindow.opener = null;
-      stripeWindow.document.title = "Otwieramy bezpieczną stronę Stripe…";
-      stripeWindow.document.body.textContent = "Otwieramy bezpieczną stronę Stripe…";
-    }
     try {
       const response = await authenticatedRequest(requireSupabase(), "/api/connect", {
         method: "POST",
@@ -70,10 +63,9 @@ function WalletPage() {
       const result = (await response.json()) as { onboardingUrl?: string; error?: string };
       if (!response.ok || !result.onboardingUrl)
         throw new Error(result.error ?? "Nie udało się otworzyć Stripe.");
-      if (stripeWindow) stripeWindow.location.replace(result.onboardingUrl);
-      else window.location.assign(result.onboardingUrl);
+      setOnboardingUrl(result.onboardingUrl);
+      setConnecting(false);
     } catch (cause) {
-      stripeWindow?.close();
       setConnectError(cause instanceof Error ? cause.message : "Nie udało się otworzyć Stripe.");
       setConnecting(false);
     }
@@ -149,7 +141,7 @@ function WalletPage() {
                   ? "Stripe potwierdził możliwość otrzymywania transferów w sandboxie. Prawdziwe pieniądze pozostają wyłączone."
                   : "Stripe Connect przeprowadzi testową weryfikację sprzedawcy. W sandboxie używaj wyłącznie danych testowych."}
               </p>
-              {connectStatus !== "active" && connectStatus !== "loading" && (
+              {connectStatus !== "active" && connectStatus !== "loading" && !onboardingUrl && (
                 <button
                   type="button"
                   disabled={connecting}
@@ -162,6 +154,22 @@ function WalletPage() {
                       ? "Rozpocznij testową weryfikację"
                       : "Dokończ testową weryfikację"}
                 </button>
+              )}
+              {onboardingUrl && (
+                <div className="mt-4 rounded-2xl border border-sky/25 bg-card p-4">
+                  <p className="text-sm font-semibold">Link Stripe jest gotowy</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Otwórz go jako zwykłą kartę przeglądarki. Link jest jednorazowy.
+                  </p>
+                  <a
+                    href={onboardingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background"
+                  >
+                    Otwórz Stripe w nowej karcie
+                  </a>
+                </div>
               )}
               {connectStatus === "loading" && (
                 <p className="mt-3 text-xs font-semibold text-muted-foreground">
