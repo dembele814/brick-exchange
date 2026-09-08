@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import Stripe from "stripe";
-import { paymentConfig, checkoutEvent, sessionParameters } from "../src/server/payments.ts";
+import {
+  paymentConfig,
+  checkoutEvent,
+  refundTestPayment,
+  sessionParameters,
+} from "../src/server/payments.ts";
 import { handleCheckout } from "../src/server/checkout-handler.ts";
 import { handleStripeWebhook } from "../src/server/stripe-webhook-handler.ts";
 import {
@@ -58,6 +63,46 @@ test("Connect seller account assigns marketplace responsibility and recipient tr
   assert.equal(
     params.configuration.recipient.capabilities.stripe_balance.stripe_transfers.requested,
     true,
+  );
+});
+
+test("test refund verifies payment ownership and uses a stable idempotency key", async () => {
+  const calls = [];
+  const stripeFixture = {
+    paymentIntents: {
+      retrieve: async () => ({
+        id: "pi_test_refund",
+        livemode: false,
+        status: "succeeded",
+        metadata: { order_id: "order-one" },
+      }),
+    },
+    refunds: {
+      create: async (params, options) => {
+        calls.push({ params, options });
+        return { id: "re_test", status: "succeeded" };
+      },
+    },
+  };
+  const result = await refundTestPayment(stripeFixture, {
+    id: "order-one",
+    stripe_payment_intent_id: "pi_test_refund",
+  });
+  assert.equal(result.status, "succeeded");
+  assert.equal(calls[0].params.payment_intent, "pi_test_refund");
+  assert.equal(calls[0].options.idempotencyKey, "klockownia-refund:order-one:v1");
+
+  stripeFixture.paymentIntents.retrieve = async () => ({
+    id: "pi_test_refund",
+    livemode: true,
+    status: "succeeded",
+    metadata: { order_id: "order-one" },
+  });
+  await assert.rejects(() =>
+    refundTestPayment(stripeFixture, {
+      id: "order-one",
+      stripe_payment_intent_id: "pi_test_refund",
+    }),
   );
 });
 

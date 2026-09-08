@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { z } from "zod";
 import { createDeliveredTransfer } from "@/server/connect";
-import { paymentConfig } from "@/server/payments";
+import { paymentConfig, refundTestPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
 const fulfillmentInput = z.object({
@@ -14,7 +14,15 @@ const deliveryInput = z.object({
   orderId: z.string().uuid(),
   action: z.literal("confirm_delivered"),
 });
-const orderActionInput = z.discriminatedUnion("action", [fulfillmentInput, deliveryInput]);
+const cancellationInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("cancel_before_shipment"),
+});
+const orderActionInput = z.discriminatedUnion("action", [
+  fulfillmentInput,
+  deliveryInput,
+  cancellationInput,
+]);
 
 async function authenticatedUser(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -38,7 +46,7 @@ export const Route = createFileRoute("/api/orders")({
         const { data, error } = await getSupabaseAdmin()
           .from("orders")
           .select(
-            "id,buyer_id,seller_id,amount_grosz,status,shipping_carrier,locker_id,tracking_number,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
+            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,locker_id,tracking_number,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
           )
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .order("created_at", { ascending: false });
@@ -67,12 +75,109 @@ export const Route = createFileRoute("/api/orders")({
         const { data: order, error: orderError } = await admin
           .from("orders")
           .select(
-            "id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id",
+            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id",
           )
           .eq("id", action.orderId)
           .maybeSingle();
         if (orderError || !order)
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
+        if (action.action === "cancel_before_shipment") {
+          if (order.buyer_id !== user.id)
+            return Response.json(
+              { error: "Tylko kupujący może anulować zamówienie." },
+              { status: 403 },
+            );
+          if (
+            (order.status !== "paid" && order.status !== "cancelled") ||
+            order.payment_status !== "paid"
+          )
+            return Response.json(
+              { error: "Można anulować tylko opłacone zamówienie przed wysyłką." },
+              { status: 409 },
+            );
+
+          if (order.status === "paid") {
+            const { data: claimed, error: claimError } = await admin
+              .from("orders")
+              .update({ status: "cancelled" })
+              .eq("id", order.id)
+              .eq("status", "paid")
+              .eq("payment_status", "paid")
+              .select("id")
+              .maybeSingle();
+            if (claimError || !claimed)
+              return Response.json(
+                { error: "Status zamówienia zmienił się. Odśwież stronę." },
+                { status: 409 },
+              );
+          }
+
+          let refund: Awaited<ReturnType<typeof refundTestPayment>>;
+          try {
+            const config = paymentConfig(process.env);
+            refund = await refundTestPayment(new Stripe(config.key), order);
+          } catch {
+            console.error("Test refund outcome requires reconciliation", order.id);
+            return Response.json(
+              { error: "Zwrot jest sprawdzany. Użyj przycisku ponownie za chwilę." },
+              { status: 503 },
+            );
+          }
+          if (refund.status === "failed" || refund.status === "canceled") {
+            await admin
+              .from("orders")
+              .update({ status: "paid" })
+              .eq("id", order.id)
+              .eq("status", "cancelled")
+              .eq("payment_status", "paid");
+            return Response.json(
+              { error: "Stripe odrzucił zwrot płatności testowej. Spróbuj ponownie." },
+              { status: 503 },
+            );
+          }
+          if (refund.status !== "succeeded")
+            return Response.json({ ok: true, pending: true }, { status: 202 });
+
+          try {
+            const { error: listingUpdateError } = await admin
+              .from("listings")
+              .update({ status: "active" })
+              .eq("id", order.listing_id);
+            if (listingUpdateError) throw listingUpdateError;
+            const { data: reconciled, error: refundUpdateError } = await admin
+              .from("orders")
+              .update({ status: "cancelled", payment_status: "refunded" })
+              .eq("id", order.id)
+              .eq("status", "cancelled")
+              .eq("payment_status", "paid")
+              .select("id")
+              .maybeSingle();
+            if (refundUpdateError) throw refundUpdateError;
+            if (!reconciled) return Response.json({ ok: true });
+            const { error: eventError } = await admin.from("order_events").insert({
+              order_id: order.id,
+              actor_id: user.id,
+              event_type: "payment_refunded",
+              payload: { stripe_refund_id: refund.id },
+            });
+            const { error: notificationError } = await admin.from("notifications").insert({
+              user_id: order.seller_id,
+              kind: "payment",
+              title: "Zamówienie anulowane",
+              body: "Kupujący anulował zamówienie przed wysyłką. Płatność testowa została zwrócona, a oferta jest ponownie aktywna.",
+              href: `/zamowienia?order=${order.id}`,
+            });
+            if (eventError || notificationError)
+              console.error("Refund follow-up record requires investigation", order.id);
+            return Response.json({ ok: true });
+          } catch {
+            console.error("Refunded order requires database reconciliation", order.id);
+            return Response.json(
+              { error: "Płatność zwrócona. Odśwież status ponownie za chwilę." },
+              { status: 503 },
+            );
+          }
+        }
         if (action.action === "confirm_delivered") {
           if (order.buyer_id !== user.id)
             return Response.json(

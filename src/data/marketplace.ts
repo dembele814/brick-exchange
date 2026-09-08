@@ -471,7 +471,13 @@ export type MarketplaceOrder = {
   total: number;
   counterparty: string;
   status:
-    "W oczekiwaniu na płatność" | "Opłacone" | "Wysłane" | "Dostarczone" | "Anulowane" | "Zwrócone";
+    | "W oczekiwaniu na płatność"
+    | "Opłacone"
+    | "Wysłane"
+    | "Dostarczone"
+    | "Anulowane"
+    | "Zwrot w toku"
+    | "Zwrócone";
   carrier: string;
   carrierCode: "inpost" | "orlen" | "dpd" | "dhl";
   pickupPoint: string;
@@ -520,7 +526,12 @@ async function loadOrders() {
         kind === "bought"
           ? (order.seller?.username ?? "Sprzedawca")
           : (order.buyer?.username ?? "Kupujący"),
-      status: orderStatusLabels[order.status] ?? "W oczekiwaniu na płatność",
+      status:
+        order.payment_status === "refunded"
+          ? "Zwrócone"
+          : order.status === "cancelled" && order.payment_status === "paid"
+            ? "Zwrot w toku"
+            : (orderStatusLabels[order.status] ?? "W oczekiwaniu na płatność"),
       carrier:
         (
           { inpost: "InPost", orlen: "ORLEN Paczka", dpd: "DPD Pickup", dhl: "DHL POP" } as Record<
@@ -567,6 +578,7 @@ const orderEventLabels: Record<string, string> = {
   payment_confirmed: "Płatność potwierdzona",
   shipment_marked_shipped: "Przesyłka została nadana",
   delivery_confirmed: "Odbiór został potwierdzony",
+  payment_refunded: "Płatność została zwrócona",
   review_created: "Dodano opinię po zakupie",
 };
 
@@ -635,6 +647,22 @@ export async function confirmOrderDelivered(orderId: string) {
   });
   const result = (await response.json()) as { error?: string };
   if (!response.ok) throw new Error(result.error ?? "Nie udało się potwierdzić odbioru.");
+}
+
+export async function cancelOrderBeforeShipment(orderId: string) {
+  const client = requireSupabase();
+  const { data } = await client.auth.getSession();
+  if (!data.session?.access_token) throw new Error("Zaloguj się, aby anulować zamówienie.");
+  const response = await fetch("/api/orders", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+    body: JSON.stringify({ orderId, action: "cancel_before_shipment" }),
+  });
+  const result = (await response.json()) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "Nie udało się anulować zamówienia.");
 }
 
 export async function submitReview(orderId: string, rating: number, body: string) {

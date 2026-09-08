@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
 import { useAccount } from "@/data/account";
 import {
+  cancelOrderBeforeShipment,
   confirmOrderDelivered,
   markOrderShipped,
   submitReview,
@@ -56,6 +57,7 @@ function OrdersPage() {
   const [fulfillmentError, setFulfillmentError] = useState<string | null>(null);
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<string[]>([]);
   const [timelineOrderId, setTimelineOrderId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -259,6 +261,39 @@ function OrdersPage() {
                     className="mt-3 rounded-full bg-mint px-3 py-2 text-xs font-semibold text-primary disabled:opacity-60"
                   >
                     {deliveryOrderId === o.id ? "Zapis…" : "Potwierdź odbiór paczki"}
+                  </button>
+                )}
+                {tab === "bought" && (o.status === "Opłacone" || o.status === "Zwrot w toku") && (
+                  <button
+                    type="button"
+                    disabled={cancellingOrderId === o.id}
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          "Anulować zamówienie i zwrócić całą płatność testową? Oferta ponownie trafi do sprzedaży.",
+                        )
+                      )
+                        return;
+                      setCancellingOrderId(o.id);
+                      setFulfillmentError(null);
+                      void cancelOrderBeforeShipment(o.id)
+                        .then(reload)
+                        .catch((cause) =>
+                          setFulfillmentError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "Nie udało się anulować zamówienia.",
+                          ),
+                        )
+                        .finally(() => setCancellingOrderId(null));
+                    }}
+                    className="mt-3 rounded-full border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
+                  >
+                    {cancellingOrderId === o.id
+                      ? "Zwracanie płatności…"
+                      : o.status === "Zwrot w toku"
+                        ? "Sprawdź zwrot ponownie"
+                        : "Anuluj i zwróć płatność testową"}
                   </button>
                 )}
                 {tab === "bought" &&

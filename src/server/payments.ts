@@ -81,6 +81,29 @@ export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.Session
   };
 }
 
+export async function refundTestPayment(
+  stripe: Stripe,
+  order: { id: string; stripe_payment_intent_id: string | null },
+) {
+  if (!order.stripe_payment_intent_id) throw new Error("Payment intent is missing");
+  const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
+  if (
+    paymentIntent.livemode ||
+    paymentIntent.status !== "succeeded" ||
+    paymentIntent.metadata["order_id"] !== order.id
+  )
+    throw new Error("Payment does not match the order");
+
+  return stripe.refunds.create(
+    {
+      payment_intent: paymentIntent.id,
+      reason: "requested_by_customer",
+      metadata: { order_id: order.id, integration: "klockownia_refund_v1" },
+    },
+    { idempotencyKey: `klockownia-refund:${order.id}:v1` },
+  );
+}
+
 export function checkoutEvent(event: Stripe.Event) {
   if (event.livemode || event.account) throw new Error("Unexpected Stripe account or mode");
   if (
