@@ -55,6 +55,14 @@ function WalletPage() {
   const startConnect = async () => {
     setConnecting(true);
     setConnectError(null);
+    // Stripe-hosted onboarding refuses to render inside Lovable's preview iframe.
+    // Open a real browser tab synchronously so popup blockers recognise the click.
+    const stripeWindow = window.open("about:blank", "_blank");
+    if (stripeWindow) {
+      stripeWindow.opener = null;
+      stripeWindow.document.title = "Otwieramy bezpieczną stronę Stripe…";
+      stripeWindow.document.body.textContent = "Otwieramy bezpieczną stronę Stripe…";
+    }
     try {
       const response = await authenticatedRequest(requireSupabase(), "/api/connect", {
         method: "POST",
@@ -62,8 +70,10 @@ function WalletPage() {
       const result = (await response.json()) as { onboardingUrl?: string; error?: string };
       if (!response.ok || !result.onboardingUrl)
         throw new Error(result.error ?? "Nie udało się otworzyć Stripe.");
-      window.location.assign(result.onboardingUrl);
+      if (stripeWindow) stripeWindow.location.replace(result.onboardingUrl);
+      else window.location.assign(result.onboardingUrl);
     } catch (cause) {
+      stripeWindow?.close();
       setConnectError(cause instanceof Error ? cause.message : "Nie udało się otworzyć Stripe.");
       setConnecting(false);
     }
