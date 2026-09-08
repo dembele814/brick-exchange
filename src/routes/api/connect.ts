@@ -3,9 +3,8 @@ import Stripe from "stripe";
 import { z } from "zod";
 import {
   connectAccountCreateParams,
-  connectFeeGrosz,
   connectState,
-  sellerProceedsGrosz,
+  createDeliveredTransfer,
 } from "@/server/connect";
 import { paymentConfig } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
@@ -152,53 +151,13 @@ export const Route = createFileRoute("/api/connect")({
 
         try {
           const { stripe } = stripeClient();
-          const account = await stripe.v2.core.accounts.retrieve(accountId, {
-            include: ["configuration.recipient"],
-          });
-          if (connectState(account).state !== "active")
+          const result = await createDeliveredTransfer(stripe, accountId, order);
+          if (result.state === "not_ready")
             return Response.json(
               { error: "Dokończ weryfikację Stripe przed transferem." },
               { status: 409 },
             );
-          const paymentIntent = await stripe.paymentIntents.retrieve(
-            order.stripe_payment_intent_id,
-            { expand: ["latest_charge"] },
-          );
-          if (
-            paymentIntent.livemode ||
-            paymentIntent.status !== "succeeded" ||
-            paymentIntent.metadata["order_id"] !== order.id
-          )
-            throw new Error("Payment does not match the order");
-          const latestCharge = paymentIntent.latest_charge;
-          const chargeId =
-            typeof latestCharge === "string" ? latestCharge : (latestCharge?.id ?? null);
-          if (!chargeId) throw new Error("Payment charge is missing");
-
-          const expectedFee = connectFeeGrosz(order.amount_grosz);
-          const storedFee = Number(paymentIntent.metadata["platform_fee_grosz"] ?? expectedFee);
-          if (!Number.isSafeInteger(storedFee) || storedFee !== expectedFee)
-            throw new Error("Fee snapshot does not match policy");
-          const amount = sellerProceedsGrosz(order.amount_grosz);
-          if (amount <= 0)
-            return Response.json({ state: "no_transfer", amount: 0, fee: expectedFee });
-
-          await stripe.transfers.create(
-            {
-              amount,
-              currency: "pln",
-              destination: accountId,
-              source_transaction: chargeId,
-              transfer_group: paymentIntent.transfer_group ?? `order_${order.id}`,
-              metadata: {
-                order_id: order.id,
-                platform_fee_grosz: String(expectedFee),
-                integration: "klockownia_connect_v1",
-              },
-            },
-            { idempotencyKey: `klockownia-transfer:${order.id}:v1` },
-          );
-          return Response.json({ state: "transferred", amount, fee: expectedFee });
+          return Response.json(result);
         } catch {
           console.error("Stripe Connect transfer requires retry or investigation", order.id);
           return Response.json(

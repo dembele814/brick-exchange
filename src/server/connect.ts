@@ -58,3 +58,66 @@ export function connectState(account: Stripe.V2.Core.Account) {
       capability?.status_details?.some((detail) => detail.resolution === "provide_info") ?? true,
   };
 }
+
+export type DeliveredTransferOrder = {
+  id: string;
+  amount_grosz: number;
+  status: string;
+  payment_status: string;
+  stripe_payment_intent_id: string | null;
+};
+
+export async function createDeliveredTransfer(
+  stripe: Stripe,
+  accountId: string,
+  order: DeliveredTransferOrder,
+) {
+  if (
+    order.status !== "delivered" ||
+    order.payment_status !== "paid" ||
+    !order.stripe_payment_intent_id
+  )
+    throw new Error("Order is not eligible for transfer");
+
+  const account = await stripe.v2.core.accounts.retrieve(accountId, {
+    include: ["configuration.recipient"],
+  });
+  if (connectState(account).state !== "active") return { state: "not_ready" as const };
+
+  const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id, {
+    expand: ["latest_charge"],
+  });
+  if (
+    paymentIntent.livemode ||
+    paymentIntent.status !== "succeeded" ||
+    paymentIntent.metadata["order_id"] !== order.id
+  )
+    throw new Error("Payment does not match the order");
+  const latestCharge = paymentIntent.latest_charge;
+  const chargeId = typeof latestCharge === "string" ? latestCharge : (latestCharge?.id ?? null);
+  if (!chargeId) throw new Error("Payment charge is missing");
+
+  const fallbackFee = connectFeeGrosz(order.amount_grosz);
+  const storedFee = Number(paymentIntent.metadata["platform_fee_grosz"] ?? fallbackFee);
+  if (!Number.isSafeInteger(storedFee) || storedFee < 0 || storedFee > order.amount_grosz)
+    throw new Error("Invalid fee snapshot");
+  const amount = order.amount_grosz - storedFee;
+  if (amount <= 0) return { state: "no_transfer" as const, amount: 0, fee: storedFee };
+
+  await stripe.transfers.create(
+    {
+      amount,
+      currency: "pln",
+      destination: accountId,
+      source_transaction: chargeId,
+      transfer_group: paymentIntent.transfer_group ?? `order_${order.id}`,
+      metadata: {
+        order_id: order.id,
+        platform_fee_grosz: String(storedFee),
+        integration: "klockownia_connect_v1",
+      },
+    },
+    { idempotencyKey: `klockownia-transfer:${order.id}:v1` },
+  );
+  return { state: "transferred" as const, amount, fee: storedFee };
+}
