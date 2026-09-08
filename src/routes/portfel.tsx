@@ -49,9 +49,25 @@ function WalletPage() {
     if (!loggedIn) return;
     void authenticatedRequest(requireSupabase(), "/api/connect", { method: "GET" })
       .then(async (response) => {
-        const result = (await response.json()) as { state?: typeof connectStatus; error?: string };
+        const result = (await response.json()) as {
+          state?: typeof connectStatus;
+          transfers?: Record<string, { amount: number; fee: number }>;
+          error?: string;
+        };
         if (!response.ok || !result.state) throw new Error(result.error ?? "Brak statusu Stripe.");
         setConnectStatus(result.state);
+        if (result.transfers)
+          setPayouts(
+            Object.fromEntries(
+              Object.entries(result.transfers).map(([orderId, transfer]) => [
+                orderId,
+                {
+                  state: "done" as const,
+                  message: `Przekazano testowo ${money.format(transfer.amount / 100)}`,
+                },
+              ]),
+            ),
+          );
       })
       .catch(() => setConnectStatus("error"));
   }, [loggedIn]);

@@ -39,7 +39,33 @@ export const Route = createFileRoute("/api/connect")({
           const account = await stripe.v2.core.accounts.retrieve(accountId, {
             include: ["configuration.recipient", "requirements"],
           });
-          return Response.json(connectState(account));
+          const state = connectState(account);
+          const transfers: Record<string, { amount: number; fee: number }> = {};
+          if (state.state === "active") {
+            const { data: deliveredOrders, error: ordersError } = await getSupabaseAdmin()
+              .from("orders")
+              .select("id")
+              .eq("seller_id", user.id)
+              .eq("status", "delivered")
+              .order("created_at", { ascending: false })
+              .limit(5);
+            if (ordersError) throw ordersError;
+            await Promise.all(
+              (deliveredOrders ?? []).map(async (order) => {
+                const result = await stripe.transfers.list({
+                  transfer_group: `order_${order.id}`,
+                  limit: 1,
+                });
+                const transfer = result.data.find((item) => !item.reversed);
+                if (transfer)
+                  transfers[order.id] = {
+                    amount: transfer.amount,
+                    fee: Number(transfer.metadata["platform_fee_grosz"] ?? 0),
+                  };
+              }),
+            );
+          }
+          return Response.json({ ...state, transfers });
         } catch {
           return Response.json(
             { error: "Nie udało się sprawdzić statusu konta Stripe." },
