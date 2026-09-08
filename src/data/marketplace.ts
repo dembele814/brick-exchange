@@ -569,6 +569,7 @@ export function useOrders() {
 export type MarketplaceOrderEvent = {
   id: number;
   orderId: string;
+  type: string;
   label: string;
   at: string;
 };
@@ -579,6 +580,8 @@ const orderEventLabels: Record<string, string> = {
   shipment_marked_shipped: "Przesyłka została nadana",
   delivery_confirmed: "Odbiór został potwierdzony",
   payment_refunded: "Płatność została zwrócona",
+  problem_reported: "Kupujący zgłosił problem",
+  problem_resolved: "Problem został rozwiązany",
   review_created: "Dodano opinię po zakupie",
 };
 
@@ -593,6 +596,7 @@ async function loadOrderEvents(orderIds: string[]) {
   return (data ?? []).map((event: any) => ({
     id: event.id,
     orderId: event.order_id,
+    type: event.event_type,
     label: orderEventLabels[event.event_type] ?? "Aktualizacja zamówienia",
     at: new Intl.DateTimeFormat("pl-PL", { dateStyle: "medium", timeStyle: "short" }).format(
       new Date(event.created_at),
@@ -603,6 +607,7 @@ async function loadOrderEvents(orderIds: string[]) {
 export function useOrderEvents(orderIds: string[]) {
   const [items, setItems] = useState<MarketplaceOrderEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   const key = orderIds.join(",");
   useEffect(() => {
     if (!supabase) return;
@@ -613,8 +618,8 @@ export function useOrderEvents(orderIds: string[]) {
           cause instanceof Error ? cause.message : "Nie udało się pobrać historii zamówienia.",
         ),
       );
-  }, [key]);
-  return { items, error };
+  }, [key, revision]);
+  return { items, error, reload: () => setRevision((value) => value + 1) };
 }
 
 export async function markOrderShipped(orderId: string, trackingNumber: string) {
@@ -663,6 +668,31 @@ export async function cancelOrderBeforeShipment(orderId: string) {
   });
   const result = (await response.json()) as { error?: string };
   if (!response.ok) throw new Error(result.error ?? "Nie udało się anulować zamówienia.");
+}
+
+export async function updateOrderProblem(
+  orderId: string,
+  input:
+    | {
+        action: "report_problem";
+        reason: "damaged" | "incomplete" | "not_as_described" | "not_received" | "other";
+        details: string;
+      }
+    | { action: "resolve_problem" },
+) {
+  const client = requireSupabase();
+  const { data } = await client.auth.getSession();
+  if (!data.session?.access_token) throw new Error("Zaloguj się, aby zarządzać zgłoszeniem.");
+  const response = await fetch("/api/orders", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+    body: JSON.stringify({ orderId, ...input }),
+  });
+  const result = (await response.json()) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "Nie udało się zapisać zgłoszenia.");
 }
 
 export async function submitReview(orderId: string, rating: number, body: string) {

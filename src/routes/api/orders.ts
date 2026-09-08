@@ -18,10 +18,22 @@ const cancellationInput = z.object({
   orderId: z.string().uuid(),
   action: z.literal("cancel_before_shipment"),
 });
+const problemInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("report_problem"),
+  reason: z.enum(["damaged", "incomplete", "not_as_described", "not_received", "other"]),
+  details: z.string().trim().min(10).max(1000),
+});
+const resolveProblemInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("resolve_problem"),
+});
 const orderActionInput = z.discriminatedUnion("action", [
   fulfillmentInput,
   deliveryInput,
   cancellationInput,
+  problemInput,
+  resolveProblemInput,
 ]);
 
 async function authenticatedUser(request: Request) {
@@ -29,6 +41,19 @@ async function authenticatedUser(request: Request) {
   if (!token) return null;
   const { data, error } = await getSupabaseAdmin().auth.getUser(token);
   return error ? null : data.user;
+}
+
+async function hasOpenProblem(orderId: string) {
+  const { data, error } = await getSupabaseAdmin()
+    .from("order_events")
+    .select("event_type")
+    .eq("order_id", orderId)
+    .in("event_type", ["problem_reported", "problem_resolved"])
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.event_type === "problem_reported";
 }
 
 export const Route = createFileRoute("/api/orders")({
@@ -81,6 +106,43 @@ export const Route = createFileRoute("/api/orders")({
           .maybeSingle();
         if (orderError || !order)
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
+        if (action.action === "report_problem" || action.action === "resolve_problem") {
+          if (order.buyer_id !== user.id)
+            return Response.json(
+              { error: "Tylko kupujący może zarządzać zgłoszeniem problemu." },
+              { status: 403 },
+            );
+          if (order.status !== "shipped")
+            return Response.json(
+              { error: "Problem z przesyłką można zgłosić przed potwierdzeniem odbioru." },
+              { status: 409 },
+            );
+          const problemOpen = await hasOpenProblem(order.id);
+          if (action.action === "report_problem" && problemOpen)
+            return Response.json({ error: "Problem jest już zgłoszony." }, { status: 409 });
+          if (action.action === "resolve_problem" && !problemOpen)
+            return Response.json({ error: "Brak otwartego zgłoszenia." }, { status: 409 });
+
+          const reported = action.action === "report_problem";
+          const { error: eventError } = await admin.from("order_events").insert({
+            order_id: order.id,
+            actor_id: user.id,
+            event_type: reported ? "problem_reported" : "problem_resolved",
+            payload: reported ? { reason: action.reason, details: action.details } : {},
+          });
+          if (eventError)
+            return Response.json({ error: "Nie udało się zapisać zgłoszenia." }, { status: 500 });
+          await admin.from("notifications").insert({
+            user_id: order.seller_id,
+            kind: "system",
+            title: reported ? "Kupujący zgłosił problem" : "Problem został rozwiązany",
+            body: reported
+              ? `Kupujący wstrzymał potwierdzenie odbioru: ${action.details.slice(0, 350)}`
+              : "Kupujący oznaczył problem jako rozwiązany. Może teraz potwierdzić odbiór.",
+            href: `/zamowienia?order=${order.id}`,
+          });
+          return Response.json({ ok: true });
+        }
         if (action.action === "cancel_before_shipment") {
           if (order.buyer_id !== user.id)
             return Response.json(
@@ -187,6 +249,11 @@ export const Route = createFileRoute("/api/orders")({
           if (order.status !== "shipped")
             return Response.json(
               { error: "Odbiór można potwierdzić po nadaniu przesyłki." },
+              { status: 409 },
+            );
+          if (await hasOpenProblem(order.id))
+            return Response.json(
+              { error: "Najpierw oznacz zgłoszony problem jako rozwiązany." },
               { status: 409 },
             );
           const { error: deliveredError } = await admin

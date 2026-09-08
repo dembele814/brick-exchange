@@ -11,6 +11,7 @@ import {
   confirmOrderDelivered,
   markOrderShipped,
   submitReview,
+  updateOrderProblem,
   useOrderEvents,
   useOrders,
 } from "@/data/marketplace";
@@ -52,12 +53,17 @@ function OrdersPage() {
   const { loggedIn } = useAccount();
   const { items: orders, loading, error, reload } = useOrders();
   const { order: focusedOrderId, payment } = Route.useSearch();
-  const { items: events, error: eventsError } = useOrderEvents(orders.map((order) => order.id));
+  const {
+    items: events,
+    error: eventsError,
+    reload: reloadEvents,
+  } = useOrderEvents(orders.map((order) => order.id));
   const [tab, setTab] = useState<"bought" | "sold">("bought");
   const [fulfillmentError, setFulfillmentError] = useState<string | null>(null);
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+  const [problemOrderId, setProblemOrderId] = useState<string | null>(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<string[]>([]);
   const [timelineOrderId, setTimelineOrderId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -240,28 +246,132 @@ function OrdersPage() {
                     </button>
                   </form>
                 )}
+                {tab === "bought" &&
+                  o.status === "Wysłane" &&
+                  !events
+                    .filter((event) => event.orderId === o.id)
+                    .some(
+                      (event, index, orderEvents) =>
+                        event.type === "problem_reported" &&
+                        !orderEvents
+                          .slice(index + 1)
+                          .some((later) => later.type === "problem_resolved"),
+                    ) && (
+                    <button
+                      type="button"
+                      disabled={deliveryOrderId === o.id}
+                      onClick={() => {
+                        setDeliveryOrderId(o.id);
+                        setFulfillmentError(null);
+                        void confirmOrderDelivered(o.id)
+                          .then(reload)
+                          .catch((cause) =>
+                            setFulfillmentError(
+                              cause instanceof Error
+                                ? cause.message
+                                : "Nie udało się potwierdzić odbioru.",
+                            ),
+                          )
+                          .finally(() => setDeliveryOrderId(null));
+                      }}
+                      className="mt-3 rounded-full bg-mint px-3 py-2 text-xs font-semibold text-primary disabled:opacity-60"
+                    >
+                      {deliveryOrderId === o.id ? "Zapis…" : "Potwierdź odbiór paczki"}
+                    </button>
+                  )}
                 {tab === "bought" && o.status === "Wysłane" && (
-                  <button
-                    type="button"
-                    disabled={deliveryOrderId === o.id}
-                    onClick={() => {
-                      setDeliveryOrderId(o.id);
-                      setFulfillmentError(null);
-                      void confirmOrderDelivered(o.id)
-                        .then(reload)
-                        .catch((cause) =>
-                          setFulfillmentError(
-                            cause instanceof Error
-                              ? cause.message
-                              : "Nie udało się potwierdzić odbioru.",
-                          ),
-                        )
-                        .finally(() => setDeliveryOrderId(null));
-                    }}
-                    className="mt-3 rounded-full bg-mint px-3 py-2 text-xs font-semibold text-primary disabled:opacity-60"
-                  >
-                    {deliveryOrderId === o.id ? "Zapis…" : "Potwierdź odbiór paczki"}
-                  </button>
+                  <div className="mt-3">
+                    {events.filter((event) => event.orderId === o.id).at(-1)?.type ===
+                    "problem_reported" ? (
+                      <div className="rounded-xl border border-sun/40 bg-sun-soft p-3">
+                        <p className="text-xs font-semibold">Problem zgłoszony — wypłata czeka.</p>
+                        <button
+                          type="button"
+                          disabled={problemOrderId === o.id}
+                          onClick={() => {
+                            setProblemOrderId(o.id);
+                            setFulfillmentError(null);
+                            void updateOrderProblem(o.id, { action: "resolve_problem" })
+                              .then(() => {
+                                reload();
+                                reloadEvents();
+                              })
+                              .catch((cause) =>
+                                setFulfillmentError(
+                                  cause instanceof Error
+                                    ? cause.message
+                                    : "Nie udało się zamknąć zgłoszenia.",
+                                ),
+                              )
+                              .finally(() => setProblemOrderId(null));
+                          }}
+                          className="mt-2 text-xs font-semibold text-brand hover:text-brand/75 disabled:opacity-60"
+                        >
+                          Problem rozwiązany
+                        </button>
+                      </div>
+                    ) : (
+                      <form
+                        className="rounded-xl border border-border bg-card p-3"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const form = new FormData(event.currentTarget);
+                          setProblemOrderId(o.id);
+                          setFulfillmentError(null);
+                          void updateOrderProblem(o.id, {
+                            action: "report_problem",
+                            reason: String(form.get("reason")) as
+                              | "damaged"
+                              | "incomplete"
+                              | "not_as_described"
+                              | "not_received"
+                              | "other",
+                            details: String(form.get("details") ?? ""),
+                          })
+                            .then(() => {
+                              reload();
+                              reloadEvents();
+                            })
+                            .catch((cause) =>
+                              setFulfillmentError(
+                                cause instanceof Error
+                                  ? cause.message
+                                  : "Nie udało się zgłosić problemu.",
+                              ),
+                            )
+                            .finally(() => setProblemOrderId(null));
+                        }}
+                      >
+                        <p className="text-xs font-semibold">Problem z paczką?</p>
+                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                          <select
+                            name="reason"
+                            className="rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                          >
+                            <option value="damaged">Uszkodzona</option>
+                            <option value="incomplete">Brakuje elementów</option>
+                            <option value="not_as_described">Niezgodna z opisem</option>
+                            <option value="not_received">Nie dotarła</option>
+                            <option value="other">Inny problem</option>
+                          </select>
+                          <input
+                            name="details"
+                            required
+                            minLength={10}
+                            maxLength={1000}
+                            placeholder="Opisz problem (min. 10 znaków)"
+                            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                          />
+                          <button
+                            disabled={problemOrderId === o.id}
+                            className="rounded-lg border border-border px-3 py-2 text-xs font-semibold disabled:opacity-60"
+                          >
+                            Zgłoś
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
                 )}
                 {tab === "bought" && (o.status === "Opłacone" || o.status === "Zwrot w toku") && (
                   <button
