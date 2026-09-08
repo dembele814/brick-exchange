@@ -3,15 +3,15 @@ import { ShieldCheck, Sparkles, Truck } from "lucide-react";
 const tiles = [
   {
     icon: ShieldCheck,
-    t: "Ochrona kupującego",
-    d: "Pieniądze trafiają do sprzedającego po odbiorze paczki.",
+    t: "Bezpieczna wersja testowa",
+    d: "Stripe obsługuje płatności testowe. Wypłaty dla sprzedawców wymagają jeszcze Stripe Connect.",
   },
   {
     icon: Sparkles,
     t: "Weryfikacja kompletności",
     d: "Każda oferta ma listę braków i stan instrukcji.",
   },
-  { icon: Truck, t: "Wysyłka od 9 zł", d: "Paczkomaty i kurier w jednym kliknięciu." },
+  { icon: Truck, t: "Wysyłka do punktu", d: "Wybierz przewoźnika i podaj kod punktu odbioru." },
 ];
 
 export function SiteFooter() {

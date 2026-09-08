@@ -88,6 +88,9 @@ export function SiteHeader() {
           </Link>
         </nav>
       </div>
+      <div className="border-t border-sun/30 bg-sun-soft px-4 py-1.5 text-center text-xs font-medium text-foreground">
+        Wersja testowa — płatności Stripe nie pobierają prawdziwych pieniędzy.
+      </div>
     </header>
   );
 }

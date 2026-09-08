@@ -353,8 +353,8 @@ function OrdersPage() {
         {payment === "success" && (
           <p className="mt-4 rounded-xl border border-mint/30 bg-mint-soft px-4 py-3 text-sm font-medium">
             {focusedOrder?.status === "Opłacone"
-              ? "Dziękujemy. Płatność została potwierdzona, a zamówienie jest opłacone."
-              : "Dziękujemy. Płatność oczekuje na potwierdzenie przez operatora."}
+              ? "Testowa płatność została potwierdzona, a zamówienie ma status opłaconego."
+              : "Testowa płatność oczekuje na potwierdzenie przez Stripe."}
           </p>
         )}
         {payment === "cancelled" && (

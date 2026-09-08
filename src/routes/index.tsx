@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Kupuj i sprzedawaj używane zestawy, minifigurki i klocki LEGO. Przejrzyste opisy stanu, bezpieczne płatności i szybka wysyłka.",
+          "Testuj kupowanie i sprzedawanie używanych zestawów, minifigurek i klocków LEGO. Przejrzyste opisy stanu i płatności testowe Stripe.",
       },
       { property: "og:title", content: "Klockownia — marketplace zestawów LEGO" },
       {
