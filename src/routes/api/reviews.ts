@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { getSupabaseAdmin } from "@/server/supabase-admin";
+import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
 const reviewInput = z.object({ orderId: z.string().uuid(), rating: z.number().int().min(1).max(5), body: z.string().trim().max(500) });
 
 export const Route = createFileRoute("/api/reviews")({
   server: { handlers: { POST: async ({ request }) => {
-    if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return Response.json({ error: "Opinie nie są jeszcze skonfigurowane." }, { status: 503 });
+    if (!hasSupabaseAdminConfig()) return Response.json({ error: "Opinie nie są jeszcze skonfigurowane." }, { status: 503 });
     const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (!token) return Response.json({ error: "Zaloguj się, aby wystawić opinię." }, { status: 401 });
     const admin = getSupabaseAdmin();

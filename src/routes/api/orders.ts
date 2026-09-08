@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { getSupabaseAdmin } from "@/server/supabase-admin";
+import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
 const fulfillmentInput = z.object({
   orderId: z.string().uuid(),
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/orders")({
   server: {
     handlers: {
       PATCH: async ({ request }) => {
-        if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return Response.json({ error: "Obsługa wysyłek nie jest jeszcze skonfigurowana." }, { status: 503 });
+        if (!hasSupabaseAdminConfig()) return Response.json({ error: "Obsługa wysyłek nie jest jeszcze skonfigurowana." }, { status: 503 });
         const user = await authenticatedUser(request);
         if (!user) return Response.json({ error: "Zaloguj się, aby zarządzać zamówieniem." }, { status: 401 });
         const body = await request.json();

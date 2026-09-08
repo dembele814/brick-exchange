@@ -159,7 +159,7 @@ server secret store; use a gitignored local environment file for local testing.
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | Isolated Supabase project URL | Production Supabase project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Public project publishable/anon key | Public production publishable/anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase secret/service-role key for the same project | Server-only secret/service-role key for production |
+| `KLOCKOWNIA_SERVICE_ROLE_KEY` (or local `SUPABASE_SERVICE_ROLE_KEY`) | Server-only Supabase secret/service-role key for the same project | Server-only secret/service-role key for production |
 | `STRIPE_SECRET_KEY` | Platform `sk_test_…` from the selected sandbox/test account | Platform `sk_live_…`, only after production readiness |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` for the exact test destination, or the CLI listener secret for local testing | Separate `whsec_…` for the live platform destination |
 | `STRIPE_PAYMENTS_ENABLED` | `false` by default; set to exactly `true` only after schema and test configuration | Keep `false`; this code rejects live keys even if set to `true` |

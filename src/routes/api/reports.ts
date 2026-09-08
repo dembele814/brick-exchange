@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { getSupabaseAdmin } from "@/server/supabase-admin";
+import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
 const input = z.object({ listingId: z.string().uuid(), reason: z.enum(["misleading", "counterfeit", "prohibited", "spam", "other"]), details: z.string().trim().max(1000) });
 
 export const Route = createFileRoute("/api/reports")({
   server: { handlers: { POST: async ({ request }) => {
-    if (!process.env["SUPABASE_SERVICE_ROLE_KEY"]) return Response.json({ error: "Zgłoszenia nie są jeszcze skonfigurowane." }, { status: 503 });
+    if (!hasSupabaseAdminConfig()) return Response.json({ error: "Zgłoszenia nie są jeszcze skonfigurowane." }, { status: 503 });
     const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (!token) return Response.json({ error: "Zaloguj się, aby zgłosić ofertę." }, { status: 401 });
     const admin = getSupabaseAdmin();
