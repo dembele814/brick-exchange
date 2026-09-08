@@ -41,6 +41,9 @@ function WalletPage() {
   const [connectError, setConnectError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
+  const [payouts, setPayouts] = useState<
+    Record<string, { state: "loading" | "done" | "error"; message?: string }>
+  >({});
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -68,6 +71,42 @@ function WalletPage() {
     } catch (cause) {
       setConnectError(cause instanceof Error ? cause.message : "Nie udało się otworzyć Stripe.");
       setConnecting(false);
+    }
+  };
+
+  const requestTestTransfer = async (orderId: string) => {
+    setPayouts((current) => ({ ...current, [orderId]: { state: "loading" } }));
+    try {
+      const response = await authenticatedRequest(requireSupabase(), "/api/connect", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const result = (await response.json()) as {
+        state?: "transferred" | "no_transfer";
+        amount?: number;
+        error?: string;
+      };
+      if (!response.ok || !result.state)
+        throw new Error(result.error ?? "Nie udało się wykonać transferu.");
+      setPayouts((current) => ({
+        ...current,
+        [orderId]: {
+          state: "done",
+          message:
+            result.state === "transferred"
+              ? `Przekazano testowo ${money.format((result.amount ?? 0) / 100)}`
+              : "Cała kwota pokrywa prowizję",
+        },
+      }));
+    } catch (cause) {
+      setPayouts((current) => ({
+        ...current,
+        [orderId]: {
+          state: "error",
+          message: cause instanceof Error ? cause.message : "Nie udało się wykonać transferu.",
+        },
+      }));
     }
   };
 
@@ -222,7 +261,28 @@ function WalletPage() {
                       {order.status} · {order.at}
                     </span>
                   </span>
-                  <span className="font-semibold">{money.format(order.total)}</span>
+                  <span className="shrink-0 text-right">
+                    <span className="block font-semibold">{money.format(order.total)}</span>
+                    {order.status === "Dostarczone" && connectStatus === "active" && (
+                      <button
+                        type="button"
+                        disabled={payouts[order.id]?.state === "loading"}
+                        onClick={() => void requestTestTransfer(order.id)}
+                        className="mt-1 text-xs font-semibold text-brand hover:underline disabled:opacity-60"
+                      >
+                        {payouts[order.id]?.state === "loading"
+                          ? "Przekazujemy…"
+                          : payouts[order.id]?.state === "done"
+                            ? payouts[order.id]?.message
+                            : "Wykonaj transfer testowy"}
+                      </button>
+                    )}
+                    {payouts[order.id]?.state === "error" && (
+                      <span className="mt-1 block max-w-52 text-xs text-destructive">
+                        {payouts[order.id]?.message}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>

@@ -12,6 +12,10 @@ export function connectFeeGrosz(amountGrosz: number) {
   );
 }
 
+export function sellerProceedsGrosz(amountGrosz: number) {
+  return amountGrosz - connectFeeGrosz(amountGrosz);
+}
+
 export function connectAccountCreateParams(
   userId: string,
   email: string,

@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { z } from "zod";
+import { connectFeeGrosz } from "./connect.ts";
 
 export const checkoutInput = z.object({
   listingId: z.string().uuid(),
@@ -49,6 +50,8 @@ export type CheckoutOrder = {
 };
 
 export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.SessionCreateParams {
+  const platformFeeGrosz = connectFeeGrosz(order.amount_grosz);
+  const transferGroup = `order_${order.id}`;
   return {
     mode: "payment",
     // Checkout uses Dashboard-managed payment methods by default.
@@ -64,7 +67,14 @@ export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.Session
     ],
     client_reference_id: order.buyer_id,
     metadata: { order_id: order.id, integration: "klockownia_checkout_v1" },
-    payment_intent_data: { metadata: { order_id: order.id } },
+    payment_intent_data: {
+      transfer_group: transferGroup,
+      metadata: {
+        order_id: order.id,
+        platform_fee_grosz: String(platformFeeGrosz),
+        transfer_group: transferGroup,
+      },
+    },
     expires_at: order.checkout_expires_at,
     success_url: `${order.checkout_origin}/zamowienia?payment=success&order=${order.id}`,
     cancel_url: `${order.checkout_origin}/oferta/${order.listing_id}?payment=cancelled`,

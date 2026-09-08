@@ -6,7 +6,11 @@ import Stripe from "stripe";
 import { paymentConfig, checkoutEvent, sessionParameters } from "../src/server/payments.ts";
 import { handleCheckout } from "../src/server/checkout-handler.ts";
 import { handleStripeWebhook } from "../src/server/stripe-webhook-handler.ts";
-import { connectAccountCreateParams, connectFeeGrosz } from "../src/server/connect.ts";
+import {
+  connectAccountCreateParams,
+  connectFeeGrosz,
+  sellerProceedsGrosz,
+} from "../src/server/connect.ts";
 
 const seller = "11111111-1111-4111-8111-111111111111";
 const buyer = "22222222-2222-4222-8222-222222222222";
@@ -37,6 +41,7 @@ test("Connect fee is 1 PLN plus 5 percent and never exceeds the sale", () => {
   assert.equal(connectFeeGrosz(100), 100);
   assert.equal(connectFeeGrosz(1_000), 150);
   assert.equal(connectFeeGrosz(12_345), 717);
+  assert.equal(sellerProceedsGrosz(12_345), 11_628);
   assert.throws(() => connectFeeGrosz(0));
 });
 
@@ -229,6 +234,8 @@ test("reservation is exclusive and immutable across buyer retries", async () => 
   assert.equal(params.line_items[0].price_data.unit_amount, 12345);
   assert.equal(params.line_items[0].price_data.product_data.name, "LEGO test set");
   assert.equal(params.automatic_payment_methods, undefined);
+  assert.equal(params.payment_intent_data.transfer_group, `order_${order.id}`);
+  assert.equal(params.payment_intent_data.metadata.platform_fee_grosz, "717");
 });
 
 test("self purchase and vacation listings cannot reserve inventory", async () => {
