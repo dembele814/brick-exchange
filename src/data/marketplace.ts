@@ -695,6 +695,24 @@ export async function updateOrderProblem(
   if (!response.ok) throw new Error(result.error ?? "Nie udało się zapisać zgłoszenia.");
 }
 
+export async function startOrderConversation(orderId: string) {
+  const client = requireSupabase();
+  const { data } = await client.auth.getSession();
+  if (!data.session?.access_token) throw new Error("Zaloguj się, aby otworzyć rozmowę.");
+  const response = await fetch("/api/orders", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${data.session.access_token}`,
+    },
+    body: JSON.stringify({ orderId, action: "start_conversation" }),
+  });
+  const result = (await response.json()) as { conversationId?: string; error?: string };
+  if (!response.ok || !result.conversationId)
+    throw new Error(result.error ?? "Nie udało się otworzyć rozmowy.");
+  return result.conversationId;
+}
+
 export async function submitReview(orderId: string, rating: number, body: string) {
   const client = requireSupabase();
   const { data } = await client.auth.getSession();

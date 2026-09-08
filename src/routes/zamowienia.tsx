@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Check, Copy, ExternalLink } from "lucide-react";
+import { Check, Copy, ExternalLink, MessageCircle } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
@@ -11,6 +11,7 @@ import {
   confirmOrderDelivered,
   markOrderShipped,
   submitReview,
+  startOrderConversation,
   updateOrderProblem,
   useOrderEvents,
   useOrders,
@@ -64,9 +65,11 @@ function OrdersPage() {
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [problemOrderId, setProblemOrderId] = useState<string | null>(null);
+  const [conversationOrderId, setConversationOrderId] = useState<string | null>(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<string[]>([]);
   const [timelineOrderId, setTimelineOrderId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const navigate = Route.useNavigate();
   const shown = orders.filter((o) => o.kind === tab);
   const focusedOrder = focusedOrderId
     ? orders.find((order) => order.id === focusedOrderId)
@@ -462,6 +465,30 @@ function OrdersPage() {
                   className="mt-3 text-xs font-semibold text-brand hover:text-brand/75"
                 >
                   {timelineOrderId === o.id ? "Ukryj historię" : "Zobacz historię zamówienia"}
+                </button>
+                <button
+                  type="button"
+                  disabled={conversationOrderId === o.id}
+                  onClick={() => {
+                    setConversationOrderId(o.id);
+                    setFulfillmentError(null);
+                    void startOrderConversation(o.id)
+                      .then((conversationId) =>
+                        navigate({ to: "/wiadomosci", search: { c: conversationId } }),
+                      )
+                      .catch((cause) =>
+                        setFulfillmentError(
+                          cause instanceof Error
+                            ? cause.message
+                            : "Nie udało się otworzyć rozmowy.",
+                        ),
+                      )
+                      .finally(() => setConversationOrderId(null));
+                  }}
+                  className="ml-4 mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand/75 disabled:opacity-60"
+                >
+                  <MessageCircle className="size-3.5" aria-hidden />
+                  {conversationOrderId === o.id ? "Otwieranie…" : "Napisz wiadomość"}
                 </button>
                 {timelineOrderId === o.id && (
                   <ol className="mt-2 space-y-2 border-l-2 border-brand/25 pl-3">

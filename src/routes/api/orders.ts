@@ -28,12 +28,17 @@ const resolveProblemInput = z.object({
   orderId: z.string().uuid(),
   action: z.literal("resolve_problem"),
 });
+const conversationInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("start_conversation"),
+});
 const orderActionInput = z.discriminatedUnion("action", [
   fulfillmentInput,
   deliveryInput,
   cancellationInput,
   problemInput,
   resolveProblemInput,
+  conversationInput,
 ]);
 
 async function authenticatedUser(request: Request) {
@@ -106,6 +111,47 @@ export const Route = createFileRoute("/api/orders")({
           .maybeSingle();
         if (orderError || !order)
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
+        if (action.action === "start_conversation") {
+          if (order.buyer_id !== user.id && order.seller_id !== user.id)
+            return Response.json(
+              { error: "Nie masz dostępu do rozmowy o tym zamówieniu." },
+              { status: 403 },
+            );
+          const existing = await admin
+            .from("conversations")
+            .select("id")
+            .eq("listing_id", order.listing_id)
+            .eq("buyer_id", order.buyer_id)
+            .maybeSingle();
+          if (existing.error) throw existing.error;
+          let conversationId = existing.data?.id;
+          if (!conversationId) {
+            const created = await admin
+              .from("conversations")
+              .insert({ listing_id: order.listing_id, buyer_id: order.buyer_id })
+              .select("id")
+              .single();
+            if (created.error) {
+              const raced = await admin
+                .from("conversations")
+                .select("id")
+                .eq("listing_id", order.listing_id)
+                .eq("buyer_id", order.buyer_id)
+                .single();
+              if (raced.error) throw created.error;
+              conversationId = raced.data.id;
+            } else conversationId = created.data.id;
+          }
+          const { error: participantsError } = await admin.from("conversation_participants").upsert(
+            [
+              { conversation_id: conversationId, user_id: order.buyer_id },
+              { conversation_id: conversationId, user_id: order.seller_id },
+            ],
+            { onConflict: "conversation_id,user_id", ignoreDuplicates: true },
+          );
+          if (participantsError) throw participantsError;
+          return Response.json({ conversationId });
+        }
         if (action.action === "report_problem" || action.action === "resolve_problem") {
           if (order.buyer_id !== user.id)
             return Response.json(
