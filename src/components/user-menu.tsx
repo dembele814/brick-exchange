@@ -6,7 +6,7 @@ import { logout, useAccount } from "@/data/account";
 const items = [
   { to: "/profil", label: "Mój profil", icon: User },
   { to: "/ustawienia", label: "Ustawienia", icon: Settings },
-  { to: "/portfel", label: "Portfel", icon: Wallet },
+  { to: "/portfel", label: "Sprzedaż i wypłaty", icon: Wallet },
   { to: "/zamowienia", label: "Moje zamówienia", icon: Package },
 ] as const;
 
