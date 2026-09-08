@@ -20,6 +20,21 @@ async function authenticatedUser(request: Request) {
 export const Route = createFileRoute("/api/orders")({
   server: {
     handlers: {
+      GET: async ({ request }) => {
+        if (!hasSupabaseAdminConfig())
+          return Response.json({ error: "Zamówienia nie są jeszcze skonfigurowane." }, { status: 503 });
+        const user = await authenticatedUser(request);
+        if (!user) return Response.json({ error: "Zaloguj się, aby zobaczyć zamówienia." }, { status: 401 });
+        const { data, error } = await getSupabaseAdmin()
+          .from("orders")
+          .select(
+            "id,buyer_id,seller_id,amount_grosz,status,shipping_carrier,locker_id,tracking_number,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
+          )
+          .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+          .order("created_at", { ascending: false });
+        if (error) return Response.json({ error: "Nie udało się pobrać zamówień." }, { status: 500 });
+        return Response.json(data ?? []);
+      },
       PATCH: async ({ request }) => {
         if (!hasSupabaseAdminConfig()) return Response.json({ error: "Obsługa wysyłek nie jest jeszcze skonfigurowana." }, { status: 503 });
         const user = await authenticatedUser(request);

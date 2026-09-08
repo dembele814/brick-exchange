@@ -492,14 +492,11 @@ async function loadOrders() {
   const client = requireSupabase();
   const { data: auth } = await client.auth.getUser();
   if (!auth.user) return [] as MarketplaceOrder[];
-  const { data, error } = await client
-    .from("orders")
-    .select(
-      "id,buyer_id,seller_id,amount_grosz,status,shipping_carrier,locker_id,tracking_number,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
-    )
-    .or(`buyer_id.eq.${auth.user.id},seller_id.eq.${auth.user.id}`)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+  const response = await authenticatedRequest(client, "/api/orders", { method: "GET" });
+  const result = (await response.json()) as any[] | { error?: string };
+  if (!response.ok || !Array.isArray(result))
+    throw new Error(Array.isArray(result) ? "Nie udało się pobrać zamówień." : result.error);
+  const data = result;
   return (data ?? []).map((order: any) => {
     const listing = order.listings;
     const picture = [...(listing?.listing_images ?? [])].sort(
