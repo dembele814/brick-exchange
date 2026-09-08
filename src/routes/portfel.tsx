@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { CircleDollarSign, Clock3, PackageCheck, Wallet } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
 import { useAccount } from "@/data/account";
 import { useOrders } from "@/data/marketplace";
+import { authenticatedRequest } from "@/lib/authenticated-request";
+import { requireSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/portfel")({
   head: () => ({
@@ -32,6 +35,39 @@ const activeStatuses = new Set(["Opłacone", "Wysłane", "Dostarczone"]);
 function WalletPage() {
   const { loggedIn } = useAccount();
   const { items: orders, loading, error } = useOrders();
+  const [connectStatus, setConnectStatus] = useState<
+    "loading" | "missing" | "pending" | "active" | "restricted" | "error"
+  >("loading");
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    void authenticatedRequest(requireSupabase(), "/api/connect", { method: "GET" })
+      .then(async (response) => {
+        const result = (await response.json()) as { state?: typeof connectStatus; error?: string };
+        if (!response.ok || !result.state) throw new Error(result.error ?? "Brak statusu Stripe.");
+        setConnectStatus(result.state);
+      })
+      .catch(() => setConnectStatus("error"));
+  }, [loggedIn]);
+
+  const startConnect = async () => {
+    setConnecting(true);
+    setConnectError(null);
+    try {
+      const response = await authenticatedRequest(requireSupabase(), "/api/connect", {
+        method: "POST",
+      });
+      const result = (await response.json()) as { onboardingUrl?: string; error?: string };
+      if (!response.ok || !result.onboardingUrl)
+        throw new Error(result.error ?? "Nie udało się otworzyć Stripe.");
+      window.location.assign(result.onboardingUrl);
+    } catch (cause) {
+      setConnectError(cause instanceof Error ? cause.message : "Nie udało się otworzyć Stripe.");
+      setConnecting(false);
+    }
+  };
 
   if (!loggedIn)
     return (
@@ -59,7 +95,8 @@ function WalletPage() {
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">Sprzedawanie</p>
         <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Sprzedaż i wypłaty</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Dane poniżej pochodzą z Twoich zamówień. Kwota sprzedaży nie jest saldem do wypłaty.
+          Dane poniżej pochodzą z Twoich zamówień. Planowana prowizja Klockowni wynosi 1 zł + 5%
+          ceny oferty. Kwota sprzedaży nie jest saldem do wypłaty.
         </p>
 
         <section className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -92,11 +129,36 @@ function WalletPage() {
               <Wallet className="size-5" aria-hidden />
             </span>
             <div>
-              <h2 className="text-lg font-semibold">Wypłaty nie są jeszcze aktywne</h2>
+              <h2 className="text-lg font-semibold">
+                {connectStatus === "active"
+                  ? "Konto testowe Stripe jest gotowe"
+                  : "Skonfiguruj testowe konto wypłat"}
+              </h2>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Obecnie działają wyłącznie płatności testowe Stripe. Przed przyjmowaniem prawdziwych
-                pieniędzy uruchomimy weryfikację sprzedawców i wypłaty przez Stripe Connect.
+                {connectStatus === "active"
+                  ? "Stripe potwierdził możliwość otrzymywania transferów w sandboxie. Prawdziwe pieniądze pozostają wyłączone."
+                  : "Stripe Connect przeprowadzi testową weryfikację sprzedawcy. W sandboxie używaj wyłącznie danych testowych."}
               </p>
+              {connectStatus !== "active" && connectStatus !== "loading" && (
+                <button
+                  type="button"
+                  disabled={connecting}
+                  onClick={() => void startConnect()}
+                  className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background disabled:opacity-60"
+                >
+                  {connecting
+                    ? "Otwieramy Stripe…"
+                    : connectStatus === "missing"
+                      ? "Rozpocznij testową weryfikację"
+                      : "Dokończ testową weryfikację"}
+                </button>
+              )}
+              {connectStatus === "loading" && (
+                <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                  Sprawdzamy Stripe…
+                </p>
+              )}
+              {connectError && <p className="mt-3 text-sm text-destructive">{connectError}</p>}
             </div>
           </div>
         </section>
@@ -105,7 +167,9 @@ function WalletPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold">Ostatnie sprzedane oferty</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Statusy pochodzą z prawdziwych zamówień.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Statusy pochodzą z prawdziwych zamówień.
+              </p>
             </div>
             <Link to="/zamowienia" className="text-sm font-semibold text-brand hover:underline">
               Wszystkie zamówienia
@@ -164,7 +228,9 @@ function SummaryCard({
   return (
     <div className="card-surface p-5">
       <Icon className="size-5 text-brand" aria-hidden />
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
       <p className="mt-1 text-2xl font-bold">{value}</p>
     </div>
   );

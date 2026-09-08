@@ -33,47 +33,47 @@ funded payment ledger.
 
 ## Findings in the original implementation
 
-| Priority | Finding | Required correction |
-| --- | --- | --- |
-| Critical | `checkout.session.completed` unconditionally marks an order paid, even if payment is asynchronous and unpaid. | Require `payment_status === "paid"`; handle asynchronous success and failure separately. |
-| Critical | A payment is associated using only `metadata.order_id`. Session identity, amount, currency, and mode are not checked against the saved order. | Validate those fields before fulfillment and reject mismatches for operator investigation. |
-| Critical | Order payment, listing state, audit events, and notifications are separate database writes. A retry after partial success skips the remaining work. | Apply the transition and side effects in a single Postgres transaction; record the Stripe event ID in the same transaction for durable deduplication. |
-| Critical | Checkout deletes an order on any error, including a timeout or failure after Stripe has created a payable session. | Preserve ambiguous reservations; use a stable per-order Stripe idempotency key and reconciliation. Never free inventory merely because an HTTP request failed. |
-| High | No explicit server-side purchase enablement or mode guard. The environment example defaults to a live key. | Default to disabled test-mode configuration; block live marketplace launch until Connect and financial operations are ready. |
-| High | `automatic_payment_methods` is sent to Checkout Sessions. | Use documented Checkout Session parameters and Dashboard-managed payment methods; verify against the installed Stripe SDK. |
-| High | Expired orders are deleted, erasing their audit trail. Asynchronous failures are ignored. | Retain cancelled/failed orders and their events; release their reservation using a partial unique constraint that permits a new order after cancellation. |
-| High | An insert-time unique constraint prevents duplicate orders, but repeat requests do not recover the buyer's existing session. | Make reservation and retry behavior atomic; persist the immutable price/title/recipient snapshot used for Stripe retries. |
-| High | Listings can be edited while a payment is pending. | Reserve under a listing row lock and define whether edits are blocked or a snapshot governs the transaction. |
-| Medium | Invalid JSON and some database/auth failures escape controlled responses. | Return a validation response for malformed input and a retryable response for infrastructure failures. Avoid logging raw payment objects or recipient details. |
-| Medium | Shipping and buyer-protection fees are not in the server total. | Agree fee/tax policy, display an itemized total, calculate it on the server, and snapshot it before charging. Do not invent fees. |
-| Medium | The wallet UI presents simulated top-ups as if they were real. | Label or disable the demo flow before test rollout; implement a separate audited feature only if stored value is actually required. |
+| Priority | Finding                                                                                                                                             | Required correction                                                                                                                                            |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Critical | `checkout.session.completed` unconditionally marks an order paid, even if payment is asynchronous and unpaid.                                       | Require `payment_status === "paid"`; handle asynchronous success and failure separately.                                                                       |
+| Critical | A payment is associated using only `metadata.order_id`. Session identity, amount, currency, and mode are not checked against the saved order.       | Validate those fields before fulfillment and reject mismatches for operator investigation.                                                                     |
+| Critical | Order payment, listing state, audit events, and notifications are separate database writes. A retry after partial success skips the remaining work. | Apply the transition and side effects in a single Postgres transaction; record the Stripe event ID in the same transaction for durable deduplication.          |
+| Critical | Checkout deletes an order on any error, including a timeout or failure after Stripe has created a payable session.                                  | Preserve ambiguous reservations; use a stable per-order Stripe idempotency key and reconciliation. Never free inventory merely because an HTTP request failed. |
+| High     | No explicit server-side purchase enablement or mode guard. The environment example defaults to a live key.                                          | Default to disabled test-mode configuration; block live marketplace launch until Connect and financial operations are ready.                                   |
+| High     | `automatic_payment_methods` is sent to Checkout Sessions.                                                                                           | Use documented Checkout Session parameters and Dashboard-managed payment methods; verify against the installed Stripe SDK.                                     |
+| High     | Expired orders are deleted, erasing their audit trail. Asynchronous failures are ignored.                                                           | Retain cancelled/failed orders and their events; release their reservation using a partial unique constraint that permits a new order after cancellation.      |
+| High     | An insert-time unique constraint prevents duplicate orders, but repeat requests do not recover the buyer's existing session.                        | Make reservation and retry behavior atomic; persist the immutable price/title/recipient snapshot used for Stripe retries.                                      |
+| High     | Listings can be edited while a payment is pending.                                                                                                  | Reserve under a listing row lock and define whether edits are blocked or a snapshot governs the transaction.                                                   |
+| Medium   | Invalid JSON and some database/auth failures escape controlled responses.                                                                           | Return a validation response for malformed input and a retryable response for infrastructure failures. Avoid logging raw payment objects or recipient details. |
+| Medium   | Shipping and buyer-protection fees are not in the server total.                                                                                     | Agree fee/tax policy, display an itemized total, calculate it on the server, and snapshot it before charging. Do not invent fees.                              |
+| Medium   | The wallet UI presents simulated top-ups as if they were real.                                                                                      | Label or disable the demo flow before test rollout; implement a separate audited feature only if stored value is actually required.                            |
 
 ## Implemented and verified locally
 
-* `STRIPE_PAYMENTS_ENABLED=true` is required to start Checkout. Only `sk_test_`
+- `STRIPE_PAYMENTS_ENABLED=true` is required to start Checkout. Only `sk_test_`
   credentials are accepted; live keys are rejected in code. Pausing Checkout
   does not pause the webhook for already-created test payments.
-* Checkout uses a trusted, validated application origin, valid Session parameters,
+- Checkout uses a trusted, validated application origin, valid Session parameters,
   and an immutable database snapshot of the title, price, origin, recipient, and
   one-hour expiry. The same buyer can retry with the same delivery details.
   A stable `checkout:<order UUID>:v1` Stripe idempotency key recovers a lost
   response. Existing sessions are retrieved, and uncertain failures never delete
   the reservation. An unbound session is not recreated once fewer than 30 minutes
   remain, because Stripe's minimum expiry and idempotency rules require recovery.
-* `reserve_stripe_checkout` locks the listing before reserving it. Price/title
+- `reserve_stripe_checkout` locks the listing before reserving it. Price/title
   edits after reservation do not change the buyer's saved purchase snapshot.
-* `apply_stripe_checkout_event` validates order/session identity, amount, currency,
+- `apply_stripe_checkout_event` validates order/session identity, amount, currency,
   and the new integration's buyer reference. The HTTP handler validates signatures,
   mode, account scope, and actual payment status. Paid orders, sold inventory,
   deduplication records, audit events, and notifications commit in one transaction.
-* Expiry and asynchronous failure cancel pending orders while retaining history.
+- Expiry and asynchronous failure cancel pending orders while retaining history.
   The partial unique index allows another purchase after cancellation. Late
   failures cannot regress paid/shipped orders; late success after cancellation
   fails visibly for operator investigation. Legacy sessions require a previously
   saved matching session ID; ambiguous legacy orders need manual reconciliation.
-* Database mutation RPCs are executable only by `service_role`. Browser roles
+- Database mutation RPCs are executable only by `service_role`. Browser roles
   cannot forge a payment or reserve for another buyer.
-* The wallet is labelled as a demonstration and its top-up button is disabled.
+- The wallet is labelled as a demonstration and its top-up button is disabled.
   There is no real stored-value feature or seller payout balance.
 
 Apply `supabase/migrations/20260907_stripe_payment_safety.sql` after the existing
@@ -99,19 +99,20 @@ collecting identity or bank documents in Klockownia.
 
 The charge model depends on the business's release policy:
 
-* If proceeds should move to the seller immediately after payment, destination
+- If proceeds should move to the seller immediately after payment, destination
   charges match a one-seller order. Save the seller's connected account on the
   order and calculate an agreed application fee server-side.
-* If proceeds should be transferred only after delivery/review, use separate
+- If proceeds should be transferred only after delivery/review, use separate
   charges and transfers with an order-specific transfer group. A durable worker
   must create at most one transfer for the eligible amount after payment success,
   funds availability, and the agreed release condition. A bank payout is separate
   from a platform-to-connected-account transfer. Do not describe this as escrow.
 
-The repository has delivery confirmation, but does not establish a contractual
-funds-release policy. Do not select the second model merely because that button
-exists. Confirm who is merchant of record, platform fee, shipping cost allocation,
-refund/dispute responsibility, seller countries, and payout timing before launch.
+The selected business model is a platform charge followed by a transfer after the
+buyer confirms delivery. Klockownia is responsible for refunds and disputes. Its
+fee is 100 grosz plus 5% of the listing price, capped at the full order amount.
+Shipping allocation and the exact refund/transfer-reversal operating procedure
+still require a production policy before live mode.
 
 Remaining Connect implementation sequence:
 
@@ -136,7 +137,11 @@ Remaining Connect implementation sequence:
 The planner recommends the current Accounts v2 approach for new Connect account
 work. Follow its account configuration, Express Dashboard, requirements, and
 capability guidance when implementing onboarding; do not mix v1 capability fields
-with v2 account objects. The present code does not create accounts with either API.
+with v2 account objects. The test-only implementation creates recipient-configured
+Accounts v2 objects, uses Express Dashboard access, and stores the private account
+mapping in Supabase Auth app metadata. It checks Stripe's authoritative transfer
+capability status and generates single-use recipient onboarding links. It does not
+yet transfer funds or enable live mode.
 For destination charges, the planner recommends Dashboard platform pricing rules;
 explicit `application_fee_amount` overrides those rules. For separate charges and
 transfers, retain the agreed fee by transferring less; do not set
@@ -144,10 +149,10 @@ transfers, retain the agreed fee by transferring less; do not set
 
 Stripe references consulted through the connected tools and official documentation:
 
-* [Hosted Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment)
-* [Destination charges](https://docs.stripe.com/connect/marketplace/tasks/accept-payment/destination-charges)
-* [Separate charges and transfers](https://docs.stripe.com/connect/marketplace/tasks/accept-payment/separate-charges-and-transfers)
-* [Webhook signatures, destinations, and retries](https://docs.stripe.com/webhooks)
+- [Hosted Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment)
+- [Destination charges](https://docs.stripe.com/connect/marketplace/tasks/accept-payment/destination-charges)
+- [Separate charges and transfers](https://docs.stripe.com/connect/marketplace/tasks/accept-payment/separate-charges-and-transfers)
+- [Webhook signatures, destinations, and retries](https://docs.stripe.com/webhooks)
 
 ## Exact current configuration requirements
 
@@ -155,15 +160,15 @@ These are variable names and sources, not secret values. Do not paste actual
 credentials into chat or commit them. Configure them in the hosting provider's
 server secret store; use a gitignored local environment file for local testing.
 
-| Variable | Test environment | Production environment |
-| --- | --- | --- |
-| `VITE_SUPABASE_URL` | Isolated Supabase project URL | Production Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Public project publishable/anon key | Public production publishable/anon key |
-| `KLOCKOWNIA_SERVICE_ROLE_KEY` (or local `SUPABASE_SERVICE_ROLE_KEY`) | Server-only Supabase secret/service-role key for the same project | Server-only secret/service-role key for production |
-| `STRIPE_SECRET_KEY` | Platform `sk_test_…` from the selected sandbox/test account | Platform `sk_live_…`, only after production readiness |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_…` for the exact test destination, or the CLI listener secret for local testing | Separate `whsec_…` for the live platform destination |
-| `STRIPE_PAYMENTS_ENABLED` | `false` by default; set to exactly `true` only after schema and test configuration | Keep `false`; this code rejects live keys even if set to `true` |
-| `APP_URL` | Exact local/staging application origin, e.g. `http://localhost:3000` if the dev server actually uses that port | Canonical public HTTPS origin without trailing slash |
+| Variable                                                             | Test environment                                                                                               | Production environment                                          |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                                                  | Isolated Supabase project URL                                                                                  | Production Supabase project URL                                 |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`                                      | Public project publishable/anon key                                                                            | Public production publishable/anon key                          |
+| `KLOCKOWNIA_SERVICE_ROLE_KEY` (or local `SUPABASE_SERVICE_ROLE_KEY`) | Server-only Supabase secret/service-role key for the same project                                              | Server-only secret/service-role key for production              |
+| `STRIPE_SECRET_KEY`                                                  | Platform `sk_test_…` from the selected sandbox/test account                                                    | Platform `sk_live_…`, only after production readiness           |
+| `STRIPE_WEBHOOK_SECRET`                                              | `whsec_…` for the exact test destination, or the CLI listener secret for local testing                         | Separate `whsec_…` for the live platform destination            |
+| `STRIPE_PAYMENTS_ENABLED`                                            | `false` by default; set to exactly `true` only after schema and test configuration                             | Keep `false`; this code rejects live keys even if set to `true` |
+| `APP_URL`                                                            | Exact local/staging application origin, e.g. `http://localhost:3000` if the dev server actually uses that port | Canonical public HTTPS origin without trailing slash            |
 
 Never prefix server secrets with `VITE_`. No Connect client ID, restricted key,
 publishable Stripe key, or additional Connect signing secret is currently read by
@@ -202,6 +207,7 @@ For test mode:
    ```sh
    stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired --forward-to localhost:3000/api/webhooks/stripe
    ```
+
 7. Register two test users, publish a test listing, and buy it through the actual
    application. A generic CLI fixture does not contain an existing Klockownia
    order or its session binding and is insufficient to prove fulfillment. Set

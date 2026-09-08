@@ -20,6 +20,7 @@ import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as WiadomosciRouteImport } from './routes/wiadomosci'
 import { Route as ZamowieniaRouteImport } from './routes/zamowienia'
 import { Route as ApiCheckoutRouteImport } from './routes/api/checkout'
+import { Route as ApiConnectRouteImport } from './routes/api/connect'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiReportsRouteImport } from './routes/api/reports'
 import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
@@ -82,6 +83,11 @@ const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
   path: '/api/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiConnectRoute = ApiConnectRouteImport.update({
+  id: '/api/connect',
+  path: '/api/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOrdersRoute = ApiOrdersRouteImport.update({
   id: '/api/orders',
   path: '/api/orders',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/api/checkout': typeof ApiCheckoutRoute
+  '/api/connect': typeof ApiConnectRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/reports': typeof ApiReportsRoute
   '/api/reviews': typeof ApiReviewsRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/api/checkout': typeof ApiCheckoutRoute
+  '/api/connect': typeof ApiConnectRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/reports': typeof ApiReportsRoute
   '/api/reviews': typeof ApiReviewsRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
   '/api/checkout': typeof ApiCheckoutRoute
+  '/api/connect': typeof ApiConnectRoute
   '/api/orders': typeof ApiOrdersRoute
   '/api/reports': typeof ApiReportsRoute
   '/api/reviews': typeof ApiReviewsRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/wiadomosci'
     | '/zamowienia'
     | '/api/checkout'
+    | '/api/connect'
     | '/api/orders'
     | '/api/reports'
     | '/api/reviews'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/wiadomosci'
     | '/zamowienia'
     | '/api/checkout'
+    | '/api/connect'
     | '/api/orders'
     | '/api/reports'
     | '/api/reviews'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/wiadomosci'
     | '/zamowienia'
     | '/api/checkout'
+    | '/api/connect'
     | '/api/orders'
     | '/api/reports'
     | '/api/reviews'
@@ -243,6 +255,7 @@ export interface RootRouteChildren {
   WiadomosciRoute: typeof WiadomosciRoute
   ZamowieniaRoute: typeof ZamowieniaRoute
   ApiCheckoutRoute: typeof ApiCheckoutRoute
+  ApiConnectRoute: typeof ApiConnectRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiReportsRoute: typeof ApiReportsRoute
   ApiReviewsRoute: typeof ApiReviewsRoute
@@ -330,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/connect': {
+      id: '/api/connect'
+      path: '/api/connect'
+      fullPath: '/api/connect'
+      preLoaderRoute: typeof ApiConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/orders': {
       id: '/api/orders'
       path: '/api/orders'
@@ -387,6 +407,7 @@ const rootRouteChildren: RootRouteChildren = {
   WiadomosciRoute: WiadomosciRoute,
   ZamowieniaRoute: ZamowieniaRoute,
   ApiCheckoutRoute: ApiCheckoutRoute,
+  ApiConnectRoute: ApiConnectRoute,
   ApiOrdersRoute: ApiOrdersRoute,
   ApiReportsRoute: ApiReportsRoute,
   ApiReviewsRoute: ApiReviewsRoute,

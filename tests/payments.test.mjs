@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { paymentConfig, checkoutEvent, sessionParameters } from "../src/server/payments.ts";
 import { handleCheckout } from "../src/server/checkout-handler.ts";
 import { handleStripeWebhook } from "../src/server/stripe-webhook-handler.ts";
+import { connectAccountCreateParams, connectFeeGrosz } from "../src/server/connect.ts";
 
 const seller = "11111111-1111-4111-8111-111111111111";
 const buyer = "22222222-2222-4222-8222-222222222222";
@@ -31,6 +32,29 @@ const env = {
   APP_URL: "https://shop.example.com/",
   STRIPE_PAYMENTS_ENABLED: "true",
 };
+
+test("Connect fee is 1 PLN plus 5 percent and never exceeds the sale", () => {
+  assert.equal(connectFeeGrosz(100), 100);
+  assert.equal(connectFeeGrosz(1_000), 150);
+  assert.equal(connectFeeGrosz(12_345), 717);
+  assert.throws(() => connectFeeGrosz(0));
+});
+
+test("Connect seller account assigns marketplace responsibility and recipient transfers", () => {
+  const params = connectAccountCreateParams(
+    seller,
+    "seller@example.com",
+    "https://shop.example.com",
+  );
+  assert.equal(params.dashboard, "express");
+  assert.equal(params.identity.country, "PL");
+  assert.equal(params.defaults.responsibilities.fees_collector, "application");
+  assert.equal(params.defaults.responsibilities.losses_collector, "application");
+  assert.equal(
+    params.configuration.recipient.capabilities.stripe_balance.stripe_transfers.requested,
+    true,
+  );
+});
 
 before(async () => {
   await db.exec(`create role anon; create role authenticated; create role service_role;
