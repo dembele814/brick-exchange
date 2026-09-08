@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import { publicSupabaseKey, publicSupabaseUrl } from "@/lib/public-supabase-config";
 
-const url = import.meta.env["VITE_SUPABASE_URL"];
-const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+const url = import.meta.env["VITE_SUPABASE_URL"] || publicSupabaseUrl;
+const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || publicSupabaseKey;
 
 /** Browser client. RLS, not this key, controls access to application data. */
 export const supabase =
