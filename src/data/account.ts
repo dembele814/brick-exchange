@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import avatarMe from "@/assets/avatar-me.jpg";
 import { listings, type Condition } from "./listings";
+import { requireSupabase, supabase } from "@/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 
 export type ListingStatus = "active" | "hidden" | "draft";
 
@@ -64,6 +66,8 @@ type State = {
   orders: Order[];
   wallet: { balance: number; transactions: WalletTx[] };
   loggedIn: boolean;
+  authLoading: boolean;
+  userId: string | null;
   favorites: string[];
 };
 
@@ -197,8 +201,11 @@ let state: State = {
     ],
   },
   loggedIn: false,
+  authLoading: Boolean(supabase),
+  userId: null,
   favorites: [],
 };
+const serverSnapshot = state;
 
 const listeners = new Set<() => void>();
 const emit = () => {
@@ -207,21 +214,93 @@ const emit = () => {
 };
 
 export function useAccount() {
-  const [snap, setSnap] = useState(state);
-  useEffect(() => {
-    const l = () => setSnap(state);
-    listeners.add(l);
-    l();
-    return () => {
-      listeners.delete(l);
-    };
-  }, []);
-  return snap;
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => state,
+    () => serverSnapshot,
+  );
 }
 
 export function updateProfile(patch: Partial<Profile>) {
   state.profile = { ...state.profile, ...patch };
   emit();
+}
+
+export async function saveProfile() {
+  const client = requireSupabase();
+  const { data } = await client.auth.getUser();
+  if (!data.user) throw new Error("Zaloguj się, aby zapisać profil.");
+  const profile = state.profile;
+  const { error } = await client
+    .from("profiles")
+    .update({
+      username: profile.name,
+      bio: profile.bio,
+      country: profile.country,
+      city: profile.city || null,
+      language: profile.language,
+      vacation_mode: profile.vacationMode,
+      show_city: profile.showCity,
+      profile_visible: profile.profileVisible,
+      personalised_ads: profile.personalisedAds,
+    })
+    .eq("id", data.user.id);
+  if (error) throw error;
+  if (profile.vacationMode) {
+    const { error: hideError } = await client
+      .from("listings")
+      .update({ status: "hidden" })
+      .eq("seller_id", data.user.id)
+      .eq("status", "active");
+    if (hideError) throw hideError;
+  }
+  const { error: privateError } = await client.from("private_profiles").upsert({
+    user_id: data.user.id,
+    full_name: profile.realName || null,
+    phone: profile.phone || null,
+    birth_date: profile.birthDate || null,
+    gender: profile.gender,
+    updated_at: new Date().toISOString(),
+  });
+  if (privateError) throw privateError;
+  const emailChangeRequested = Boolean(profile.email && profile.email !== data.user.email);
+  if (emailChangeRequested) {
+    const { error: emailError } = await client.auth.updateUser({ email: profile.email });
+    if (emailError) throw emailError;
+  }
+  return { emailChangeRequested };
+}
+
+export async function sendPasswordReset() {
+  const client = requireSupabase();
+  const { data } = await client.auth.getUser();
+  if (!data.user?.email) throw new Error("Nie znaleźliśmy adresu e-mail tego konta.");
+  const { error } = await client.auth.resetPasswordForEmail(data.user.email, {
+    redirectTo: `${window.location.origin}/ustawienia`,
+  });
+  if (error) throw error;
+}
+
+export async function uploadAvatar(file: File) {
+  const client = requireSupabase();
+  const { data } = await client.auth.getUser();
+  if (!data.user) throw new Error("Zaloguj się, aby zmienić zdjęcie.");
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${data.user.id}/avatar.${extension}`;
+  const { error: uploadError } = await client.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true });
+  if (uploadError) throw uploadError;
+  const avatar = client.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+  const { error } = await client
+    .from("profiles")
+    .update({ avatar_path: avatar })
+    .eq("id", data.user.id);
+  if (error) throw error;
+  updateProfile({ avatar });
 }
 
 export function setListingStatus(id: string, status: ListingStatus) {
@@ -260,24 +339,23 @@ export function topUpWallet(amount: number) {
 }
 
 export function logout() {
-  state.loggedIn = false;
-  emit();
+  return requireSupabase().auth.signOut();
 }
 
-export function login(email: string) {
-  state.loggedIn = true;
-  if (email) state.profile = { ...state.profile, email };
-  emit();
+export async function login(email: string, password: string) {
+  const { data, error } = await requireSupabase().auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
 }
 
-export function register(input: { name: string; email: string }) {
-  state.loggedIn = true;
-  state.profile = {
-    ...state.profile,
-    name: input.name || state.profile.name,
-    email: input.email || state.profile.email,
-  };
-  emit();
+export async function register(input: { name: string; email: string; password: string }) {
+  const { data, error } = await requireSupabase().auth.signUp({
+    email: input.email,
+    password: input.password,
+    options: { data: { username: input.name } },
+  });
+  if (error) throw error;
+  return data;
 }
 
 export function isFavorite(id: string) {
@@ -285,10 +363,124 @@ export function isFavorite(id: string) {
 }
 
 export function toggleFavorite(id: string) {
-  state.favorites = state.favorites.includes(id)
+  const wasFavorite = state.favorites.includes(id);
+  state.favorites = wasFavorite
     ? state.favorites.filter((f) => f !== id)
     : [...state.favorites, id];
   emit();
+  void (async () => {
+    if (!supabase) return;
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+    const result = wasFavorite
+      ? await supabase.from("favorites").delete().eq("user_id", data.user.id).eq("listing_id", id)
+      : await supabase.from("favorites").insert({ user_id: data.user.id, listing_id: id });
+    if (result.error) {
+      state.favorites = wasFavorite
+        ? [...state.favorites, id]
+        : state.favorites.filter((favorite) => favorite !== id);
+      emit();
+    }
+  })();
 }
 
 export const PROMOTE_COST = 9.99;
+
+let sessionRevision = 0;
+let profileTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Publish the actual session immediately; profile queries must not gate login.
+function acceptSession(session: Session | null) {
+  const revision = ++sessionRevision;
+  state.loggedIn = Boolean(session);
+  state.authLoading = false;
+  state.userId = session?.user.id ?? null;
+  if (!session) state.favorites = [];
+  emit();
+  if (profileTimer) clearTimeout(profileTimer);
+  if (session) {
+    profileTimer = setTimeout(() => {
+      void syncSession(session, revision).catch(() => {
+        // An unavailable profile does not invalidate an authenticated session.
+      });
+    }, 0);
+  }
+}
+
+async function syncSession(session: Session, revision: number) {
+  if (!supabase) return;
+  const user = session.user;
+  if (user) {
+    const [{ data: profile }, { data: privateProfile }, { data: receivedReviews }] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select(
+            "username,avatar_path,bio,country,city,language,profile_visible,vacation_mode,show_city,personalised_ads,created_at",
+          )
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("private_profiles")
+          .select("full_name,phone,birth_date,gender")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase.from("reviews").select("rating").eq("seller_id", user.id),
+      ]);
+    if (revision !== sessionRevision) return;
+    const reviewValues = (receivedReviews ?? []).map((review) => review.rating);
+    state.profile = {
+      ...state.profile,
+      name: profile?.username ?? state.profile.name,
+      avatar: profile?.avatar_path ?? state.profile.avatar,
+      bio: profile?.bio ?? state.profile.bio,
+      country: profile?.country ?? state.profile.country,
+      city: profile?.city ?? state.profile.city,
+      language: profile?.language ?? state.profile.language,
+      profileVisible: profile?.profile_visible ?? state.profile.profileVisible,
+      vacationMode: profile?.vacation_mode ?? state.profile.vacationMode,
+      showCity: profile?.show_city ?? state.profile.showCity,
+      personalisedAds: profile?.personalised_ads ?? state.profile.personalisedAds,
+      email: user.email ?? state.profile.email,
+      rating: reviewValues.length
+        ? Math.round(
+            (reviewValues.reduce((sum, rating) => sum + rating, 0) / reviewValues.length) * 10,
+          ) / 10
+        : 0,
+      reviews: reviewValues.length,
+      joined: profile?.created_at
+        ? new Intl.DateTimeFormat("pl-PL", { month: "long", year: "numeric" }).format(
+            new Date(profile.created_at),
+          )
+        : state.profile.joined,
+      realName: privateProfile?.full_name ?? state.profile.realName,
+      phone: privateProfile?.phone ?? state.profile.phone,
+      birthDate: privateProfile?.birth_date ?? state.profile.birthDate,
+      gender:
+        privateProfile?.gender === "Kobieta" ||
+        privateProfile?.gender === "Mężczyzna" ||
+        privateProfile?.gender === "Nie podaję"
+          ? privateProfile.gender
+          : state.profile.gender,
+    };
+    const { data: favorites } = await supabase
+      .from("favorites")
+      .select("listing_id")
+      .eq("user_id", user.id);
+    if (revision !== sessionRevision) return;
+    state.favorites = (favorites ?? []).map((favorite) => favorite.listing_id);
+  } else {
+    state.favorites = [];
+  }
+  emit();
+}
+
+if (typeof window !== "undefined" && supabase) {
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => acceptSession(session));
+  if (import.meta.hot)
+    import.meta.hot.dispose(() => {
+      data.subscription.unsubscribe();
+      if (profileTimer) clearTimeout(profileTimer);
+      sessionRevision++;
+    });
+}

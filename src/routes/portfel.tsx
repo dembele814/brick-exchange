@@ -3,7 +3,8 @@ import { useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, CreditCard, Wallet } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { topUpWallet, useAccount } from "@/data/account";
+import { AccountGate } from "@/components/account-gate";
+import { useAccount } from "@/data/account";
 
 export const Route = createFileRoute("/portfel")({
   head: () => ({
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/portfel")({
       {
         name: "description",
         content:
-          "Wpłacaj środki do portfela Klockowni i płać nimi za zestawy LEGO oraz wyróżnienia ogłoszeń.",
+          "Podgląd demonstracyjnego portfela Klockowni. Wpłaty nie są jeszcze dostępne.",
       },
       { property: "og:title", content: "Portfel — Klockownia" },
       { property: "og:description", content: "Saldo, wpłaty i historia operacji w jednym miejscu." },
@@ -26,9 +27,11 @@ export const Route = createFileRoute("/portfel")({
 const quick = [50, 100, 200];
 
 function WalletPage() {
-  const { wallet } = useAccount();
+  const { wallet, loggedIn } = useAccount();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Karta");
+
+  if (!loggedIn) return <div className="min-h-screen"><SiteHeader /><main className="mx-auto max-w-3xl px-4 py-12"><AccountGate feature="portfel" /></main><SiteFooter /></div>;
 
   return (
     <div className="min-h-screen">
@@ -36,18 +39,19 @@ function WalletPage() {
       <main className="mx-auto max-w-3xl px-4 py-8">
         <h1 className="text-2xl font-bold sm:text-3xl">Portfel</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Płać z portfela jednym kliknięciem — bez wpisywania karty przy każdym zakupie.
+          Portfel demonstracyjny. Saldo i historia poniżej są przykładowe — nie przedstawiają prawdziwych środków ani wypłat sprzedawcy.
         </p>
 
         <section className="mt-6 rounded-3xl border border-border bg-gradient-to-br from-grape-soft via-card to-sky-soft p-6">
           <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <Wallet className="size-4" aria-hidden /> Dostępne środki
+            <Wallet className="size-4" aria-hidden /> Saldo demonstracyjne
           </p>
           <p className="mt-1 font-display text-4xl font-bold">{wallet.balance.toFixed(2)} zł</p>
         </section>
 
         <section className="card-surface mt-6 space-y-4 p-5">
           <h2 className="text-lg font-semibold">Wpłać środki</h2>
+          <p className="text-sm text-muted-foreground">Wpłaty do portfela nie są jeszcze dostępne. Za ofertę zapłacisz osobno podczas zakupu.</p>
           <div className="flex flex-wrap gap-2">
             {quick.map((q) => (
               <button
@@ -85,10 +89,7 @@ function WalletPage() {
           </label>
           <button
             type="button"
-            onClick={() => {
-              topUpWallet(Number(amount));
-              setAmount("");
-            }}
+            disabled
             className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
             <CreditCard className="size-4" aria-hidden /> Wpłać

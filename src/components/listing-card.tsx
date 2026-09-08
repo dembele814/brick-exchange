@@ -9,17 +9,18 @@ import { cn } from "@/lib/utils";
 export function ListingCard({ listing }: { listing: Listing }) {
   const navigate = useNavigate();
   const { guard } = useAuthGate();
-  const { favorites } = useAccount();
+  const { favorites, userId } = useAccount();
   const liked = favorites.includes(listing.id);
+  const isOwnListing = Boolean(userId && listing.seller.id === userId);
 
   return (
-    <article className="group relative">
+    <article className="group relative transition-transform duration-300 hover:-translate-y-1">
       <Link
         to="/oferta/$id"
         params={{ id: listing.id }}
-        className="block overflow-hidden rounded-xl border border-border bg-card shadow-card transition-shadow hover:shadow-lift"
+        className="block overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-shadow hover:shadow-lift"
       >
-        <div className="relative aspect-square overflow-hidden bg-surface">
+        <div className="relative aspect-square overflow-hidden bg-surface before:absolute before:inset-x-0 before:bottom-0 before:z-10 before:h-1/3 before:bg-gradient-to-t before:from-primary/15 before:to-transparent">
           <img
             src={listing.image}
             alt={listing.title}
@@ -72,17 +73,19 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </p>
         <button
           type="button"
+          disabled={isOwnListing}
           onClick={() =>
             guard(() => {
-              const id = startConversation(listing.id);
-              navigate({ to: "/wiadomosci", search: { c: id } });
+              return startConversation(listing.id).then((id) =>
+                navigate({ to: "/wiadomosci", search: { c: id } }),
+              );
             })
           }
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-brand-soft"
-          title="Napisz do sprzedającego"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
+          title={isOwnListing ? "To Twoja oferta" : "Napisz do sprzedającego"}
         >
           <MessageCircle className="size-3.5" aria-hidden />
-          Napisz
+          {isOwnListing ? "Twoja oferta" : "Napisz"}
         </button>
       </div>
     </article>

@@ -33,6 +33,8 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const field =
     "mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus-within:ring-2 focus-within:ring-ring/40";
@@ -71,11 +73,27 @@ function AuthPage() {
 
         <form
           className="mt-6 space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (mode === "register") register({ name, email });
-            else login(email);
-            navigate({ to: "/profil" });
+            setError(null);
+            setSubmitting(true);
+            try {
+              const result =
+                mode === "register"
+                  ? await register({ name, email, password })
+                  : await login(email, password);
+              if (mode === "register" && !result.session) {
+                setError(
+                  "Konto utworzone. Sprawdź e-mail i kliknij link potwierdzający, aby się zalogować.",
+                );
+                return;
+              }
+              navigate({ to: "/profil" });
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : "Nie udało się zalogować.");
+            } finally {
+              setSubmitting(false);
+            }
           }}
         >
           {mode === "register" && (
@@ -127,14 +145,20 @@ function AuthPage() {
 
           <button
             type="submit"
+            disabled={submitting}
             className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
-            {mode === "login" ? "Zaloguj się" : "Załóż konto"}
+            {submitting ? "Trwa przetwarzanie…" : mode === "login" ? "Zaloguj się" : "Załóż konto"}
           </button>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link to="/" className="font-semibold text-brand hover:underline">
+          <Link to="/" search={{ q: undefined }} className="font-semibold text-brand hover:underline">
             Wróć do przeglądania ofert
           </Link>
         </p>

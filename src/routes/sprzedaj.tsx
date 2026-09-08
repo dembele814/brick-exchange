@@ -1,9 +1,10 @@
 import { legoSeries } from "@/data/listings";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
-import { Camera, ImagePlus, Star, Trash2, Upload } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, ImagePlus, Star, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createListing } from "@/data/marketplace";
 
 export const Route = createFileRoute("/sprzedaj")({
   head: () => ({
@@ -32,7 +33,7 @@ const categories = ["Zestawy LEGO", "Minifigurki", "Części na sztuki", "Klocki
 const popularMotifs = ["City", "Star Wars", "Technic", "Harry Potter", "Ninjago", "Marvel"];
 const conditionLevels = ["Popękane", "Lekko zarysowane", "W porządku", "Błyszczące", "Nowe"];
 
-type Photo = { id: string; url: string; name: string };
+type Photo = { id: string; url: string; name: string; file: File };
 
 function Chips({
   options,
@@ -69,6 +70,7 @@ function Chips({
 }
 
 function SellPage() {
+  const navigate = useNavigate();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [dragging, setDragging] = useState(false);
   const [category, setCategory] = useState(categories[0]!);
@@ -77,7 +79,14 @@ function SellPage() {
   const [hasManual, setHasManual] = useState(false);
   const [hasBox, setHasBox] = useState(false);
   const [price, setPrice] = useState("");
+  const [title, setTitle] = useState("");
+  const [setNumber, setSetNumber] = useState("");
+  const [pieces, setPieces] = useState("");
+  const [year, setYear] = useState("");
+  const [description, setDescription] = useState("");
   const [sent, setSent] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -88,15 +97,18 @@ function SellPage() {
   const addFiles = (files: FileList | null) => {
     if (!files) return;
     const room = MAX_PHOTOS - photos.length;
-    const next = Array.from(files)
-      .filter((f) => f.type.startsWith("image/"))
+    const all = Array.from(files);
+    const next = all
+      .filter((f) => ["image/jpeg", "image/png", "image/webp"].includes(f.type) && f.size <= 10 * 1024 * 1024)
       .slice(0, Math.max(room, 0))
       .map((f) => ({
         id: `${f.name}-${f.lastModified}-${Math.random().toString(36).slice(2, 7)}`,
         url: URL.createObjectURL(f),
         name: f.name,
+        file: f,
       }));
     setPhotos((p) => [...p, ...next]);
+    if (all.length !== next.length) setError("Pomijamy pliki inne niż JPG, PNG, WebP lub większe niż 10 MB.");
   };
 
   const removePhoto = (id: string) =>
@@ -116,6 +128,17 @@ function SellPage() {
       return copy;
     });
 
+  const movePhoto = (id: string, direction: -1 | 1) =>
+    setPhotos((current) => {
+      const index = current.findIndex((photo) => photo.id === id);
+      const destination = index + direction;
+      if (index < 0 || destination < 0 || destination >= current.length) return current;
+      const copy = [...current];
+      const [photo] = copy.splice(index, 1);
+      if (photo) copy.splice(destination, 0, photo);
+      return copy;
+    });
+
   const priceNum = Number(price) || 0;
 
   return (
@@ -129,9 +152,23 @@ function SellPage() {
 
         <form
           className="mt-8 space-y-8"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            setSent(true);
+            setSaving(true);
+            setError(null);
+            try {
+              await createListing({
+                title, description, category, theme: motif, condition, price: priceNum,
+                setNumber, pieces: pieces.trim() ? Number(pieces) : null, year: year.trim() ? Number(year) : null,
+                hasInstructions: hasManual, hasBox, photos: photos.map((photo) => photo.file),
+              });
+              setSent(true);
+              window.setTimeout(() => navigate({ to: "/", search: { q: undefined } }), 900);
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : "Nie udało się opublikować oferty.");
+            } finally {
+              setSaving(false);
+            }
           }}
         >
           {/* Zdjęcia */}
@@ -139,7 +176,7 @@ function SellPage() {
             <h2 className="text-sm font-semibold">
               Zdjęcia{" "}
               <span className="font-normal text-muted-foreground">
-                ({photos.length}/{MAX_PHOTOS})
+                ({photos.length}/{MAX_PHOTOS}) · wymagane
               </span>
             </h2>
 
@@ -162,7 +199,7 @@ function SellPage() {
               <ImagePlus className="size-6 text-brand" aria-hidden />
               <p className="text-sm font-medium">Przeciągnij i upuść zdjęcia tutaj</p>
               <p className="text-xs text-muted-foreground">
-                Pierwsze zdjęcie będzie okładką oferty. Do {MAX_PHOTOS} zdjęć.
+                Pierwsze zdjęcie będzie okładką oferty. JPG, PNG lub WebP, maks. 10 MB. Do {MAX_PHOTOS} zdjęć.
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
@@ -183,7 +220,7 @@ function SellPage() {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 multiple
                 className="hidden"
                 onChange={(e) => {
@@ -194,7 +231,7 @@ function SellPage() {
               <input
                 ref={cameraRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 capture="environment"
                 className="hidden"
                 onChange={(e) => {
@@ -223,6 +260,11 @@ function SellPage() {
                     )}
                     <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between gap-1">
                       {i > 0 && (
+                        <button type="button" onClick={() => movePhoto(p.id, -1)} aria-label="Przesuń zdjęcie wcześniej" className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card">
+                          <ChevronLeft className="size-3.5" aria-hidden />
+                        </button>
+                      )}
+                      {i > 0 && (
                         <button
                           type="button"
                           onClick={() => makeCover(p.id)}
@@ -230,6 +272,11 @@ function SellPage() {
                           className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card"
                         >
                           <Star className="size-3.5" aria-hidden />
+                        </button>
+                      )}
+                      {i < photos.length - 1 && (
+                        <button type="button" onClick={() => movePhoto(p.id, 1)} aria-label="Przesuń zdjęcie później" className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card">
+                          <ChevronRight className="size-3.5" aria-hidden />
                         </button>
                       )}
                       <button
@@ -254,10 +301,19 @@ function SellPage() {
               <input
                 required
                 maxLength={80}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="np. Remiza strażacka 60215, komplet"
                 className={field}
               />
             </label>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="block text-sm font-medium">Numer zestawu<input value={setNumber} onChange={(e) => setSetNumber(e.target.value)} maxLength={50} placeholder="np. 10305" className={field} /></label>
+              <label className="block text-sm font-medium">Elementy<input value={pieces} onChange={(e) => setPieces(e.target.value)} inputMode="numeric" type="number" min="0" step="1" placeholder="np. 1038" className={field} /></label>
+              <label className="block text-sm font-medium">Rok wydania<input value={year} onChange={(e) => setYear(e.target.value)} inputMode="numeric" type="number" min="1949" max={new Date().getFullYear() + 1} step="1" placeholder="np. 2023" className={field} /></label>
+            </div>
+            <p className="-mt-3 text-xs text-muted-foreground">Pola opcjonalne, ale pomagają kupującym łatwiej znaleźć właściwy zestaw.</p>
 
             <div>
               <span className="text-sm font-medium">Kategoria</span>
@@ -292,6 +348,8 @@ function SellPage() {
               <textarea
                 rows={5}
                 maxLength={1500}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Historia zestawu, kompletność, stan naklejek, sposób pakowania…"
                 className={field}
               />
@@ -366,17 +424,16 @@ function SellPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
+            disabled={saving}
+            className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            Opublikuj ofertę
+            {saving ? "Publikuję…" : "Opublikuj ofertę"}
           </button>
+          {error && <p role="alert" className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
 
           {sent && (
             <p className="rounded-lg bg-brand-soft px-4 py-3 text-sm">
-              Podgląd oferty gotowy: {category} · {motif} · {condition.toLowerCase()},{" "}
-              {hasManual ? "z instrukcją" : "bez instrukcji"} ·{" "}
-              {hasBox ? "z pudełkiem" : "bez pudełka"} · {priceNum.toFixed(2)} zł. Publikacja na żywo pojawi się, gdy podłączymy konta
-              użytkowników i płatności.
+              Oferta opublikowana. Przenoszę Cię do najnowszych ogłoszeń.
             </p>
           )}
         </form>

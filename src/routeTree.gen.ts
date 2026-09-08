@@ -12,13 +12,20 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
 import { Route as PortfelRouteImport } from './routes/portfel'
+import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
+import { Route as UlubioneRouteImport } from './routes/ulubione'
 import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as WiadomosciRouteImport } from './routes/wiadomosci'
 import { Route as ZamowieniaRouteImport } from './routes/zamowienia'
+import { Route as ApiCheckoutRouteImport } from './routes/api/checkout'
+import { Route as ApiOrdersRouteImport } from './routes/api/orders'
+import { Route as ApiReportsRouteImport } from './routes/api/reports'
+import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
+import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -35,6 +42,11 @@ const PortfelRoute = PortfelRouteImport.update({
   path: '/portfel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PowiadomieniaRoute = PowiadomieniaRouteImport.update({
+  id: '/powiadomienia',
+  path: '/powiadomienia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfilRoute = ProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -43,6 +55,11 @@ const ProfilRoute = ProfilRouteImport.update({
 const SprzedajRoute = SprzedajRouteImport.update({
   id: '/sprzedaj',
   path: '/sprzedaj',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UlubioneRoute = UlubioneRouteImport.update({
+  id: '/ulubione',
+  path: '/ulubione',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UstawieniaRoute = UstawieniaRouteImport.update({
@@ -60,6 +77,26 @@ const ZamowieniaRoute = ZamowieniaRouteImport.update({
   path: '/zamowienia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
+  id: '/api/checkout',
+  path: '/api/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrdersRoute = ApiOrdersRouteImport.update({
+  id: '/api/orders',
+  path: '/api/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReportsRoute = ApiReportsRouteImport.update({
+  id: '/api/reports',
+  path: '/api/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReviewsRoute = ApiReviewsRouteImport.update({
+  id: '/api/reviews',
+  path: '/api/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfertaIdRoute = OfertaIdRouteImport.update({
   id: '/oferta/$id',
   path: '/oferta/$id',
@@ -70,43 +107,69 @@ const UzytkownikNameRoute = UzytkownikNameRouteImport.update({
   path: '/uzytkownik/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
+  id: '/api/webhooks/stripe',
+  path: '/api/webhooks/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
+  '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
+  '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/orders': typeof ApiOrdersRoute
+  '/api/reports': typeof ApiReportsRoute
+  '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
+  '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
+  '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/orders': typeof ApiOrdersRoute
+  '/api/reports': typeof ApiReportsRoute
+  '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
+  '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
   '/sprzedaj': typeof SprzedajRoute
+  '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/orders': typeof ApiOrdersRoute
+  '/api/reports': typeof ApiReportsRoute
+  '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,50 +177,78 @@ export interface FileRouteTypes {
     | '/'
     | '/logowanie'
     | '/portfel'
+    | '/powiadomienia'
     | '/profil'
     | '/sprzedaj'
+    | '/ulubione'
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
+    | '/api/checkout'
+    | '/api/orders'
+    | '/api/reports'
+    | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/logowanie'
     | '/portfel'
+    | '/powiadomienia'
     | '/profil'
     | '/sprzedaj'
+    | '/ulubione'
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
+    | '/api/checkout'
+    | '/api/orders'
+    | '/api/reports'
+    | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/webhooks/stripe'
   id:
     | '__root__'
     | '/'
     | '/logowanie'
     | '/portfel'
+    | '/powiadomienia'
     | '/profil'
     | '/sprzedaj'
+    | '/ulubione'
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
+    | '/api/checkout'
+    | '/api/orders'
+    | '/api/reports'
+    | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LogowanieRoute: typeof LogowanieRoute
   PortfelRoute: typeof PortfelRoute
+  PowiadomieniaRoute: typeof PowiadomieniaRoute
   ProfilRoute: typeof ProfilRoute
   SprzedajRoute: typeof SprzedajRoute
+  UlubioneRoute: typeof UlubioneRoute
   UstawieniaRoute: typeof UstawieniaRoute
   WiadomosciRoute: typeof WiadomosciRoute
   ZamowieniaRoute: typeof ZamowieniaRoute
+  ApiCheckoutRoute: typeof ApiCheckoutRoute
+  ApiOrdersRoute: typeof ApiOrdersRoute
+  ApiReportsRoute: typeof ApiReportsRoute
+  ApiReviewsRoute: typeof ApiReviewsRoute
   OfertaIdRoute: typeof OfertaIdRoute
   UzytkownikNameRoute: typeof UzytkownikNameRoute
+  ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -183,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortfelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/powiadomienia': {
+      id: '/powiadomienia'
+      path: '/powiadomienia'
+      fullPath: '/powiadomienia'
+      preLoaderRoute: typeof PowiadomieniaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profil': {
       id: '/profil'
       path: '/profil'
@@ -195,6 +293,13 @@ declare module '@tanstack/react-router' {
       path: '/sprzedaj'
       fullPath: '/sprzedaj'
       preLoaderRoute: typeof SprzedajRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ulubione': {
+      id: '/ulubione'
+      path: '/ulubione'
+      fullPath: '/ulubione'
+      preLoaderRoute: typeof UlubioneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ustawienia': {
@@ -218,6 +323,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZamowieniaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/checkout': {
+      id: '/api/checkout'
+      path: '/api/checkout'
+      fullPath: '/api/checkout'
+      preLoaderRoute: typeof ApiCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orders': {
+      id: '/api/orders'
+      path: '/api/orders'
+      fullPath: '/api/orders'
+      preLoaderRoute: typeof ApiOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reports': {
+      id: '/api/reports'
+      path: '/api/reports'
+      fullPath: '/api/reports'
+      preLoaderRoute: typeof ApiReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reviews': {
+      id: '/api/reviews'
+      path: '/api/reviews'
+      fullPath: '/api/reviews'
+      preLoaderRoute: typeof ApiReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/oferta/$id': {
       id: '/oferta/$id'
       path: '/oferta/$id'
@@ -232,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UzytkownikNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/stripe': {
+      id: '/api/webhooks/stripe'
+      path: '/api/webhooks/stripe'
+      fullPath: '/api/webhooks/stripe'
+      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -239,13 +379,20 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LogowanieRoute: LogowanieRoute,
   PortfelRoute: PortfelRoute,
+  PowiadomieniaRoute: PowiadomieniaRoute,
   ProfilRoute: ProfilRoute,
   SprzedajRoute: SprzedajRoute,
+  UlubioneRoute: UlubioneRoute,
   UstawieniaRoute: UstawieniaRoute,
   WiadomosciRoute: WiadomosciRoute,
   ZamowieniaRoute: ZamowieniaRoute,
+  ApiCheckoutRoute: ApiCheckoutRoute,
+  ApiOrdersRoute: ApiOrdersRoute,
+  ApiReportsRoute: ApiReportsRoute,
+  ApiReviewsRoute: ApiReviewsRoute,
   OfertaIdRoute: OfertaIdRoute,
   UzytkownikNameRoute: UzytkownikNameRoute,
+  ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

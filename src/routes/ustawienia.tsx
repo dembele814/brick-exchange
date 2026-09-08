@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { updateProfile, useAccount } from "@/data/account";
+import { AccountGate } from "@/components/account-gate";
+import { saveProfile, sendPasswordReset, updateProfile, uploadAvatar, useAccount } from "@/data/account";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/ustawienia")({
   head: () => ({
@@ -80,13 +82,30 @@ function Toggle({
 }
 
 function SettingsPage() {
-  const { profile } = useAccount();
+  const { profile, loggedIn } = useAccount();
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [accountNotice, setAccountNotice] = useState<string | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+    if (window.location.hash.includes("type=recovery") || new URLSearchParams(window.location.search).get("type") === "recovery") setRecoveryMode(true);
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   const set = <K extends keyof typeof profile>(key: K, value: (typeof profile)[K]) => {
     updateProfile({ [key]: value } as never);
     setSaved(false);
   };
+
+  if (!loggedIn) return <div className="min-h-screen"><SiteHeader /><main className="mx-auto max-w-3xl px-4 py-12"><AccountGate feature="ustawienia konta" /></main><SiteFooter /></div>;
 
   return (
     <div className="min-h-screen">
@@ -113,7 +132,11 @@ function SettingsPage() {
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) set("avatar", URL.createObjectURL(file));
+                  if (!file) return;
+                  setSaveError(null);
+                  void uploadAvatar(file).catch((error) =>
+                    setSaveError(error instanceof Error ? error.message : "Nie udało się zapisać zdjęcia."),
+                  );
                 }}
               />
             </label>
@@ -175,6 +198,36 @@ function SettingsPage() {
         <section className="card-surface mt-6 space-y-4 p-5">
           <h2 className="text-lg font-semibold">Ustawienia konta</h2>
 
+          {recoveryMode && (
+            <form
+              className="rounded-2xl border border-brand/30 bg-brand-soft/45 p-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setSaveError(null);
+                if (newPassword.length < 8) { setSaveError("Nowe hasło musi mieć co najmniej 8 znaków."); return; }
+                if (newPassword !== repeatPassword) { setSaveError("Hasła nie są takie same."); return; }
+                if (!supabase) return;
+                setPasswordSaving(true);
+                void supabase.auth.updateUser({ password: newPassword })
+                  .then(({ error }) => {
+                    if (error) throw error;
+                    setRecoveryMode(false); setNewPassword(""); setRepeatPassword("");
+                    setAccountNotice("Hasło zostało zmienione.");
+                  })
+                  .catch((error) => setSaveError(error instanceof Error ? error.message : "Nie udało się zmienić hasła."))
+                  .finally(() => setPasswordSaving(false));
+              }}
+            >
+              <p className="text-sm font-semibold">Ustaw nowe hasło</p>
+              <p className="mt-1 text-xs text-muted-foreground">Otworzyłeś bezpieczny link odzyskiwania hasła.</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input required type="password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Nowe hasło (min. 8 znaków)" className={inputClass} />
+                <input required type="password" minLength={8} value={repeatPassword} onChange={(event) => setRepeatPassword(event.target.value)} placeholder="Powtórz nowe hasło" className={inputClass} />
+              </div>
+              <button disabled={passwordSaving} className="mt-3 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60">{passwordSaving ? "Zapisuję…" : "Zapisz nowe hasło"}</button>
+            </form>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Imię i nazwisko">
               <input
@@ -223,7 +276,7 @@ function SettingsPage() {
           <div className="divide-y divide-border border-t border-border">
             <Toggle
               label="Tryb wakacyjny"
-              hint="Wszystkie Twoje ogłoszenia zostaną tymczasowo ukryte."
+              hint="Po zapisaniu aktywne ogłoszenia zostaną ukryte. Po powrocie opublikujesz wybrane ręcznie w profilu."
               checked={profile.vacationMode}
               onChange={(v) => set("vacationMode", v)}
             />
@@ -232,23 +285,32 @@ function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => {
+                setSaveError(null);
+                setAccountNotice(null);
+                void sendPasswordReset()
+                  .then(() => setAccountNotice("Wysłaliśmy link do zmiany hasła na adres konta."))
+                  .catch((error) => setSaveError(error instanceof Error ? error.message : "Nie udało się wysłać wiadomości."));
+              }}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
             >
               Zmień hasło
             </button>
             <button
               type="button"
-              onClick={() => set("googleLinked", !profile.googleLinked)}
-              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
+              disabled
+              title="Wymaga skonfigurowania logowania Google w Supabase"
+              className="cursor-not-allowed rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground opacity-60"
             >
-              {profile.googleLinked ? "Odłącz Google" : "Połącz z Google"}
+              Google — wkrótce
             </button>
             <button
               type="button"
-              onClick={() => set("facebookLinked", !profile.facebookLinked)}
-              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
+              disabled
+              title="Wymaga skonfigurowania logowania Facebook w Supabase"
+              className="cursor-not-allowed rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground opacity-60"
             >
-              {profile.facebookLinked ? "Odłącz Facebooka" : "Połącz z Facebookiem"}
+              Facebook — wkrótce
             </button>
           </div>
         </section>
@@ -279,12 +341,20 @@ function SettingsPage() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => setSaved(true)}
+            onClick={() => {
+              setSaveError(null);
+              void saveProfile().then((result) => {
+                setSaved(true);
+                if (result.emailChangeRequested) setAccountNotice("Potwierdź zmianę adresu przez link wysłany na e-mail.");
+              }).catch((error) => setSaveError(error instanceof Error ? error.message : "Nie udało się zapisać."));
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
             <Check className="size-4" aria-hidden /> Zapisz zmiany
           </button>
           {saved && <span className="text-sm text-muted-foreground">Zapisano.</span>}
+          {accountNotice && <span className="text-sm text-brand">{accountNotice}</span>}
+          {saveError && <span className="text-sm text-destructive">{saveError}</span>}
           <button
             type="button"
             className="ml-auto inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"

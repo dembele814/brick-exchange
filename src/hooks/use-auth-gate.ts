@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useAccount } from "@/data/account";
+import { requireSupabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 /**
  * Zwraca funkcję, która wykonuje akcję tylko dla zalogowanych.
@@ -11,12 +13,22 @@ export function useAuthGate() {
 
   return {
     loggedIn,
-    guard: (action: () => void) => {
-      if (!loggedIn) {
-        navigate({ to: "/logowanie" });
-        return;
+    guard: async (action: () => unknown | Promise<unknown>) => {
+      try {
+        const { data, error } = await requireSupabase().auth.getSession();
+        if (error) throw error;
+        if (!data.session) {
+          await navigate({ to: "/logowanie" });
+          return;
+        }
+        await action();
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Nie udało się wykonać operacji. Spróbuj ponownie.",
+        );
       }
-      action();
     },
   };
 }

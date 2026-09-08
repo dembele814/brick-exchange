@@ -103,7 +103,7 @@ export function UserMenu() {
               onClick={() => {
                 logout();
                 setOpen(false);
-                navigate({ to: "/" });
+                navigate({ to: "/", search: { q: undefined } });
               }}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-brand transition-colors hover:bg-brand-soft"
             >
