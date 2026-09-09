@@ -4,7 +4,14 @@ import { Check, Trash2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
-import { saveProfile, sendPasswordReset, updateProfile, uploadAvatar, useAccount } from "@/data/account";
+import {
+  linkGoogleAccount,
+  saveProfile,
+  sendPasswordReset,
+  updateProfile,
+  uploadAvatar,
+  useAccount,
+} from "@/data/account";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/ustawienia")({
@@ -93,7 +100,11 @@ function SettingsPage() {
 
   useEffect(() => {
     if (!supabase) return;
-    if (window.location.hash.includes("type=recovery") || new URLSearchParams(window.location.search).get("type") === "recovery") setRecoveryMode(true);
+    if (
+      window.location.hash.includes("type=recovery") ||
+      new URLSearchParams(window.location.search).get("type") === "recovery"
+    )
+      setRecoveryMode(true);
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
     });
@@ -105,7 +116,16 @@ function SettingsPage() {
     setSaved(false);
   };
 
-  if (!loggedIn) return <div className="min-h-screen"><SiteHeader /><main className="mx-auto max-w-3xl px-4 py-12"><AccountGate feature="ustawienia konta" /></main><SiteFooter /></div>;
+  if (!loggedIn)
+    return (
+      <div className="min-h-screen">
+        <SiteHeader />
+        <main className="mx-auto max-w-3xl px-4 py-12">
+          <AccountGate feature="ustawienia konta" />
+        </main>
+        <SiteFooter />
+      </div>
+    );
 
   return (
     <div className="min-h-screen">
@@ -135,7 +155,9 @@ function SettingsPage() {
                   if (!file) return;
                   setSaveError(null);
                   void uploadAvatar(file).catch((error) =>
-                    setSaveError(error instanceof Error ? error.message : "Nie udało się zapisać zdjęcia."),
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się zapisać zdjęcia.",
+                    ),
                   );
                 }}
               />
@@ -204,27 +226,63 @@ function SettingsPage() {
               onSubmit={(event) => {
                 event.preventDefault();
                 setSaveError(null);
-                if (newPassword.length < 8) { setSaveError("Nowe hasło musi mieć co najmniej 8 znaków."); return; }
-                if (newPassword !== repeatPassword) { setSaveError("Hasła nie są takie same."); return; }
+                if (newPassword.length < 8) {
+                  setSaveError("Nowe hasło musi mieć co najmniej 8 znaków.");
+                  return;
+                }
+                if (newPassword !== repeatPassword) {
+                  setSaveError("Hasła nie są takie same.");
+                  return;
+                }
                 if (!supabase) return;
                 setPasswordSaving(true);
-                void supabase.auth.updateUser({ password: newPassword })
+                void supabase.auth
+                  .updateUser({ password: newPassword })
                   .then(({ error }) => {
                     if (error) throw error;
-                    setRecoveryMode(false); setNewPassword(""); setRepeatPassword("");
+                    setRecoveryMode(false);
+                    setNewPassword("");
+                    setRepeatPassword("");
                     setAccountNotice("Hasło zostało zmienione.");
                   })
-                  .catch((error) => setSaveError(error instanceof Error ? error.message : "Nie udało się zmienić hasła."))
+                  .catch((error) =>
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się zmienić hasła.",
+                    ),
+                  )
                   .finally(() => setPasswordSaving(false));
               }}
             >
               <p className="text-sm font-semibold">Ustaw nowe hasło</p>
-              <p className="mt-1 text-xs text-muted-foreground">Otworzyłeś bezpieczny link odzyskiwania hasła.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Otworzyłeś bezpieczny link odzyskiwania hasła.
+              </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <input required type="password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="Nowe hasło (min. 8 znaków)" className={inputClass} />
-                <input required type="password" minLength={8} value={repeatPassword} onChange={(event) => setRepeatPassword(event.target.value)} placeholder="Powtórz nowe hasło" className={inputClass} />
+                <input
+                  required
+                  type="password"
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="Nowe hasło (min. 8 znaków)"
+                  className={inputClass}
+                />
+                <input
+                  required
+                  type="password"
+                  minLength={8}
+                  value={repeatPassword}
+                  onChange={(event) => setRepeatPassword(event.target.value)}
+                  placeholder="Powtórz nowe hasło"
+                  className={inputClass}
+                />
               </div>
-              <button disabled={passwordSaving} className="mt-3 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60">{passwordSaving ? "Zapisuję…" : "Zapisz nowe hasło"}</button>
+              <button
+                disabled={passwordSaving}
+                className="mt-3 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60"
+              >
+                {passwordSaving ? "Zapisuję…" : "Zapisz nowe hasło"}
+              </button>
             </form>
           )}
 
@@ -290,7 +348,11 @@ function SettingsPage() {
                 setAccountNotice(null);
                 void sendPasswordReset()
                   .then(() => setAccountNotice("Wysłaliśmy link do zmiany hasła na adres konta."))
-                  .catch((error) => setSaveError(error instanceof Error ? error.message : "Nie udało się wysłać wiadomości."));
+                  .catch((error) =>
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się wysłać wiadomości.",
+                    ),
+                  );
               }}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
             >
@@ -298,11 +360,18 @@ function SettingsPage() {
             </button>
             <button
               type="button"
-              disabled
-              title="Wymaga skonfigurowania logowania Google w Supabase"
-              className="cursor-not-allowed rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground opacity-60"
+              onClick={() => {
+                setSaveError(null);
+                setAccountNotice(null);
+                void linkGoogleAccount().catch((error) =>
+                  setSaveError(
+                    error instanceof Error ? error.message : "Nie udało się połączyć konta Google.",
+                  ),
+                );
+              }}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
             >
-              Google — wkrótce
+              Połącz konto Google
             </button>
             <button
               type="button"
@@ -343,10 +412,15 @@ function SettingsPage() {
             type="button"
             onClick={() => {
               setSaveError(null);
-              void saveProfile().then((result) => {
-                setSaved(true);
-                if (result.emailChangeRequested) setAccountNotice("Potwierdź zmianę adresu przez link wysłany na e-mail.");
-              }).catch((error) => setSaveError(error instanceof Error ? error.message : "Nie udało się zapisać."));
+              void saveProfile()
+                .then((result) => {
+                  setSaved(true);
+                  if (result.emailChangeRequested)
+                    setAccountNotice("Potwierdź zmianę adresu przez link wysłany na e-mail.");
+                })
+                .catch((error) =>
+                  setSaveError(error instanceof Error ? error.message : "Nie udało się zapisać."),
+                );
             }}
             className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >

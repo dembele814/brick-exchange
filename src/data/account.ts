@@ -365,6 +365,24 @@ export async function login(email: string, password: string) {
   return data;
 }
 
+export async function loginWithGoogle() {
+  const { data, error } = await requireSupabase().auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${window.location.origin}/profil` },
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function linkGoogleAccount() {
+  const { data, error } = await requireSupabase().auth.linkIdentity({
+    provider: "google",
+    options: { redirectTo: `${window.location.origin}/ustawienia` },
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function register(input: { name: string; email: string; password: string }) {
   const { data, error } = await requireSupabase().auth.signUp({
     email: input.email,

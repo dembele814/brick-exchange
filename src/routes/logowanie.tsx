@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Lock, Mail, User } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { login, register, sendPasswordResetForEmail } from "@/data/account";
+import { login, loginWithGoogle, register, sendPasswordResetForEmail } from "@/data/account";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/logowanie")({
@@ -73,8 +73,36 @@ function AuthPage() {
           ))}
         </div>
 
+        <button
+          type="button"
+          disabled={submitting}
+          onClick={() => {
+            setSubmitting(true);
+            setError(null);
+            void loginWithGoogle()
+              .catch((cause) =>
+                setError(
+                  cause instanceof Error ? cause.message : "Nie udało się połączyć z Google.",
+                ),
+              )
+              .finally(() => setSubmitting(false));
+          }}
+          className="mt-6 flex w-full items-center justify-center gap-3 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold transition-colors hover:bg-secondary disabled:opacity-60"
+        >
+          <span className="grid size-6 place-items-center rounded-full bg-white font-bold text-[#4285f4] shadow-sm">
+            G
+          </span>
+          Kontynuuj przez Google
+        </button>
+
+        <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="h-px flex-1 bg-border" />
+          lub e-mail
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
         <form
-          className="mt-6 space-y-4"
+          className="space-y-4"
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
