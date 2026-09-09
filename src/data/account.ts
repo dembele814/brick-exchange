@@ -68,6 +68,7 @@ type State = {
   loggedIn: boolean;
   authLoading: boolean;
   userId: string | null;
+  isAdmin: boolean;
   favorites: string[];
 };
 
@@ -203,6 +204,7 @@ let state: State = {
   loggedIn: false,
   authLoading: Boolean(supabase),
   userId: null,
+  isAdmin: false,
   favorites: [],
 };
 const serverSnapshot = state;
@@ -410,6 +412,7 @@ function acceptSession(session: Session | null) {
   state.loggedIn = Boolean(session);
   state.authLoading = false;
   state.userId = session?.user.id ?? null;
+  state.isAdmin = session?.user.app_metadata?.["klockownia_admin"] === true;
   if (!session) state.favorites = [];
   emit();
   if (profileTimer) clearTimeout(profileTimer);

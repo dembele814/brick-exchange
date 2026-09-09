@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, Package, Settings, User, Wallet } from "lucide-react";
+import { LogOut, Package, Settings, ShieldCheck, User, Wallet } from "lucide-react";
 import { logout, useAccount } from "@/data/account";
 
 const items = [
@@ -14,7 +14,7 @@ export function UserMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { profile, loggedIn } = useAccount();
+  const { profile, loggedIn, isAdmin } = useAccount();
 
   useEffect(() => {
     if (!open) return;
@@ -40,7 +40,13 @@ export function UserMenu() {
         className="grid size-9 place-items-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
       >
         {loggedIn ? (
-          <img src={profile.avatar} alt="" width={36} height={36} className="size-full object-cover" />
+          <img
+            src={profile.avatar}
+            alt=""
+            width={36}
+            height={36}
+            className="size-full object-cover"
+          />
         ) : (
           <User className="size-5" />
         )}
@@ -73,7 +79,13 @@ export function UserMenu() {
         <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-lift">
           <div className="flex items-center gap-3 rounded-xl bg-secondary/70 px-3 py-2.5">
             <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-card">
-              <img src={profile.avatar} alt="" width={36} height={36} className="size-full object-cover" />
+              <img
+                src={profile.avatar}
+                alt=""
+                width={36}
+                height={36}
+                className="size-full object-cover"
+              />
             </span>
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold">{profile.name}</span>
@@ -84,6 +96,16 @@ export function UserMenu() {
           </div>
 
           <nav className="mt-1.5">
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft"
+              >
+                <ShieldCheck className="size-4" aria-hidden />
+                Panel administratora
+              </Link>
+            )}
             {items.map(({ to, label, icon: Icon }) => (
               <Link
                 key={to}
