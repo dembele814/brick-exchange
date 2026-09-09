@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
 import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
@@ -19,6 +20,7 @@ import { Route as UlubioneRouteImport } from './routes/ulubione'
 import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as WiadomosciRouteImport } from './routes/wiadomosci'
 import { Route as ZamowieniaRouteImport } from './routes/zamowienia'
+import { Route as ApiAdminRouteImport } from './routes/api/admin'
 import { Route as ApiCheckoutRouteImport } from './routes/api/checkout'
 import { Route as ApiConnectRouteImport } from './routes/api/connect'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
@@ -31,6 +33,11 @@ import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/str
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogowanieRoute = LogowanieRouteImport.update({
@@ -78,6 +85,11 @@ const ZamowieniaRoute = ZamowieniaRouteImport.update({
   path: '/zamowienia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminRoute = ApiAdminRouteImport.update({
+  id: '/api/admin',
+  path: '/api/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
   id: '/api/checkout',
   path: '/api/checkout',
@@ -121,6 +133,7 @@ const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
@@ -130,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
+  '/api/admin': typeof ApiAdminRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/connect': typeof ApiConnectRoute
   '/api/orders': typeof ApiOrdersRoute
@@ -141,6 +155,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
@@ -150,6 +165,7 @@ export interface FileRoutesByTo {
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
+  '/api/admin': typeof ApiAdminRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/connect': typeof ApiConnectRoute
   '/api/orders': typeof ApiOrdersRoute
@@ -162,6 +178,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
@@ -171,6 +188,7 @@ export interface FileRoutesById {
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
+  '/api/admin': typeof ApiAdminRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/connect': typeof ApiConnectRoute
   '/api/orders': typeof ApiOrdersRoute
@@ -184,6 +202,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/logowanie'
     | '/portfel'
     | '/powiadomienia'
@@ -193,6 +212,7 @@ export interface FileRouteTypes {
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
+    | '/api/admin'
     | '/api/checkout'
     | '/api/connect'
     | '/api/orders'
@@ -204,6 +224,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/logowanie'
     | '/portfel'
     | '/powiadomienia'
@@ -213,6 +234,7 @@ export interface FileRouteTypes {
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
+    | '/api/admin'
     | '/api/checkout'
     | '/api/connect'
     | '/api/orders'
@@ -224,6 +246,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/logowanie'
     | '/portfel'
     | '/powiadomienia'
@@ -233,6 +256,7 @@ export interface FileRouteTypes {
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
+    | '/api/admin'
     | '/api/checkout'
     | '/api/connect'
     | '/api/orders'
@@ -245,6 +269,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   LogowanieRoute: typeof LogowanieRoute
   PortfelRoute: typeof PortfelRoute
   PowiadomieniaRoute: typeof PowiadomieniaRoute
@@ -254,6 +279,7 @@ export interface RootRouteChildren {
   UstawieniaRoute: typeof UstawieniaRoute
   WiadomosciRoute: typeof WiadomosciRoute
   ZamowieniaRoute: typeof ZamowieniaRoute
+  ApiAdminRoute: typeof ApiAdminRoute
   ApiCheckoutRoute: typeof ApiCheckoutRoute
   ApiConnectRoute: typeof ApiConnectRoute
   ApiOrdersRoute: typeof ApiOrdersRoute
@@ -271,6 +297,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logowanie': {
@@ -336,6 +369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZamowieniaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin': {
+      id: '/api/admin'
+      path: '/api/admin'
+      fullPath: '/api/admin'
+      preLoaderRoute: typeof ApiAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/checkout': {
       id: '/api/checkout'
       path: '/api/checkout'
@@ -397,6 +437,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   LogowanieRoute: LogowanieRoute,
   PortfelRoute: PortfelRoute,
   PowiadomieniaRoute: PowiadomieniaRoute,
@@ -406,6 +447,7 @@ const rootRouteChildren: RootRouteChildren = {
   UstawieniaRoute: UstawieniaRoute,
   WiadomosciRoute: WiadomosciRoute,
   ZamowieniaRoute: ZamowieniaRoute,
+  ApiAdminRoute: ApiAdminRoute,
   ApiCheckoutRoute: ApiCheckoutRoute,
   ApiConnectRoute: ApiConnectRoute,
   ApiOrdersRoute: ApiOrdersRoute,
