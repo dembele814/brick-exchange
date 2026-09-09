@@ -6,7 +6,16 @@ const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || publicSupabaseKe
 
 /** Browser client. RLS, not this key, controls access to application data. */
 export const supabase =
-  url && key ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
+  url && key
+    ? createClient(url, key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: "pkce",
+        },
+      })
+    : null;
 
 export function requireSupabase() {
   if (!supabase) throw new Error("Brakuje konfiguracji Supabase. Uzupełnij .env.");
