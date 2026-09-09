@@ -7,6 +7,15 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+const SECURITY_HEADERS = {
+  "cross-origin-opener-policy": "same-origin-allow-popups",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "strict-transport-security": "max-age=31536000",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+} as const;
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -35,6 +44,16 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   });
 }
 
+function withSecurityHeaders(response: Response): Response {
+  const securedResponse = new Response(response.body, response);
+
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    securedResponse.headers.set(name, value);
+  }
+
+  return securedResponse;
+}
+
 function isH3SwallowedErrorBody(body: string): boolean {
   try {
     const payload = JSON.parse(body) as { unhandled?: unknown; message?: unknown };
@@ -49,13 +68,15 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return withSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };
