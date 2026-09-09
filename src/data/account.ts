@@ -368,7 +368,10 @@ export async function login(email: string, password: string) {
 export async function loginWithGoogle() {
   const { data, error } = await requireSupabase().auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${window.location.origin}/profil` },
+    options: {
+      redirectTo: `${window.location.origin}/profil`,
+      queryParams: { prompt: "select_account" },
+    },
   });
   if (error) throw error;
   return data;
@@ -377,7 +380,10 @@ export async function loginWithGoogle() {
 export async function linkGoogleAccount() {
   const { data, error } = await requireSupabase().auth.linkIdentity({
     provider: "google",
-    options: { redirectTo: `${window.location.origin}/ustawienia` },
+    options: {
+      redirectTo: `${window.location.origin}/ustawienia`,
+      queryParams: { prompt: "select_account" },
+    },
   });
   if (error) throw error;
   return data;
