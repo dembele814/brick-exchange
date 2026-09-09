@@ -35,6 +35,7 @@ export async function handleCheckout(
     p_locker_id: parsed.data.lockerId,
     p_receiver: parsed.data.receiver,
     p_origin: appUrl,
+    p_offer_message_id: parsed.data.acceptedOfferId ?? null,
   });
   if (error) {
     if (error.code === "P0001" || error.code === "23505")

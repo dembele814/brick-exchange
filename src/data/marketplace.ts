@@ -444,6 +444,7 @@ export async function createListing(input: CreateListingInput) {
 
 export type CheckoutInput = {
   listingId: string;
+  acceptedOfferId?: string;
   lockerId: string;
   carrier: "inpost" | "orlen" | "dpd" | "dhl";
   receiver: { email: string; phone: string; firstName: string; lastName: string };

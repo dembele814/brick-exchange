@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { startConversation } from "@/data/messages";
+import { z } from "zod";
+import { startConversation, useAcceptedOfferPrice } from "@/data/messages";
 import { toggleFavorite, useAccount } from "@/data/account";
 import { reportListing, startCheckout, useListing, usePublicListings } from "@/data/marketplace";
 import { useAuthGate } from "@/hooks/use-auth-gate";
@@ -38,12 +39,14 @@ const shippingOptions = [
 ] as const;
 
 export const Route = createFileRoute("/oferta/$id")({
+  validateSearch: z.object({ offer: z.string().uuid().optional() }),
   head: () => ({ meta: [{ title: "Oferta — Klockownia" }] }),
   component: OfferPage,
 });
 
 function OfferPage() {
   const { id } = Route.useParams();
+  const { offer } = Route.useSearch();
   const fixture = getListing(id);
   const { item: liveListing, loading } = useListing(id);
   const { items: liveListings } = usePublicListings();
@@ -51,6 +54,7 @@ function OfferPage() {
   const navigate = useNavigate();
   const { guard } = useAuthGate();
   const { favorites, profile, userId } = useAccount();
+  const acceptedOfferPrice = useAcceptedOfferPrice(offer, id);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isOwnListing = Boolean(liveListing && userId && listing?.seller.id === userId);
@@ -109,6 +113,7 @@ function OfferPage() {
     ["Instrukcja", listing.instructions],
     ["Oryginalne pudełko", listing.box],
   ];
+  const checkoutPrice = acceptedOfferPrice ?? listing.price;
 
   const shareOffer = async () => {
     const url = window.location.href;
@@ -185,13 +190,18 @@ function OfferPage() {
             </p>
 
             <p className="mt-5 text-3xl font-bold">
-              {listing.price} zł
+              {checkoutPrice} zł
               {listing.original && (
                 <span className="ml-3 text-base font-normal text-muted-foreground line-through">
                   {listing.original} zł
                 </span>
               )}
             </p>
+            {acceptedOfferPrice !== null && (
+              <p className="mt-2 rounded-xl border border-mint/30 bg-mint-soft px-3 py-2 text-sm font-semibold">
+                Sprzedawca zaakceptował tę cenę w rozmowie.
+              </p>
+            )}
 
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-foreground">
@@ -290,6 +300,7 @@ function OfferPage() {
                   setCheckoutError(null);
                   void startCheckout({
                     listingId: listing.id,
+                    ...(acceptedOfferPrice !== null && offer ? { acceptedOfferId: offer } : {}),
                     carrier,
                     lockerId: String(form.get("lockerId") ?? ""),
                     receiver: {
@@ -382,7 +393,8 @@ function OfferPage() {
                   className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
                 />
                 <p className="rounded-xl border border-sun/30 bg-sun-soft px-3 py-2 text-xs font-medium text-foreground">
-                  Płatność testowa: użyj karty 4242 4242 4242 4242, przyszłej daty i dowolnego CVC. Żadne prawdziwe środki nie zostaną pobrane.
+                  Płatność testowa: użyj karty 4242 4242 4242 4242, przyszłej daty i dowolnego CVC.
+                  Żadne prawdziwe środki nie zostaną pobrane.
                 </p>
                 <button
                   disabled={submitting}
@@ -390,7 +402,7 @@ function OfferPage() {
                 >
                   {submitting
                     ? "Przekierowujemy do płatności…"
-                    : `Przejdź do płatności testowej · ${listing.price.toFixed(2)} zł`}
+                    : `Przejdź do płatności testowej · ${checkoutPrice.toFixed(2)} zł`}
                 </button>
               </form>
             )}
@@ -420,7 +432,8 @@ function OfferPage() {
                 <ShieldCheck className="size-4 text-sky" aria-hidden />
                 <p className="mt-2 text-sm font-semibold">Płatność testowa Stripe</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  To test integracji. Prawdziwe płatności i wypłaty sprzedawców nie są jeszcze aktywne.
+                  To test integracji. Prawdziwe płatności i wypłaty sprzedawców nie są jeszcze
+                  aktywne.
                 </p>
               </div>
             </div>

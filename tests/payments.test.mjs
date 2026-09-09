@@ -123,6 +123,7 @@ before(async () => {
     "20260906_notifications.sql",
     "20260907_stripe_payment_safety.sql",
     "20260909_message_images_and_price_offers.sql",
+    "20260910_accepted_offer_checkout.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -134,10 +135,7 @@ before(async () => {
 
 test("message images and price-offer migration is safely repeatable", async () => {
   const sql = await readFile(
-    new URL(
-      "../supabase/migrations/20260909_message_images_and_price_offers.sql",
-      import.meta.url,
-    ),
+    new URL("../supabase/migrations/20260909_message_images_and_price_offers.sql", import.meta.url),
     "utf8",
   );
   await db.exec(sql);
@@ -145,6 +143,33 @@ test("message images and price-offer migration is safely repeatable", async () =
     "select public, file_size_limit from storage.buckets where id='message-images'",
   );
   assert.deepEqual(result.rows[0], { public: false, file_size_limit: 5_242_880 });
+});
+
+test("an accepted offer becomes the immutable checkout amount", async () => {
+  const conversation = await db.query(
+    "insert into public.conversations(listing_id,buyer_id) values($1,$2) returning id",
+    [listing, buyer],
+  );
+  const offer = await db.query(
+    `insert into public.messages(conversation_id,sender_id,body,message_type,offer_amount_grosz,offer_status)
+     values($1,$2,'Propozycja ceny','price_offer',10000,'accepted') returning id`,
+    [conversation.rows[0].id, buyer],
+  );
+  const receiver = JSON.stringify(input.receiver);
+  const result = await db.query(
+    "select public.reserve_stripe_checkout($1,$2,$3,$4,$5,$6,$7) as purchase",
+    [
+      buyer,
+      listing,
+      input.carrier,
+      input.lockerId,
+      receiver,
+      env.APP_URL.replace(/\/$/, ""),
+      offer.rows[0].id,
+    ],
+  );
+  assert.equal(result.rows[0].purchase.amount_grosz, 10000);
+  assert.equal(result.rows[0].purchase.accepted_offer_id, offer.rows[0].id);
 });
 beforeEach(async () => {
   await db.exec(`drop trigger if exists fail_notification on public.notifications;

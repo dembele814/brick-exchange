@@ -270,6 +270,16 @@ function Inbox() {
                                 </button>
                               </div>
                             )}
+                            {m.from === "me" && m.offerStatus === "accepted" && (
+                              <Link
+                                to="/oferta/$id"
+                                params={{ id: active.listingId }}
+                                search={{ offer: m.id }}
+                                className="mt-3 inline-flex rounded-full bg-mint px-3 py-1.5 text-xs font-bold text-primary"
+                              >
+                                Kup za {m.offerAmount?.toFixed(2)} zł
+                              </Link>
+                            )}
                           </div>
                         ) : (
                           m.text

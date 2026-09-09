@@ -4,6 +4,7 @@ import { connectFeeGrosz } from "./connect.ts";
 
 export const checkoutInput = z.object({
   listingId: z.string().uuid(),
+  acceptedOfferId: z.string().uuid().optional(),
   lockerId: z.string().trim().min(3).max(80),
   carrier: z.enum(["inpost", "orlen", "dpd", "dhl"]),
   receiver: z.object({
@@ -47,6 +48,7 @@ export type CheckoutOrder = {
   checkout_origin: string;
   checkout_expires_at: number;
   stripe_checkout_session_id: string | null;
+  accepted_offer_id?: string | null;
 };
 
 export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.SessionCreateParams {
@@ -73,6 +75,7 @@ export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.Session
         order_id: order.id,
         platform_fee_grosz: String(platformFeeGrosz),
         transfer_group: transferGroup,
+        accepted_offer_id: order.accepted_offer_id ?? "",
       },
     },
     expires_at: order.checkout_expires_at,
