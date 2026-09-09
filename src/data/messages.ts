@@ -3,13 +3,24 @@ import { useAccount } from "@/data/account";
 import fallbackImage from "@/assets/set-bulk.jpg";
 import { requireSupabase, supabase } from "@/lib/supabase";
 
-export type Message = { id: string; from: "me" | "them"; text: string; at: number };
+export type Message = {
+  id: string;
+  from: "me" | "them";
+  text: string;
+  at: number;
+  type: "text" | "image" | "price_offer";
+  imageUrl?: string | undefined;
+  offerAmount?: number | undefined;
+  offerStatus?: "pending" | "accepted" | "rejected" | undefined;
+};
 export type Conversation = {
   id: string;
   sellerName: string;
   listingId: string;
   listingTitle: string;
   listingImage: string;
+  listingPrice: number;
+  canMakeOffer: boolean;
   messages: Message[];
   unread: number;
 };
@@ -36,7 +47,9 @@ async function load() {
   const [conversationsResult, participantsResult, messagesResult] = await Promise.all([
     client
       .from("conversations")
-      .select("id,listing_id,listings(title,listing_images(storage_path,position))")
+      .select(
+        "id,listing_id,buyer_id,listings(title,price_grosz,status,listing_images(storage_path,position))",
+      )
       .in("id", ids),
     client
       .from("conversation_participants")
@@ -44,12 +57,25 @@ async function load() {
       .in("conversation_id", ids),
     client
       .from("messages")
-      .select("id,conversation_id,sender_id,body,created_at")
+      .select(
+        "id,conversation_id,sender_id,body,created_at,message_type,image_path,offer_amount_grosz,offer_status",
+      )
       .in("conversation_id", ids)
       .order("created_at"),
   ]);
   if (conversationsResult.error || participantsResult.error || messagesResult.error)
     throw conversationsResult.error ?? participantsResult.error ?? messagesResult.error;
+  const imagePaths = (messagesResult.data ?? [])
+    .map((message: any) => message.image_path as string | null)
+    .filter((path): path is string => Boolean(path));
+  const signedImages = new Map<string, string>();
+  if (imagePaths.length) {
+    const signed = await client.storage.from("message-images").createSignedUrls(imagePaths, 3600);
+    if (signed.error) throw signed.error;
+    signed.data.forEach((item) => {
+      if (item.path && item.signedUrl) signedImages.set(item.path, item.signedUrl);
+    });
+  }
   const readAt = new Map(
     (mine ?? []).map((participant) => [
       participant.conversation_id,
@@ -75,12 +101,18 @@ async function load() {
         listingId: conversation.listing_id,
         listingTitle: listing?.title ?? "Oferta",
         listingImage: imageFor(picture?.storage_path),
+        listingPrice: (listing?.price_grosz ?? 0) / 100,
+        canMakeOffer: conversation.buyer_id === auth.user!.id && listing?.status === "active",
         sellerName: otherProfile?.username ?? "Kolekcjoner",
         messages: messages.map((message: any) => ({
           id: message.id,
           from: message.sender_id === auth.user!.id ? "me" : "them",
           text: message.body,
           at: Date.parse(message.created_at),
+          type: message.message_type ?? "text",
+          imageUrl: message.image_path ? signedImages.get(message.image_path) : undefined,
+          offerAmount: message.offer_amount_grosz ? message.offer_amount_grosz / 100 : undefined,
+          offerStatus: message.offer_status ?? undefined,
         })),
         unread: messages.filter(
           (message: any) =>
@@ -178,6 +210,49 @@ export async function sendMessage(conversationId: string, text: string) {
     .from("messages")
     .insert({ conversation_id: conversationId, sender_id: data.user.id, body: text });
   if (error) throw error;
+  notify();
+}
+
+export async function sendMessageImage(conversationId: string, file: File) {
+  if (!file.type.match(/^image\/(jpeg|png|webp)$/) || file.size > 5 * 1024 * 1024)
+    throw new Error("Wybierz zdjęcie JPG, PNG lub WebP do 5 MB.");
+  const client = requireSupabase();
+  const { data } = await client.auth.getUser();
+  if (!data.user) throw new Error("Zaloguj się, aby wysłać zdjęcie.");
+  const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${conversationId}/${data.user.id}/${crypto.randomUUID()}.${extension}`;
+  const upload = await client.storage.from("message-images").upload(path, file, { upsert: false });
+  if (upload.error) throw upload.error;
+  const inserted = await client.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: data.user.id,
+    body: "Zdjęcie",
+    message_type: "image",
+    image_path: path,
+  });
+  if (inserted.error) {
+    await client.storage.from("message-images").remove([path]);
+    throw inserted.error;
+  }
+  notify();
+}
+
+export async function sendPriceOffer(conversationId: string, amount: number) {
+  if (!Number.isFinite(amount) || amount < 1) throw new Error("Podaj prawidłową propozycję ceny.");
+  const { error } = await requireSupabase().rpc("send_price_offer", {
+    p_conversation_id: conversationId,
+    p_amount_grosz: Math.round(amount * 100),
+  });
+  if (error) throw new Error("Propozycja musi być niższa od ceny oferty.");
+  notify();
+}
+
+export async function respondToPriceOffer(messageId: string, accept: boolean) {
+  const { error } = await requireSupabase().rpc("respond_to_price_offer", {
+    p_message_id: messageId,
+    p_accept: accept,
+  });
+  if (error) throw new Error("Nie udało się odpowiedzieć na propozycję.");
   notify();
 }
 
