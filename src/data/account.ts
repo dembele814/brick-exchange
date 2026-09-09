@@ -278,9 +278,24 @@ export async function sendPasswordReset() {
   const client = requireSupabase();
   const { data } = await client.auth.getUser();
   if (!data.user?.email) throw new Error("Nie znaleźliśmy adresu e-mail tego konta.");
-  const { error } = await client.auth.resetPasswordForEmail(data.user.email, {
-    redirectTo: `${window.location.origin}/ustawienia`,
+  return sendPasswordResetForEmail(data.user.email);
+}
+
+export async function sendPasswordResetForEmail(email: string) {
+  const value = email.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(value)) throw new Error("Wpisz prawidłowy adres e-mail.");
+  const { error } = await requireSupabase().auth.resetPasswordForEmail(value, {
+    redirectTo: `${window.location.origin}/reset-hasla`,
   });
+  if (error) throw error;
+}
+
+export async function setRecoveredPassword(password: string) {
+  if (password.length < 8) throw new Error("Nowe hasło musi mieć co najmniej 8 znaków.");
+  const client = requireSupabase();
+  const { data } = await client.auth.getSession();
+  if (!data.session) throw new Error("Link wygasł. Wyślij nowy link resetowania hasła.");
+  const { error } = await client.auth.updateUser({ password });
   if (error) throw error;
 }
 

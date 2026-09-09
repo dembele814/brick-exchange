@@ -15,6 +15,7 @@ import { Route as LogowanieRouteImport } from './routes/logowanie'
 import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ProfilRouteImport } from './routes/profil'
+import { Route as ResetHaslaRouteImport } from './routes/reset-hasla'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
 import { Route as UlubioneRouteImport } from './routes/ulubione'
 import { Route as UstawieniaRouteImport } from './routes/ustawienia'
@@ -58,6 +59,11 @@ const PowiadomieniaRoute = PowiadomieniaRouteImport.update({
 const ProfilRoute = ProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetHaslaRoute = ResetHaslaRouteImport.update({
+  id: '/reset-hasla',
+  path: '/reset-hasla',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SprzedajRoute = SprzedajRouteImport.update({
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
+  '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
+  '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
+  '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
     | '/portfel'
     | '/powiadomienia'
     | '/profil'
+    | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
     | '/ustawienia'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/portfel'
     | '/powiadomienia'
     | '/profil'
+    | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
     | '/ustawienia'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/portfel'
     | '/powiadomienia'
     | '/profil'
+    | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
     | '/ustawienia'
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   PortfelRoute: typeof PortfelRoute
   PowiadomieniaRoute: typeof PowiadomieniaRoute
   ProfilRoute: typeof ProfilRoute
+  ResetHaslaRoute: typeof ResetHaslaRoute
   SprzedajRoute: typeof SprzedajRoute
   UlubioneRoute: typeof UlubioneRoute
   UstawieniaRoute: typeof UstawieniaRoute
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: '/profil'
       fullPath: '/profil'
       preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-hasla': {
+      id: '/reset-hasla'
+      path: '/reset-hasla'
+      fullPath: '/reset-hasla'
+      preLoaderRoute: typeof ResetHaslaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sprzedaj': {
@@ -442,6 +462,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortfelRoute: PortfelRoute,
   PowiadomieniaRoute: PowiadomieniaRoute,
   ProfilRoute: ProfilRoute,
+  ResetHaslaRoute: ResetHaslaRoute,
   SprzedajRoute: SprzedajRoute,
   UlubioneRoute: UlubioneRoute,
   UstawieniaRoute: UstawieniaRoute,

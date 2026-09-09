@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Lock, Mail, User } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { login, register } from "@/data/account";
+import { login, register, sendPasswordResetForEmail } from "@/data/account";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/logowanie")({
@@ -35,6 +35,8 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const field =
     "mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus-within:ring-2 focus-within:ring-ring/40";
@@ -127,6 +129,33 @@ function AuthPage() {
             </span>
           </label>
 
+          {mode === "login" && (
+            <button
+              type="button"
+              disabled={resetting}
+              onClick={() => {
+                setResetting(true);
+                setError(null);
+                setResetMessage(null);
+                void sendPasswordResetForEmail(email)
+                  .then(() =>
+                    setResetMessage(
+                      "Jeśli konto istnieje, wysłaliśmy link do ustawienia nowego hasła.",
+                    ),
+                  )
+                  .catch((cause) =>
+                    setError(
+                      cause instanceof Error ? cause.message : "Nie udało się wysłać linku.",
+                    ),
+                  )
+                  .finally(() => setResetting(false));
+              }}
+              className="block text-sm font-semibold text-brand hover:underline disabled:opacity-60"
+            >
+              {resetting ? "Wysyłanie linku…" : "Nie pamiętam hasła"}
+            </button>
+          )}
+
           <label className="block text-sm font-medium">
             Hasło
             <span className={field}>
@@ -155,10 +184,15 @@ function AuthPage() {
               {error}
             </p>
           )}
+          {resetMessage && <p className="text-sm font-medium text-mint">{resetMessage}</p>}
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link to="/" search={{ q: undefined }} className="font-semibold text-brand hover:underline">
+          <Link
+            to="/"
+            search={{ q: undefined }}
+            className="font-semibold text-brand hover:underline"
+          >
             Wróć do przeglądania ofert
           </Link>
         </p>
