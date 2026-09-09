@@ -270,7 +270,7 @@ function Inbox() {
                                 </button>
                               </div>
                             )}
-                            {m.from === "me" && m.offerStatus === "accepted" && (
+                            {active.isBuyer && m.offerStatus === "accepted" && (
                               <Link
                                 to="/oferta/$id"
                                 params={{ id: active.listingId }}

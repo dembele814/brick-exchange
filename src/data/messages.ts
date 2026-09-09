@@ -21,6 +21,7 @@ export type Conversation = {
   listingImage: string;
   listingPrice: number;
   canMakeOffer: boolean;
+  isBuyer: boolean;
   messages: Message[];
   unread: number;
 };
@@ -102,7 +103,8 @@ async function load() {
         listingTitle: listing?.title ?? "Oferta",
         listingImage: imageFor(picture?.storage_path),
         listingPrice: (listing?.price_grosz ?? 0) / 100,
-        canMakeOffer: conversation.buyer_id === auth.user!.id && listing?.status === "active",
+        canMakeOffer: listing?.status === "active",
+        isBuyer: conversation.buyer_id === auth.user!.id,
         sellerName: otherProfile?.username ?? "Kolekcjoner",
         messages: messages.map((message: any) => ({
           id: message.id,
