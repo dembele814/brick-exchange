@@ -18,9 +18,9 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Nie znaleziono strony</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          Ten adres nie istnieje albo strona została przeniesiona.
         </p>
         <div className="mt-6">
           <Link
@@ -28,7 +28,7 @@ function NotFoundComponent() {
             search={{ q: undefined }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Wróć na stronę główną
           </Link>
         </div>
       </div>
@@ -47,10 +47,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Nie udało się wczytać strony
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Wystąpił chwilowy błąd. Spróbuj ponownie albo wróć na stronę główną.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -60,13 +60,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Spróbuj ponownie
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Strona główna
           </a>
         </div>
       </div>
@@ -90,7 +90,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Kupuj i sprzedawaj używane zestawy, minifigurki i klocki LEGO.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Klockownia" },
+      { property: "og:locale", content: "pl_PL" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#ffffff" },
     ],
     links: [
       {
@@ -104,6 +107,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
 
