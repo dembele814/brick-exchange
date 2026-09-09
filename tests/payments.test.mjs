@@ -6,7 +6,7 @@ import Stripe from "stripe";
 import {
   paymentConfig,
   checkoutEvent,
-  refundTestPayment,
+  refundPayment,
   sessionParameters,
 } from "../src/server/payments.ts";
 import { handleCheckout } from "../src/server/checkout-handler.ts";
@@ -84,10 +84,15 @@ test("test refund verifies payment ownership and uses a stable idempotency key",
       },
     },
   };
-  const result = await refundTestPayment(stripeFixture, {
-    id: "order-one",
-    stripe_payment_intent_id: "pi_test_refund",
-  });
+  const result = await refundPayment(
+    stripeFixture,
+    {
+      id: "order-one",
+      stripe_payment_intent_id: "pi_test_refund",
+      stripe_livemode: false,
+    },
+    false,
+  );
   assert.equal(result.status, "succeeded");
   assert.equal(calls[0].params.payment_intent, "pi_test_refund");
   assert.equal(calls[0].options.idempotencyKey, "klockownia-refund:order-one:v1");
@@ -99,10 +104,15 @@ test("test refund verifies payment ownership and uses a stable idempotency key",
     metadata: { order_id: "order-one" },
   });
   await assert.rejects(() =>
-    refundTestPayment(stripeFixture, {
-      id: "order-one",
-      stripe_payment_intent_id: "pi_test_refund",
-    }),
+    refundPayment(
+      stripeFixture,
+      {
+        id: "order-one",
+        stripe_payment_intent_id: "pi_test_refund",
+        stripe_livemode: false,
+      },
+      false,
+    ),
   );
 });
 
@@ -125,6 +135,7 @@ before(async () => {
     "20260909_message_images_and_price_offers.sql",
     "20260910_accepted_offer_checkout.sql",
     "20260911_price_counteroffers.sql",
+    "20260912_stripe_live_mode.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -248,8 +259,17 @@ test("a legacy order can only be fulfilled by its previously bound session", asy
 
 async function reserve(who = buyer, receiver = input.receiver) {
   const result = await db.query(
-    `select public.reserve_stripe_checkout($1,$2,$3,$4,$5,$6) as purchase`,
-    [who, listing, input.carrier, input.lockerId, receiver, env.APP_URL.replace(/\/$/, "")],
+    `select public.reserve_stripe_checkout($1,$2,$3,$4,$5,$6,$7,$8) as purchase`,
+    [
+      who,
+      listing,
+      input.carrier,
+      input.lockerId,
+      receiver,
+      env.APP_URL.replace(/\/$/, ""),
+      null,
+      false,
+    ],
   );
   return result.rows[0].purchase;
 }
@@ -281,7 +301,7 @@ function event(order, patch = {}, type = "checkout.session.completed", id = "evt
 }
 async function apply(payload) {
   return db.query(
-    "select public.apply_stripe_checkout_event($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+    "select public.apply_stripe_checkout_event($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
     Object.values(payload),
   );
 }
@@ -325,9 +345,12 @@ function signedRequest(value, invalid = false) {
   });
 }
 
-test("test-only opt-in configuration rejects live keys and untrusted redirect origins", () => {
+test("Stripe mode requires matching keys, HTTPS, and an explicit live opt-in", () => {
   assert.equal(paymentConfig(env, true).appUrl, "https://shop.example.com");
   assert.throws(() => paymentConfig({ ...env, STRIPE_SECRET_KEY: "sk_live_fixture" }, true));
+  const live = { ...env, STRIPE_MODE: "live", STRIPE_SECRET_KEY: "sk_live_fixture" };
+  assert.throws(() => paymentConfig(live, true));
+  assert.equal(paymentConfig({ ...live, STRIPE_LIVE_ENABLED: "true" }, true).liveMode, true);
   assert.throws(() => paymentConfig({ ...env, STRIPE_PAYMENTS_ENABLED: "false" }, true));
   assert.doesNotThrow(() => paymentConfig({ ...env, STRIPE_PAYMENTS_ENABLED: "false" }));
   for (const APP_URL of [
@@ -355,6 +378,25 @@ test("reservation is exclusive and immutable across buyer retries", async () => 
   assert.equal(params.automatic_payment_methods, undefined);
   assert.equal(params.payment_intent_data.transfer_group, `order_${order.id}`);
   assert.equal(params.payment_intent_data.metadata.platform_fee_grosz, "717");
+});
+
+test("a test reservation cannot be reused or fulfilled in live mode", async () => {
+  const order = await reserve();
+  await assert.rejects(
+    db.query("select public.reserve_stripe_checkout($1,$2,$3,$4,$5,$6,$7,$8)", [
+      buyer,
+      listing,
+      input.carrier,
+      input.lockerId,
+      input.receiver,
+      env.APP_URL.replace(/\/$/, ""),
+      null,
+      true,
+    ]),
+  );
+  const payload = checkoutEvent(event(order));
+  await assert.rejects(apply({ ...payload, p_stripe_livemode: true }));
+  assert.equal((await readOrder(order.id)).payment_status, "pending");
 });
 
 test("self purchase and vacation listings cannot reserve inventory", async () => {
@@ -474,9 +516,9 @@ test("async failure cancels only a pending payment; late failure cannot regress 
 test("browser roles have no access to trusted payment mutation RPCs", async () => {
   for (const role of ["anon", "authenticated"]) {
     for (const fn of [
-      "reserve_stripe_checkout(uuid,uuid,text,text,jsonb,text)",
+      "reserve_stripe_checkout(uuid,uuid,text,text,jsonb,text,uuid,boolean)",
       "bind_stripe_checkout(uuid,text)",
-      "apply_stripe_checkout_event(text,text,uuid,text,integer,text,text,text,text,boolean)",
+      "apply_stripe_checkout_event(text,text,uuid,text,integer,text,text,text,text,boolean,boolean)",
     ]) {
       const result = await db.query("select has_function_privilege($1,$2,'EXECUTE') as allowed", [
         role,

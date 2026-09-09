@@ -65,12 +65,14 @@ export type DeliveredTransferOrder = {
   status: string;
   payment_status: string;
   stripe_payment_intent_id: string | null;
+  stripe_livemode: boolean;
 };
 
 export async function createDeliveredTransfer(
   stripe: Stripe,
   accountId: string,
   order: DeliveredTransferOrder,
+  expectedLiveMode: boolean,
 ) {
   if (
     order.status !== "delivered" ||
@@ -88,7 +90,8 @@ export async function createDeliveredTransfer(
     expand: ["latest_charge"],
   });
   if (
-    paymentIntent.livemode ||
+    paymentIntent.livemode !== expectedLiveMode ||
+    order.stripe_livemode !== expectedLiveMode ||
     paymentIntent.status !== "succeeded" ||
     paymentIntent.metadata["order_id"] !== order.id
   )

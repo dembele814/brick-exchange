@@ -7,6 +7,7 @@ export async function handleStripeWebhook(
   stripe: Stripe,
   secret: string,
   getAdmin: () => SupabaseClient,
+  expectedLiveMode = false,
 ) {
   const signature = request.headers.get("stripe-signature");
   if (!signature) return new Response("Missing Stripe signature", { status: 400 });
@@ -17,7 +18,7 @@ export async function handleStripeWebhook(
     return new Response("Invalid Stripe signature", { status: 400 });
   }
   try {
-    const payload = checkoutEvent(event);
+    const payload = checkoutEvent(event, expectedLiveMode);
     if (payload) {
       const { error } = await getAdmin().rpc("apply_stripe_checkout_event", payload);
       if (error) throw new Error("Payment transaction failed");

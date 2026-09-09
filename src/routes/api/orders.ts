@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { z } from "zod";
 import { createDeliveredTransfer } from "@/server/connect";
-import { paymentConfig, refundTestPayment } from "@/server/payments";
+import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
 const fulfillmentInput = z.object({
@@ -105,7 +105,7 @@ export const Route = createFileRoute("/api/orders")({
         const { data: order, error: orderError } = await admin
           .from("orders")
           .select(
-            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id",
+            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id,stripe_livemode",
           )
           .eq("id", action.orderId)
           .maybeSingle();
@@ -220,12 +220,13 @@ export const Route = createFileRoute("/api/orders")({
               );
           }
 
-          let refund: Awaited<ReturnType<typeof refundTestPayment>>;
+          let refund: Awaited<ReturnType<typeof refundPayment>>;
           try {
             const config = paymentConfig(process.env);
-            refund = await refundTestPayment(new Stripe(config.key), order);
+            if (order.stripe_livemode !== config.liveMode) throw new Error("Stripe mode mismatch");
+            refund = await refundPayment(new Stripe(config.key), order, config.liveMode);
           } catch {
-            console.error("Test refund outcome requires reconciliation", order.id);
+            console.error("Refund outcome requires reconciliation", order.id);
             return Response.json(
               { error: "Zwrot jest sprawdzany. Użyj przycisku ponownie za chwilę." },
               { status: 503 },
@@ -239,7 +240,7 @@ export const Route = createFileRoute("/api/orders")({
               .eq("status", "cancelled")
               .eq("payment_status", "paid");
             return Response.json(
-              { error: "Stripe odrzucił zwrot płatności testowej. Spróbuj ponownie." },
+              { error: "Stripe odrzucił zwrot płatności. Spróbuj ponownie." },
               { status: 503 },
             );
           }
@@ -272,7 +273,7 @@ export const Route = createFileRoute("/api/orders")({
               user_id: order.seller_id,
               kind: "payment",
               title: "Zamówienie anulowane",
-              body: "Kupujący anulował zamówienie przed wysyłką. Płatność testowa została zwrócona, a oferta jest ponownie aktywna.",
+              body: "Kupujący anulował zamówienie przed wysyłką. Płatność została zwrócona, a oferta jest ponownie aktywna.",
               href: `/zamowienia?order=${order.id}`,
             });
             if (eventError || notificationError)
@@ -318,23 +319,37 @@ export const Route = createFileRoute("/api/orders")({
           let notificationBody = "Kupujący potwierdził odbiór zamówienia.";
           try {
             const { data: sellerAuth } = await admin.auth.admin.getUserById(order.seller_id);
-            const accountId = sellerAuth.user?.app_metadata?.["klockownia_stripe_account_id"];
+            const config = paymentConfig(process.env);
+            if (order.stripe_livemode !== config.liveMode) throw new Error("Stripe mode mismatch");
+            const accountId =
+              sellerAuth.user?.app_metadata?.[
+                config.liveMode
+                  ? "klockownia_stripe_live_account_id"
+                  : "klockownia_stripe_test_account_id"
+              ] ??
+              (!config.liveMode
+                ? sellerAuth.user?.app_metadata?.["klockownia_stripe_account_id"]
+                : undefined);
             if (typeof accountId === "string") {
-              const config = paymentConfig(process.env);
-              const transfer = await createDeliveredTransfer(new Stripe(config.key), accountId, {
-                ...order,
-                status: "delivered",
-              });
+              const transfer = await createDeliveredTransfer(
+                new Stripe(config.key),
+                accountId,
+                {
+                  ...order,
+                  status: "delivered",
+                },
+                config.liveMode,
+              );
               if (transfer.state === "transferred")
-                notificationBody += ` Transfer testowy ${new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN" }).format(transfer.amount / 100)} został utworzony.`;
+                notificationBody += ` Transfer ${new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN" }).format(transfer.amount / 100)} został utworzony.`;
               else if (transfer.state === "not_ready")
-                notificationBody += " Dokończ weryfikację Stripe, aby otrzymać transfer testowy.";
+                notificationBody += " Dokończ weryfikację Stripe, aby otrzymać transfer.";
             } else {
-              notificationBody += " Skonfiguruj Stripe Connect, aby otrzymać transfer testowy.";
+              notificationBody += " Skonfiguruj Stripe Connect, aby otrzymać transfer.";
             }
           } catch {
-            console.error("Automatic test transfer requires retry", order.id);
-            notificationBody += " Transfer testowy oczekuje na ponowną próbę w panelu sprzedaży.";
+            console.error("Automatic transfer requires retry", order.id);
+            notificationBody += " Transfer oczekuje na ponowną próbę w panelu sprzedaży.";
           }
           await admin.from("notifications").insert({
             user_id: order.seller_id,

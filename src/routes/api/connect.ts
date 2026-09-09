@@ -9,7 +9,15 @@ import {
 import { paymentConfig } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
-const metadataKey = "klockownia_stripe_account_id";
+function metadataKey(liveMode: boolean) {
+  return liveMode ? "klockownia_stripe_live_account_id" : "klockownia_stripe_test_account_id";
+}
+function accountIdFor(user: { app_metadata?: Record<string, unknown> }, liveMode: boolean) {
+  const value =
+    user.app_metadata?.[metadataKey(liveMode)] ??
+    (!liveMode ? user.app_metadata?.["klockownia_stripe_account_id"] : undefined);
+  return typeof value === "string" ? value : undefined;
+}
 const payoutInput = z.object({ orderId: z.string().uuid() });
 
 async function authenticatedUser(request: Request) {
@@ -21,7 +29,7 @@ async function authenticatedUser(request: Request) {
 
 function stripeClient() {
   const config = paymentConfig(process.env);
-  return { stripe: new Stripe(config.key), appUrl: config.appUrl };
+  return { stripe: new Stripe(config.key), appUrl: config.appUrl, liveMode: config.liveMode };
 }
 
 export const Route = createFileRoute("/api/connect")({
@@ -31,10 +39,11 @@ export const Route = createFileRoute("/api/connect")({
         const user = await authenticatedUser(request);
         if (!user)
           return Response.json({ error: "Zaloguj się, aby sprawdzić wypłaty." }, { status: 401 });
-        const accountId = user.app_metadata?.[metadataKey];
-        if (typeof accountId !== "string") return Response.json({ state: "missing" });
         try {
-          const { stripe } = stripeClient();
+          const { stripe, liveMode } = stripeClient();
+          const accountId = accountIdFor(user, liveMode);
+          if (typeof accountId !== "string")
+            return Response.json({ state: "missing", livemode: liveMode });
           const account = await stripe.v2.core.accounts.retrieve(accountId, {
             include: ["configuration.recipient", "requirements"],
           });
@@ -46,6 +55,7 @@ export const Route = createFileRoute("/api/connect")({
               .select("id")
               .eq("seller_id", user.id)
               .eq("status", "delivered")
+              .eq("stripe_livemode", liveMode)
               .order("created_at", { ascending: false })
               .limit(5);
             if (ordersError) throw ordersError;
@@ -64,7 +74,7 @@ export const Route = createFileRoute("/api/connect")({
               }),
             );
           }
-          return Response.json({ ...state, transfers });
+          return Response.json({ ...state, transfers, livemode: liveMode });
         } catch {
           return Response.json(
             { error: "Nie udało się sprawdzić statusu konta Stripe." },
@@ -80,16 +90,16 @@ export const Route = createFileRoute("/api/connect")({
             { status: 401 },
           );
         try {
-          const { stripe, appUrl } = stripeClient();
-          let accountId = user.app_metadata?.[metadataKey];
+          const { stripe, appUrl, liveMode } = stripeClient();
+          let accountId = accountIdFor(user, liveMode);
           if (typeof accountId !== "string") {
             const account = await stripe.v2.core.accounts.create(
               connectAccountCreateParams(user.id, user.email, appUrl),
-              { idempotencyKey: `klockownia-connect:${user.id}:v1` },
+              { idempotencyKey: `klockownia-connect:${liveMode ? "live" : "test"}:${user.id}:v1` },
             );
             accountId = account.id;
             const { error } = await getSupabaseAdmin().auth.admin.updateUserById(user.id, {
-              app_metadata: { ...user.app_metadata, [metadataKey]: accountId },
+              app_metadata: { ...user.app_metadata, [metadataKey(liveMode)]: accountId },
             });
             if (error) throw error;
           }
@@ -125,7 +135,9 @@ export const Route = createFileRoute("/api/connect")({
         const admin = getSupabaseAdmin();
         const { data: order, error: orderError } = await admin
           .from("orders")
-          .select("id,seller_id,amount_grosz,status,payment_status,stripe_payment_intent_id")
+          .select(
+            "id,seller_id,amount_grosz,status,payment_status,stripe_payment_intent_id,stripe_livemode",
+          )
           .eq("id", parsed.data.orderId)
           .maybeSingle();
         if (orderError || !order)
@@ -137,7 +149,13 @@ export const Route = createFileRoute("/api/connect")({
             { error: "Transfer jest dostępny po opłaceniu i potwierdzeniu odbioru." },
             { status: 409 },
           );
-        const accountId = user.app_metadata?.[metadataKey];
+        const config = paymentConfig(process.env);
+        if (order.stripe_livemode !== config.liveMode)
+          return Response.json(
+            { error: "To zamówienie pochodzi z innego trybu Stripe." },
+            { status: 409 },
+          );
+        const accountId = accountIdFor(user, config.liveMode);
         if (typeof accountId !== "string")
           return Response.json(
             { error: "Najpierw skonfiguruj konto Stripe Connect." },
@@ -150,8 +168,8 @@ export const Route = createFileRoute("/api/connect")({
           );
 
         try {
-          const { stripe } = stripeClient();
-          const result = await createDeliveredTransfer(stripe, accountId, order);
+          const { stripe, liveMode } = stripeClient();
+          const result = await createDeliveredTransfer(stripe, accountId, order, liveMode);
           if (result.state === "not_ready")
             return Response.json(
               { error: "Dokończ weryfikację Stripe przed transferem." },
@@ -161,7 +179,7 @@ export const Route = createFileRoute("/api/connect")({
         } catch {
           console.error("Stripe Connect transfer requires retry or investigation", order.id);
           return Response.json(
-            { error: "Nie udało się wykonać transferu testowego. Spróbuj ponownie później." },
+            { error: "Nie udało się wykonać transferu. Spróbuj ponownie później." },
             { status: 503 },
           );
         }

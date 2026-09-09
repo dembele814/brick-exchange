@@ -14,13 +14,14 @@ export const Route = createFileRoute("/api/webhooks/stripe")({
         try {
           config = paymentConfig();
         } catch {
-          return new Response("Webhook is not configured for test payments", { status: 503 });
+          return new Response("Webhook is not configured", { status: 503 });
         }
         return handleStripeWebhook(
           request,
           new Stripe(config.key),
           config.webhookSecret,
           getSupabaseAdmin,
+          config.liveMode,
         );
       },
     },

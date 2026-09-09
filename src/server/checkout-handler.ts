@@ -7,6 +7,7 @@ export async function handleCheckout(
   admin: SupabaseClient,
   stripe: Stripe,
   appUrl: string,
+  expectedLiveMode = false,
 ) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (!token) return Response.json({ error: "Zaloguj się, aby kupić ofertę." }, { status: 401 });
@@ -36,6 +37,7 @@ export async function handleCheckout(
     p_receiver: parsed.data.receiver,
     p_origin: appUrl,
     p_offer_message_id: parsed.data.acceptedOfferId ?? null,
+    p_stripe_livemode: expectedLiveMode,
   });
   if (error) {
     if (error.code === "P0001" || error.code === "23505")
@@ -67,7 +69,7 @@ export async function handleCheckout(
     : await stripe.checkout.sessions.create(sessionParameters(order), {
         idempotencyKey: `checkout:${order.id}:v1`,
       });
-  if (session.status !== "open" || !session.url || session.livemode)
+  if (session.status !== "open" || !session.url || session.livemode !== expectedLiveMode)
     return Response.json(
       { error: "Ta płatność została już zakończona lub wygasła. Sprawdź zamówienia." },
       { status: 409 },

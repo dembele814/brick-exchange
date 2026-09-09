@@ -19,10 +19,14 @@ export function paymentConfig(
   env: Record<string, string | undefined> = process.env,
   creatingCheckout = false,
 ) {
-  // Real marketplace charging stays blocked until Connect and money operations ship.
+  const mode = env["STRIPE_MODE"] ?? "test";
+  if (mode !== "test" && mode !== "live") throw new Error("Invalid Stripe mode");
+  const liveMode = mode === "live";
   const key = env["STRIPE_SECRET_KEY"];
-  if (!key?.startsWith("sk_test_") || !env["STRIPE_WEBHOOK_SECRET"])
-    throw new Error("Test payment credentials are required");
+  if (!key?.startsWith(liveMode ? "sk_live_" : "sk_test_") || !env["STRIPE_WEBHOOK_SECRET"])
+    throw new Error("Stripe credentials do not match the configured mode");
+  if (liveMode && env["STRIPE_LIVE_ENABLED"] !== "true")
+    throw new Error("Live Stripe requires an explicit safety opt-in");
   if (creatingCheckout && env["STRIPE_PAYMENTS_ENABLED"] !== "true")
     throw new Error("Checkout is disabled");
   const url = new URL(env["APP_URL"] ?? "");
@@ -36,7 +40,8 @@ export function paymentConfig(
     url.pathname !== "/"
   )
     throw new Error("APP_URL must be a trusted application origin");
-  return { key, webhookSecret: env["STRIPE_WEBHOOK_SECRET"], appUrl: url.origin };
+  if (liveMode && url.protocol !== "https:") throw new Error("Live Stripe requires HTTPS");
+  return { key, webhookSecret: env["STRIPE_WEBHOOK_SECRET"], appUrl: url.origin, liveMode, mode };
 }
 
 export type CheckoutOrder = {
@@ -48,6 +53,7 @@ export type CheckoutOrder = {
   checkout_origin: string;
   checkout_expires_at: number;
   stripe_checkout_session_id: string | null;
+  stripe_livemode: boolean;
   accepted_offer_id?: string | null;
 };
 
@@ -84,14 +90,16 @@ export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.Session
   };
 }
 
-export async function refundTestPayment(
+export async function refundPayment(
   stripe: Stripe,
-  order: { id: string; stripe_payment_intent_id: string | null },
+  order: { id: string; stripe_payment_intent_id: string | null; stripe_livemode: boolean },
+  expectedLiveMode: boolean,
 ) {
   if (!order.stripe_payment_intent_id) throw new Error("Payment intent is missing");
   const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id);
   if (
-    paymentIntent.livemode ||
+    paymentIntent.livemode !== expectedLiveMode ||
+    order.stripe_livemode !== expectedLiveMode ||
     paymentIntent.status !== "succeeded" ||
     paymentIntent.metadata["order_id"] !== order.id
   )
@@ -107,8 +115,9 @@ export async function refundTestPayment(
   );
 }
 
-export function checkoutEvent(event: Stripe.Event) {
-  if (event.livemode || event.account) throw new Error("Unexpected Stripe account or mode");
+export function checkoutEvent(event: Stripe.Event, expectedLiveMode = false) {
+  if (event.livemode !== expectedLiveMode || event.account)
+    throw new Error("Unexpected Stripe account or mode");
   if (
     event.type !== "checkout.session.completed" &&
     event.type !== "checkout.session.async_payment_succeeded" &&
@@ -123,7 +132,7 @@ export function checkoutEvent(event: Stripe.Event) {
   if (
     !z.string().uuid().safeParse(orderId).success ||
     session.mode !== "payment" ||
-    session.livemode
+    session.livemode !== expectedLiveMode
   )
     throw new Error("Invalid Checkout order reference or mode");
   const success =
@@ -154,5 +163,6 @@ export function checkoutEvent(event: Stripe.Event) {
         ? session.payment_intent
         : (session.payment_intent?.id ?? null),
     p_paid: success,
+    p_stripe_livemode: expectedLiveMode,
   };
 }

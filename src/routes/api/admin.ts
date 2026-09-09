@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { z } from "zod";
-import { paymentConfig, refundTestPayment } from "@/server/payments";
+import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 
 const adminAction = z.discriminatedUnion("action", [
@@ -92,7 +92,9 @@ export const Route = createFileRoute("/api/admin")({
 
         const order = await db
           .from("orders")
-          .select("id,listing_id,buyer_id,seller_id,status,payment_status,stripe_payment_intent_id")
+          .select(
+            "id,listing_id,buyer_id,seller_id,status,payment_status,stripe_payment_intent_id,stripe_livemode",
+          )
           .eq("id", input.orderId)
           .maybeSingle();
         if (order.error || !order.data)
@@ -131,6 +133,11 @@ export const Route = createFileRoute("/api/admin")({
           return Response.json({ error: "Tego zamówienia nie można zwrócić." }, { status: 409 });
         try {
           const config = paymentConfig(process.env);
+          if (order.data.stripe_livemode !== config.liveMode)
+            return Response.json(
+              { error: "Zamówienie pochodzi z innego trybu Stripe." },
+              { status: 409 },
+            );
           const stripe = new Stripe(config.key);
           const transfers = await stripe.transfers.list({
             transfer_group: `order_${order.data.id}`,
@@ -145,7 +152,7 @@ export const Route = createFileRoute("/api/admin")({
               },
               { idempotencyKey: `klockownia-reversal:${order.data.id}:${transfer.id}:v1` },
             );
-          const refund = await refundTestPayment(stripe, order.data);
+          const refund = await refundPayment(stripe, order.data, config.liveMode);
           if (refund.status !== "succeeded")
             return Response.json(
               { error: "Zwrot Stripe nadal jest przetwarzany." },
@@ -169,24 +176,21 @@ export const Route = createFileRoute("/api/admin")({
               user_id: order.data.buyer_id,
               kind: "payment",
               title: "Płatność została zwrócona",
-              body: "Administrator zatwierdził pełny zwrot płatności testowej.",
+              body: "Administrator zatwierdził pełny zwrot płatności.",
               href: `/zamowienia?order=${order.data.id}`,
             },
             {
               user_id: order.data.seller_id,
               kind: "payment",
               title: "Zamówienie zostało zwrócone",
-              body: "Administrator zatwierdził zwrot; testowy transfer został cofnięty.",
+              body: "Administrator zatwierdził zwrot; transfer został cofnięty.",
               href: `/zamowienia?order=${order.data.id}`,
             },
           ]);
           return Response.json({ ok: true });
         } catch {
           console.error("Admin refund requires investigation", order.data.id);
-          return Response.json(
-            { error: "Nie udało się zakończyć zwrotu testowego." },
-            { status: 503 },
-          );
+          return Response.json({ error: "Nie udało się zakończyć zwrotu." }, { status: 503 });
         }
       },
     },

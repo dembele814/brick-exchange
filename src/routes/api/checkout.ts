@@ -15,6 +15,7 @@ export const Route = createFileRoute("/api/checkout")({
             getSupabaseAdmin(),
             new Stripe(config.key),
             config.appUrl,
+            config.liveMode,
           );
         } catch {
           console.error(
