@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
+import { Route as PolitykaPrywatnosciRouteImport } from './routes/polityka-prywatnosci'
 import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ProfilRouteImport } from './routes/profil'
+import { Route as RegulaminRouteImport } from './routes/regulamin'
 import { Route as ResetHaslaRouteImport } from './routes/reset-hasla'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
 import { Route as UlubioneRouteImport } from './routes/ulubione'
@@ -46,6 +48,11 @@ const LogowanieRoute = LogowanieRouteImport.update({
   path: '/logowanie',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PolitykaPrywatnosciRoute = PolitykaPrywatnosciRouteImport.update({
+  id: '/polityka-prywatnosci',
+  path: '/polityka-prywatnosci',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortfelRoute = PortfelRouteImport.update({
   id: '/portfel',
   path: '/portfel',
@@ -59,6 +66,11 @@ const PowiadomieniaRoute = PowiadomieniaRouteImport.update({
 const ProfilRoute = ProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegulaminRoute = RegulaminRouteImport.update({
+  id: '/regulamin',
+  path: '/regulamin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetHaslaRoute = ResetHaslaRouteImport.update({
@@ -141,9 +153,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
+  '/polityka-prywatnosci': typeof PolitykaPrywatnosciRoute
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
+  '/regulamin': typeof RegulaminRoute
   '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
@@ -164,9 +178,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
+  '/polityka-prywatnosci': typeof PolitykaPrywatnosciRoute
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
+  '/regulamin': typeof RegulaminRoute
   '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
@@ -188,9 +204,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
+  '/polityka-prywatnosci': typeof PolitykaPrywatnosciRoute
   '/portfel': typeof PortfelRoute
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
+  '/regulamin': typeof RegulaminRoute
   '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
@@ -213,9 +231,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/logowanie'
+    | '/polityka-prywatnosci'
     | '/portfel'
     | '/powiadomienia'
     | '/profil'
+    | '/regulamin'
     | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
@@ -236,9 +256,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/logowanie'
+    | '/polityka-prywatnosci'
     | '/portfel'
     | '/powiadomienia'
     | '/profil'
+    | '/regulamin'
     | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
@@ -259,9 +281,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/logowanie'
+    | '/polityka-prywatnosci'
     | '/portfel'
     | '/powiadomienia'
     | '/profil'
+    | '/regulamin'
     | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
@@ -283,9 +307,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   LogowanieRoute: typeof LogowanieRoute
+  PolitykaPrywatnosciRoute: typeof PolitykaPrywatnosciRoute
   PortfelRoute: typeof PortfelRoute
   PowiadomieniaRoute: typeof PowiadomieniaRoute
   ProfilRoute: typeof ProfilRoute
+  RegulaminRoute: typeof RegulaminRoute
   ResetHaslaRoute: typeof ResetHaslaRoute
   SprzedajRoute: typeof SprzedajRoute
   UlubioneRoute: typeof UlubioneRoute
@@ -326,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogowanieRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/polityka-prywatnosci': {
+      id: '/polityka-prywatnosci'
+      path: '/polityka-prywatnosci'
+      fullPath: '/polityka-prywatnosci'
+      preLoaderRoute: typeof PolitykaPrywatnosciRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portfel': {
       id: '/portfel'
       path: '/portfel'
@@ -345,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/profil'
       fullPath: '/profil'
       preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regulamin': {
+      id: '/regulamin'
+      path: '/regulamin'
+      fullPath: '/regulamin'
+      preLoaderRoute: typeof RegulaminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-hasla': {
@@ -459,9 +499,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   LogowanieRoute: LogowanieRoute,
+  PolitykaPrywatnosciRoute: PolitykaPrywatnosciRoute,
   PortfelRoute: PortfelRoute,
   PowiadomieniaRoute: PowiadomieniaRoute,
   ProfilRoute: ProfilRoute,
+  RegulaminRoute: RegulaminRoute,
   ResetHaslaRoute: ResetHaslaRoute,
   SprzedajRoute: SprzedajRoute,
   UlubioneRoute: UlubioneRoute,

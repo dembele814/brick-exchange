@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { ShieldCheck, Sparkles, Truck } from "lucide-react";
 
 const tiles = [
@@ -20,8 +21,8 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-4 py-12">
         <h2 className="text-xl font-bold">Drugie życie każdego zestawu</h2>
         <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-          Kupuj kompletne zestawy, pojedyncze minifigurki i klocki na wagę — od
-          kolekcjonerów, którzy dokładnie opisują stan każdego elementu.
+          Kupuj kompletne zestawy, pojedyncze minifigurki i klocki na wagę — od kolekcjonerów,
+          którzy dokładnie opisują stan każdego elementu.
         </p>
 
         <dl className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -34,9 +35,17 @@ export function SiteFooter() {
           ))}
         </dl>
 
-        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground">
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 text-sm text-muted-foreground">
           <p>© 2026 Klockownia — niezależny serwis społeczności budujących.</p>
-          <p>Nie jesteśmy powiązani z producentem klocków.</p>
+          <nav className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Informacje prawne">
+            <Link to="/regulamin" className="hover:text-foreground hover:underline">
+              Regulamin
+            </Link>
+            <Link to="/polityka-prywatnosci" className="hover:text-foreground hover:underline">
+              Polityka prywatności
+            </Link>
+          </nav>
+          <p className="w-full text-xs">Nie jesteśmy powiązani z producentem klocków.</p>
         </div>
       </div>
     </footer>
