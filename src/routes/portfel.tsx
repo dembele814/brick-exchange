@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CircleDollarSign, Clock3, PackageCheck, Wallet } from "lucide-react";
+import { CircleDollarSign, Clock3, PackageCheck, ShoppingBag, Wallet } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
@@ -12,15 +12,15 @@ import { requireSupabase } from "@/lib/supabase";
 export const Route = createFileRoute("/portfel")({
   head: () => ({
     meta: [
-      { title: "Sprzedaż i wypłaty — Klockownia" },
+      { title: "Zakupy, sprzedaż i wypłaty — Klockownia" },
       {
         name: "description",
-        content: "Rzeczywiste podsumowanie sprzedaży oraz stan uruchomienia wypłat w Klockowni.",
+        content: "Podsumowanie zakupów, sprzedaży oraz stan wypłat w Klockowni.",
       },
-      { property: "og:title", content: "Sprzedaż i wypłaty — Klockownia" },
+      { property: "og:title", content: "Zakupy, sprzedaż i wypłaty — Klockownia" },
       {
         property: "og:description",
-        content: "Sprzedane zestawy, wartość zamówień i informacje o wypłatach.",
+        content: "Kupione i sprzedane zestawy, wartości zamówień oraz informacje o wypłatach.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -138,28 +138,36 @@ function WalletPage() {
     );
 
   const sold = orders.filter((order) => order.kind === "sold");
+  const bought = orders.filter((order) => order.kind === "bought");
   const paid = sold.filter((order) => activeStatuses.has(order.status));
+  const paidPurchases = bought.filter((order) => activeStatuses.has(order.status));
   const delivered = sold.filter((order) => order.status === "Dostarczone");
   const awaiting = sold.filter(
     (order) => order.status === "Opłacone" || order.status === "Wysłane",
   );
   const salesValue = paid.reduce((sum, order) => sum + order.total, 0);
+  const purchasesValue = paidPurchases.reduce((sum, order) => sum + order.total, 0);
 
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">Sprzedawanie</p>
-        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Sprzedaż i wypłaty</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">Twoje transakcje</p>
+        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Zakupy, sprzedaż i wypłaty</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Dane poniżej pochodzą z Twoich zamówień. Planowana prowizja Klockowni wynosi 1 zł + 5%
-          ceny oferty. Kwota sprzedaży nie jest saldem do wypłaty.
+          Zakupy i sprzedaże są pokazane obok siebie. Prowizja Klockowni wynosi 1 zł + 5% ceny
+          oferty. Wypłata dla sprzedającego jest dostępna po potwierdzeniu odbioru.
         </p>
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-3">
+        <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryCard
+            icon={ShoppingBag}
+            label="Wartość zakupów"
+            value={loading ? "…" : money.format(purchasesValue)}
+          />
           <SummaryCard
             icon={CircleDollarSign}
-            label="Wartość opłaconych ofert"
+            label="Wartość sprzedaży"
             value={loading ? "…" : money.format(salesValue)}
           />
           <SummaryCard
@@ -239,70 +247,105 @@ function WalletPage() {
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">Ostatnie sprzedane oferty</h2>
+              <h2 className="text-lg font-semibold">Zakupy i sprzedaże</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Statusy pochodzą z prawdziwych zamówień.
+                Ostatnie transakcje i ich statusy.
               </p>
             </div>
             <Link to="/zamowienia" className="text-sm font-semibold text-brand hover:underline">
-              Wszystkie zamówienia
+              Zobacz wszystkie
             </Link>
           </div>
 
-          {!loading && sold.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-              <p className="font-semibold">Nie masz jeszcze sprzedanych ofert</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Opłacone zamówienia pojawią się tutaj automatycznie.
-              </p>
-              <Link
-                to="/sprzedaj"
-                className="mt-4 inline-flex rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground"
-              >
-                Wystaw ofertę
-              </Link>
-            </div>
-          ) : (
-            <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              {sold.slice(0, 5).map((order) => (
-                <li key={order.id} className="flex items-center gap-3 px-4 py-3.5 text-sm">
-                  <img
-                    src={order.image}
-                    alt=""
-                    className="size-12 shrink-0 rounded-xl bg-secondary object-cover"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{order.title}</span>
-                    <span className="block text-xs text-muted-foreground">
-                      {order.status} · {order.at}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="block font-semibold">{money.format(order.total)}</span>
-                    {order.status === "Dostarczone" && connectStatus === "active" && (
-                      <button
-                        type="button"
-                        disabled={payouts[order.id]?.state === "loading"}
-                        onClick={() => void requestTestTransfer(order.id)}
-                        className="mt-1 text-xs font-semibold text-brand hover:underline disabled:opacity-60"
-                      >
-                        {payouts[order.id]?.state === "loading"
-                          ? "Przekazujemy…"
-                          : payouts[order.id]?.state === "done"
-                            ? payouts[order.id]?.message
-                            : "Wykonaj transfer testowy"}
-                      </button>
-                    )}
-                    {payouts[order.id]?.state === "error" && (
-                      <span className="mt-1 block max-w-52 text-xs text-destructive">
-                        {payouts[order.id]?.message}
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">
+                <ShoppingBag className="size-4 text-brand" aria-hidden /> Zakupy ({bought.length})
+              </h3>
+              {!loading && bought.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+                  Nie masz jeszcze zakupów.
+                </div>
+              ) : (
+                <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                  {bought.slice(0, 5).map((order) => (
+                    <li key={order.id} className="flex items-center gap-3 px-4 py-3.5 text-sm">
+                      <img
+                        src={order.image}
+                        alt=""
+                        className="size-12 shrink-0 rounded-xl bg-secondary object-cover"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{order.title}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {order.status} · {order.at}
+                        </span>
                       </span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                      <span className="shrink-0 font-semibold">{money.format(order.total)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">
+                <CircleDollarSign className="size-4 text-brand" aria-hidden /> Sprzedaże (
+                {sold.length})
+              </h3>
+              {!loading && sold.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+                  <p className="text-sm text-muted-foreground">Nie masz jeszcze sprzedaży.</p>
+                  <Link
+                    to="/sprzedaj"
+                    className="mt-3 inline-flex text-sm font-semibold text-brand hover:underline"
+                  >
+                    Wystaw ofertę
+                  </Link>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                  {sold.slice(0, 5).map((order) => (
+                    <li key={order.id} className="flex items-center gap-3 px-4 py-3.5 text-sm">
+                      <img
+                        src={order.image}
+                        alt=""
+                        className="size-12 shrink-0 rounded-xl bg-secondary object-cover"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{order.title}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {order.status} · {order.at}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="block font-semibold">{money.format(order.total)}</span>
+                        {order.status === "Dostarczone" && connectStatus === "active" && (
+                          <button
+                            type="button"
+                            disabled={payouts[order.id]?.state === "loading"}
+                            onClick={() => void requestTestTransfer(order.id)}
+                            className="mt-1 text-xs font-semibold text-brand hover:underline disabled:opacity-60"
+                          >
+                            {payouts[order.id]?.state === "loading"
+                              ? "Przekazujemy…"
+                              : payouts[order.id]?.state === "done"
+                                ? payouts[order.id]?.message
+                                : "Wykonaj transfer testowy"}
+                          </button>
+                        )}
+                        {payouts[order.id]?.state === "error" && (
+                          <span className="mt-1 block max-w-52 text-xs text-destructive">
+                            {payouts[order.id]?.message}
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </section>
       </main>
       <SiteFooter />

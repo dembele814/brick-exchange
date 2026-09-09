@@ -370,6 +370,7 @@ export async function loginWithGoogle() {
     provider: "google",
     options: {
       redirectTo: `${window.location.origin}/profil`,
+      scopes: "https://www.googleapis.com/auth/userinfo.email",
       queryParams: { prompt: "select_account" },
     },
   });
@@ -382,6 +383,7 @@ export async function linkGoogleAccount() {
     provider: "google",
     options: {
       redirectTo: `${window.location.origin}/ustawienia`,
+      scopes: "https://www.googleapis.com/auth/userinfo.email",
       queryParams: { prompt: "select_account" },
     },
   });

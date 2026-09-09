@@ -24,12 +24,12 @@ export const Route = createFileRoute("/zamowienia")({
   }),
   head: () => ({
     meta: [
-      { title: "Moje zamówienia — Klockownia" },
+      { title: "Zakupy i sprzedaże — Klockownia" },
       {
         name: "description",
         content: "Podgląd zestawów LEGO, które kupiłeś i sprzedałeś, wraz ze statusem wysyłki.",
       },
-      { property: "og:title", content: "Moje zamówienia — Klockownia" },
+      { property: "og:title", content: "Zakupy i sprzedaże — Klockownia" },
       { property: "og:description", content: "Kupione i sprzedane zestawy w jednym widoku." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -39,8 +39,8 @@ export const Route = createFileRoute("/zamowienia")({
 });
 
 const tabs = [
-  { key: "bought", label: "Kupione" },
-  { key: "sold", label: "Sprzedane" },
+  { key: "bought", label: "Zakupy" },
+  { key: "sold", label: "Sprzedaże" },
 ] as const;
 
 const carrierTrackingPages = {
@@ -108,7 +108,7 @@ function OrdersPage() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="text-2xl font-bold sm:text-3xl">Moje zamówienia</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">Zakupy i sprzedaże</h1>
 
         <div className="mt-5 flex gap-2">
           {tabs.map((t) => (
