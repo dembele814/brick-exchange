@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Mail } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
@@ -373,14 +373,6 @@ function SettingsPage() {
             >
               Połącz konto Google
             </button>
-            <button
-              type="button"
-              disabled
-              title="Wymaga skonfigurowania logowania Facebook w Supabase"
-              className="cursor-not-allowed rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground opacity-60"
-            >
-              Facebook — wkrótce
-            </button>
           </div>
         </section>
 
@@ -429,12 +421,12 @@ function SettingsPage() {
           {saved && <span className="text-sm text-muted-foreground">Zapisano.</span>}
           {accountNotice && <span className="text-sm text-brand">{accountNotice}</span>}
           {saveError && <span className="text-sm text-destructive">{saveError}</span>}
-          <button
-            type="button"
-            className="ml-auto inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+          <a
+            href={`mailto:feelip.awf@gmail.com?subject=${encodeURIComponent("Prośba o usunięcie konta Klockownia")}&body=${encodeURIComponent(`Proszę o usunięcie konta przypisanego do adresu: ${profile.email}`)}`}
+            className="ml-auto inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            <Trash2 className="size-4" aria-hidden /> Usuń konto
-          </button>
+            <Mail className="size-4" aria-hidden /> Poproś o usunięcie konta
+          </a>
         </div>
       </main>
       <SiteFooter />

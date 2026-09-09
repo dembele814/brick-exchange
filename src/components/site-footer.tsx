@@ -5,7 +5,7 @@ const tiles = [
   {
     icon: ShieldCheck,
     t: "Bezpieczna wersja testowa",
-    d: "Stripe obsługuje płatności testowe. Wypłaty dla sprzedawców wymagają jeszcze Stripe Connect.",
+    d: "Stripe obsługuje płatności i wypłaty testowe. Prawdziwe pieniądze pozostają wyłączone.",
   },
   {
     icon: Sparkles,
