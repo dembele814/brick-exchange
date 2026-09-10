@@ -14,6 +14,7 @@ import { handleStripeWebhook } from "../src/server/stripe-webhook-handler.ts";
 import {
   connectAccountCreateParams,
   connectFeeGrosz,
+  createDeliveredTransfer,
   sellerProceedsGrosz,
 } from "../src/server/connect.ts";
 
@@ -64,6 +65,57 @@ test("Connect seller account assigns marketplace responsibility and recipient tr
     params.configuration.recipient.capabilities.stripe_balance.stripe_transfers.requested,
     true,
   );
+});
+
+test("delivered transfer is idempotent and returns the Stripe transfer identifier", async () => {
+  const calls = [];
+  const stripeFixture = {
+    v2: {
+      core: {
+        accounts: {
+          retrieve: async () => ({
+            configuration: {
+              recipient: {
+                capabilities: { stripe_balance: { stripe_transfers: { status: "active" } } },
+              },
+            },
+          }),
+        },
+      },
+    },
+    paymentIntents: {
+      retrieve: async () => ({
+        id: "pi_transfer",
+        livemode: false,
+        status: "succeeded",
+        latest_charge: "ch_transfer",
+        transfer_group: `order_${listing}`,
+        metadata: { order_id: listing, platform_fee_grosz: "600" },
+      }),
+    },
+    transfers: {
+      create: async (params, options) => {
+        calls.push({ params, options });
+        return { id: "tr_transfer" };
+      },
+    },
+  };
+  const result = await createDeliveredTransfer(
+    stripeFixture,
+    "acct_seller",
+    {
+      id: listing,
+      amount_grosz: 10_000,
+      status: "delivered",
+      payment_status: "paid",
+      stripe_payment_intent_id: "pi_transfer",
+      stripe_livemode: false,
+    },
+    false,
+  );
+  assert.equal(result.transferId, "tr_transfer");
+  assert.equal(calls[0].params.amount, 9_400);
+  assert.equal(calls[0].options.idempotencyKey, `klockownia-transfer:${listing}:v1`);
 });
 
 test("test refund verifies payment ownership and uses a stable idempotency key", async () => {
@@ -140,6 +192,7 @@ before(async () => {
     "20260913_private_seller_declaration.sql",
     "20260914_production_shipping.sql",
     "20260915_api_rate_limits.sql",
+    "20260916_payment_reconciliation.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (

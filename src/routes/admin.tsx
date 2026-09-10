@@ -21,11 +21,16 @@ type AdminReport = {
   details?: string | null;
   listings: { title: string; status: string } | { title: string; status: string }[] | null;
 };
-type AdminData = { problems: AdminProblem[]; reports: AdminReport[] };
+type AdminData = {
+  problems: AdminProblem[];
+  reports: AdminReport[];
+  stripeMode: "test" | "live" | "unconfigured";
+};
 
 function AdminPage() {
   const [data, setData] = useState<AdminData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const load = useCallback(async () => {
     const response = await authenticatedRequest(requireSupabase(), "/api/admin", { method: "GET" });
@@ -41,14 +46,27 @@ function AdminPage() {
   const action = async (body: Record<string, string>) => {
     setWorking(Object.values(body).join(":"));
     setError(null);
+    setNotice(null);
     try {
       const response = await authenticatedRequest(requireSupabase(), "/api/admin", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as {
+        error?: string;
+        summary?: {
+          pendingPaymentsChecked: number;
+          refundsCompleted: number;
+          transfersCompleted: number;
+          failures: number;
+        };
+      };
       if (!response.ok) throw new Error(result.error ?? "Operacja nie powiodła się.");
+      if (result.summary)
+        setNotice(
+          `Sprawdzono płatności: ${result.summary.pendingPaymentsChecked}, zwroty: ${result.summary.refundsCompleted}, wypłaty: ${result.summary.transfersCompleted}, błędy: ${result.summary.failures}.`,
+        );
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Operacja nie powiodła się.");
@@ -62,8 +80,17 @@ function AdminPage() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         <h1 className="text-3xl font-bold">Panel administratora</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Zgłoszenia zamówień, moderacja ofert i zwroty testowe.
+          Zgłoszenia zamówień, moderacja ofert i zwroty płatności.
         </p>
+        <button
+          type="button"
+          disabled={Boolean(working)}
+          onClick={() => void action({ action: "reconcile_money" })}
+          className="mt-4 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground disabled:opacity-60"
+        >
+          {working === "reconcile_money" ? "Sprawdzanie…" : "Sprawdź płatności i wypłaty"}
+        </button>
+        {notice && <p className="mt-4 rounded-xl bg-mint-soft p-4 text-sm">{notice}</p>}
         {error && (
           <p className="mt-5 rounded-xl bg-destructive/10 p-4 text-sm text-destructive">{error}</p>
         )}
@@ -94,12 +121,15 @@ function AdminPage() {
                       <button
                         disabled={Boolean(working)}
                         onClick={() =>
-                          window.confirm("Cofnąć transfer i zwrócić pełną płatność testową?") &&
-                          void action({ action: "refund_order", orderId: problem.order_id })
+                          window.confirm(
+                            data.stripeMode === "live"
+                              ? "To jest prawdziwa płatność. Cofnąć transfer i zwrócić kupującemu pełną kwotę?"
+                              : "Cofnąć transfer i zwrócić pełną płatność testową?",
+                          ) && void action({ action: "refund_order", orderId: problem.order_id })
                         }
                         className="rounded-full bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground"
                       >
-                        Pełny zwrot testowy
+                        {data.stripeMode === "live" ? "Pełny zwrot" : "Pełny zwrot testowy"}
                       </button>
                     </div>
                   </li>

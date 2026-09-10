@@ -3,6 +3,20 @@ import type Stripe from "stripe";
 export const CONNECT_FEE_FIXED_GROSZ = 100;
 export const CONNECT_FEE_PERCENT = 5;
 
+export function connectMetadataKey(liveMode: boolean) {
+  return liveMode ? "klockownia_stripe_live_account_id" : "klockownia_stripe_test_account_id";
+}
+
+export function connectAccountIdFor(
+  user: { app_metadata?: Record<string, unknown> },
+  liveMode: boolean,
+) {
+  const value =
+    user.app_metadata?.[connectMetadataKey(liveMode)] ??
+    (!liveMode ? user.app_metadata?.["klockownia_stripe_account_id"] : undefined);
+  return typeof value === "string" ? value : undefined;
+}
+
 export function connectFeeGrosz(amountGrosz: number) {
   if (!Number.isSafeInteger(amountGrosz) || amountGrosz <= 0)
     throw new Error("Invalid order amount");
@@ -107,7 +121,7 @@ export async function createDeliveredTransfer(
   const amount = order.amount_grosz - storedFee;
   if (amount <= 0) return { state: "no_transfer" as const, amount: 0, fee: storedFee };
 
-  await stripe.transfers.create(
+  const transfer = await stripe.transfers.create(
     {
       amount,
       currency: "pln",
@@ -122,5 +136,5 @@ export async function createDeliveredTransfer(
     },
     { idempotencyKey: `klockownia-transfer:${order.id}:v1` },
   );
-  return { state: "transferred" as const, amount, fee: storedFee };
+  return { state: "transferred" as const, amount, fee: storedFee, transferId: transfer.id };
 }

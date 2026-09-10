@@ -86,8 +86,9 @@ Operational limit: an unbound reservation can remain blocked after a persistent
 Stripe error. An operator must locate the session via its order metadata and
 idempotency request, bind/replay the matching event, or verify there is no payable
 session before cancelling the order. Never release such orders solely by age.
-An automated reconciliation worker and rate limiting/abuse controls remain launch
-work. Cancellation via the browser's return link does not expire a Stripe session;
+The repository now contains a protected reconciliation worker and database-backed
+rate limits. They still require migrations, a scheduler, and production verification.
+Cancellation via the browser's return link does not expire a Stripe session;
 the reservation remains until Stripe reports expiry or an operator reconciles it.
 
 ## Proposed Payments + Connect architecture
@@ -178,8 +179,9 @@ The carrier variables in `.env.example` concern fulfillment, not Stripe payments
 
 ## Webhook setup and remaining user actions
 
-**Production marketplace payments are intentionally blocked in this code.**
-Connect money movement and the production operational flows remain to be built.
+Production marketplace payments require the explicit `STRIPE_LIVE_ENABLED=true`
+opt-in. Connect transfers and the reconciliation endpoint are implemented but must
+pass the production rollout checklist before that flag is enabled.
 
 For test mode:
 
@@ -256,14 +258,9 @@ stale reservations, and real signature tampering. PGlite runs one local database
 connection; multi-connection contention and the actual Supabase gateway/RLS
 deployment still require staging tests.
 
-Validation results: **18/18 payment tests passed**, production build passed,
-and ESLint passed for all five payment server/route files. The full repository
-TypeScript check has **33 existing errors outside these files**, down from
-43 at baseline; it is not a clean project-wide typecheck. Those unrelated user
-files were left intact. The built public assets contain none of the payment
-server implementation fingerprints checked during verification. Local HTTP
-smoke checks confirmed that unconfigured Checkout returns 503 and an unsigned
-Stripe webhook returns 400 through the actual TanStack routes.
+The current complete local suite, production build, and project-wide TypeScript
+check pass. Staging still needs to verify Supabase deployment, Stripe webhooks,
+Connect onboarding, reconciliation scheduling, refunds, and transfers.
 
 ## Work preservation
 

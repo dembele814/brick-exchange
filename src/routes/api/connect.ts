@@ -3,21 +3,15 @@ import Stripe from "stripe";
 import { z } from "zod";
 import {
   connectAccountCreateParams,
+  connectAccountIdFor,
+  connectMetadataKey,
   connectState,
   createDeliveredTransfer,
 } from "@/server/connect";
 import { paymentConfig } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
+import { enforceRateLimit, RateLimitExceededError } from "@/server/rate-limit";
 
-function metadataKey(liveMode: boolean) {
-  return liveMode ? "klockownia_stripe_live_account_id" : "klockownia_stripe_test_account_id";
-}
-function accountIdFor(user: { app_metadata?: Record<string, unknown> }, liveMode: boolean) {
-  const value =
-    user.app_metadata?.[metadataKey(liveMode)] ??
-    (!liveMode ? user.app_metadata?.["klockownia_stripe_account_id"] : undefined);
-  return typeof value === "string" ? value : undefined;
-}
 const payoutInput = z.object({ orderId: z.string().uuid() });
 
 async function authenticatedUser(request: Request) {
@@ -41,7 +35,7 @@ export const Route = createFileRoute("/api/connect")({
           return Response.json({ error: "Zaloguj się, aby sprawdzić wypłaty." }, { status: 401 });
         try {
           const { stripe, liveMode } = stripeClient();
-          const accountId = accountIdFor(user, liveMode);
+          const accountId = connectAccountIdFor(user, liveMode);
           if (typeof accountId !== "string")
             return Response.json({ state: "missing", livemode: liveMode });
           const account = await stripe.v2.core.accounts.retrieve(accountId, {
@@ -90,8 +84,21 @@ export const Route = createFileRoute("/api/connect")({
             { status: 401 },
           );
         try {
+          await enforceRateLimit(getSupabaseAdmin(), "connect-onboarding", user.id, 10, 300);
+        } catch (cause) {
+          return Response.json(
+            {
+              error:
+                cause instanceof RateLimitExceededError
+                  ? cause.message
+                  : "Weryfikacja wypłat jest chwilowo niedostępna.",
+            },
+            { status: cause instanceof RateLimitExceededError ? 429 : 503 },
+          );
+        }
+        try {
           const { stripe, appUrl, liveMode } = stripeClient();
-          let accountId = accountIdFor(user, liveMode);
+          let accountId = connectAccountIdFor(user, liveMode);
           if (typeof accountId !== "string") {
             const account = await stripe.v2.core.accounts.create(
               connectAccountCreateParams(user.id, user.email, appUrl),
@@ -99,7 +106,10 @@ export const Route = createFileRoute("/api/connect")({
             );
             accountId = account.id;
             const { error } = await getSupabaseAdmin().auth.admin.updateUserById(user.id, {
-              app_metadata: { ...user.app_metadata, [metadataKey(liveMode)]: accountId },
+              app_metadata: {
+                ...user.app_metadata,
+                [connectMetadataKey(liveMode)]: accountId,
+              },
             });
             if (error) throw error;
           }
@@ -128,6 +138,19 @@ export const Route = createFileRoute("/api/connect")({
         const user = await authenticatedUser(request);
         if (!user)
           return Response.json({ error: "Zaloguj się, aby uruchomić transfer." }, { status: 401 });
+        try {
+          await enforceRateLimit(getSupabaseAdmin(), "connect-transfer", user.id, 10, 60);
+        } catch (cause) {
+          return Response.json(
+            {
+              error:
+                cause instanceof RateLimitExceededError
+                  ? cause.message
+                  : "Transfery są chwilowo niedostępne.",
+            },
+            { status: cause instanceof RateLimitExceededError ? 429 : 503 },
+          );
+        }
         const parsed = payoutInput.safeParse(await request.json().catch(() => null));
         if (!parsed.success)
           return Response.json({ error: "Nieprawidłowe zamówienie." }, { status: 400 });
@@ -155,7 +178,7 @@ export const Route = createFileRoute("/api/connect")({
             { error: "To zamówienie pochodzi z innego trybu Stripe." },
             { status: 409 },
           );
-        const accountId = accountIdFor(user, config.liveMode);
+        const accountId = connectAccountIdFor(user, config.liveMode);
         if (typeof accountId !== "string")
           return Response.json(
             { error: "Najpierw skonfiguruj konto Stripe Connect." },
@@ -175,6 +198,16 @@ export const Route = createFileRoute("/api/connect")({
               { error: "Dokończ weryfikację Stripe przed transferem." },
               { status: 409 },
             );
+          if (result.state === "transferred")
+            await admin
+              .from("orders")
+              .update({
+                seller_transfer_id: result.transferId,
+                seller_transfer_status: "paid",
+                seller_transferred_at: new Date().toISOString(),
+              })
+              .eq("id", order.id)
+              .is("seller_transfer_id", null);
           return Response.json(result);
         } catch {
           console.error("Stripe Connect transfer requires retry or investigation", order.id);

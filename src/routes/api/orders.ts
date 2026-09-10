@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { z } from "zod";
-import { createDeliveredTransfer } from "@/server/connect";
+import { connectAccountIdFor, createDeliveredTransfer } from "@/server/connect";
 import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 import {
@@ -514,15 +514,9 @@ export const Route = createFileRoute("/api/orders")({
             const { data: sellerAuth } = await admin.auth.admin.getUserById(order.seller_id);
             const config = paymentConfig(process.env);
             if (order.stripe_livemode !== config.liveMode) throw new Error("Stripe mode mismatch");
-            const accountId =
-              sellerAuth.user?.app_metadata?.[
-                config.liveMode
-                  ? "klockownia_stripe_live_account_id"
-                  : "klockownia_stripe_test_account_id"
-              ] ??
-              (!config.liveMode
-                ? sellerAuth.user?.app_metadata?.["klockownia_stripe_account_id"]
-                : undefined);
+            const accountId = sellerAuth.user
+              ? connectAccountIdFor(sellerAuth.user, config.liveMode)
+              : undefined;
             if (typeof accountId === "string") {
               const transfer = await createDeliveredTransfer(
                 new Stripe(config.key),
@@ -533,9 +527,18 @@ export const Route = createFileRoute("/api/orders")({
                 },
                 config.liveMode,
               );
-              if (transfer.state === "transferred")
+              if (transfer.state === "transferred") {
+                await admin
+                  .from("orders")
+                  .update({
+                    seller_transfer_id: transfer.transferId,
+                    seller_transfer_status: "paid",
+                    seller_transferred_at: new Date().toISOString(),
+                  })
+                  .eq("id", order.id)
+                  .is("seller_transfer_id", null);
                 notificationBody += ` Transfer ${new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN" }).format(transfer.amount / 100)} został utworzony.`;
-              else if (transfer.state === "not_ready")
+              } else if (transfer.state === "not_ready")
                 notificationBody += " Dokończ weryfikację Stripe, aby otrzymać transfer.";
             } else {
               notificationBody += " Skonfiguruj Stripe Connect, aby otrzymać transfer.";

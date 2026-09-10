@@ -2,6 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { inpostConfig, verifyInpostWebhook } from "../src/server/inpost.ts";
 import { enforceRateLimit, RateLimitExceededError } from "../src/server/rate-limit.ts";
+import {
+  reconciliationAuthorized,
+  reconciliationEvent,
+  reconciliationSecret,
+} from "../src/server/reconciliation.ts";
 
 test("InPost live mode requires an explicit opt-in and separate credentials", () => {
   const stage = inpostConfig({
@@ -47,4 +52,34 @@ test("server rate limiting hashes identities and rejects exhausted limits", asyn
   assert.equal(calls[0].name, "consume_api_rate_limit");
   assert.match(calls[0].input.p_key_hash, /^[0-9a-f]{64}$/);
   assert.equal(JSON.stringify(calls).includes("user@example.com"), false);
+});
+
+test("reconciliation endpoint requires a long secret and exact bearer token", () => {
+  assert.throws(() => reconciliationSecret({ RECONCILIATION_SECRET: "short" }));
+  const secret = "a-secure-reconciliation-secret-123456";
+  const request = new Request("https://shop.example.com/api/cron/reconcile", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${secret}` },
+  });
+  assert.equal(reconciliationAuthorized(request, secret), true);
+  assert.equal(reconciliationAuthorized(request, `${secret}-wrong`), false);
+});
+
+test("reconciliation only converts authoritative paid or expired Checkout sessions", () => {
+  const base = {
+    id: "cs_test_reconcile",
+    object: "checkout.session",
+    livemode: false,
+    payment_status: "unpaid",
+    status: "open",
+  };
+  assert.equal(reconciliationEvent(base), null);
+  assert.equal(
+    reconciliationEvent({ ...base, payment_status: "paid", status: "complete" }).type,
+    "checkout.session.completed",
+  );
+  assert.equal(
+    reconciliationEvent({ ...base, status: "expired" }).type,
+    "checkout.session.expired",
+  );
 });

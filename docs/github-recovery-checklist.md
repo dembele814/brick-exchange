@@ -15,7 +15,8 @@ Przed publikacją nowej wersji wykonać kolejno brakujące migracje:
 1. `20260912_stripe_live_mode.sql`
 2. `20260913_private_seller_declaration.sql`
 3. `20260914_production_shipping.sql`
-4. kolejne migracje utworzone po tym dokumencie
+4. `20260915_api_rate_limits.sql`
+5. `20260916_payment_reconciliation.sql`
 
 Każdą migrację wykonać tylko w projekcie `wrgrjnduppjagdmflnan` i sprawdzić komunikat powodzenia przed przejściem dalej.
 
@@ -24,6 +25,7 @@ Każdą migrację wykonać tylko w projekcie `wrgrjnduppjagdmflnan` i sprawdzić
 - Stripe: właściwy tryb, klucz tajny i sekret webhooka.
 - InPost: token, ID organizacji i sekret HMAC właściwego środowiska.
 - Supabase: klucz service role zapisany pod obsługiwaną nazwą sekretu Lovable.
+- Uzgadnianie: losowy `RECONCILIATION_SECRET` o długości co najmniej 32 znaków.
 
 Żadnego sekretu nie wolno wpisywać w kodzie, wiadomości ani zmiennej z prefiksem `VITE_`.
 
@@ -33,6 +35,10 @@ Każdą migrację wykonać tylko w projekcie `wrgrjnduppjagdmflnan` i sprawdzić
 - InPost: `https://bricklane-market.lovable.app/api/webhooks/inpost`, temat `Shipment.Tracking`
 
 Po zapisaniu wysłać zdarzenie testowe i potwierdzić odpowiedź HTTP 200.
+
+Skonfigurować wywołanie `POST /api/cron/reconcile` co 5 minut z nagłówkiem
+`Authorization: Bearer RECONCILIATION_SECRET`. Sekret musi pochodzić z menedżera
+sekretów, a nie z adresu URL.
 
 ## 5. Opublikować i wykonać test końcowy
 

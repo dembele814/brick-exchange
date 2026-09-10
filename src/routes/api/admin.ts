@@ -3,11 +3,13 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
+import { reconcileStripeMoney } from "@/server/reconciliation";
 
 const adminAction = z.discriminatedUnion("action", [
   z.object({ action: z.literal("close_problem"), orderId: z.string().uuid() }),
   z.object({ action: z.literal("hide_listing"), reportId: z.string().uuid() }),
   z.object({ action: z.literal("refund_order"), orderId: z.string().uuid() }),
+  z.object({ action: z.literal("reconcile_money") }),
 ]);
 
 async function adminUser(request: Request) {
@@ -47,9 +49,16 @@ export const Route = createFileRoute("/api/admin")({
         const latest = new Map<string, (typeof events.data)[number]>();
         for (const event of events.data ?? [])
           if (!latest.has(event.order_id)) latest.set(event.order_id, event);
+        let stripeMode: "test" | "live" | "unconfigured" = "unconfigured";
+        try {
+          stripeMode = paymentConfig().liveMode ? "live" : "test";
+        } catch {
+          // The panel remains useful for moderation when payments are disabled.
+        }
         return Response.json({
           problems: [...latest.values()].filter((event) => event.event_type === "problem_reported"),
           reports: reports.data ?? [],
+          stripeMode,
         });
       },
       PATCH: async ({ request }) => {
@@ -60,6 +69,19 @@ export const Route = createFileRoute("/api/admin")({
           return Response.json({ error: "Nieprawidłowa operacja." }, { status: 400 });
         const db = getSupabaseAdmin();
         const input = parsed.data;
+
+        if (input.action === "reconcile_money") {
+          try {
+            const config = paymentConfig();
+            const summary = await reconcileStripeMoney(db, new Stripe(config.key), config.liveMode);
+            return Response.json({ ok: true, summary });
+          } catch {
+            return Response.json(
+              { error: "Nie udało się uzgodnić operacji Stripe." },
+              { status: 503 },
+            );
+          }
+        }
 
         if (input.action === "hide_listing") {
           const report = await db
@@ -128,7 +150,7 @@ export const Route = createFileRoute("/api/admin")({
 
         if (
           order.data.payment_status !== "paid" ||
-          !["shipped", "delivered"].includes(order.data.status)
+          !["shipped", "delivered", "cancelled"].includes(order.data.status)
         )
           return Response.json({ error: "Tego zamówienia nie można zwrócić." }, { status: 409 });
         try {
@@ -138,6 +160,21 @@ export const Route = createFileRoute("/api/admin")({
               { error: "Zamówienie pochodzi z innego trybu Stripe." },
               { status: 409 },
             );
+          if (order.data.status !== "cancelled") {
+            const { data: claimed, error: claimError } = await db
+              .from("orders")
+              .update({ status: "cancelled" })
+              .eq("id", order.data.id)
+              .eq("status", order.data.status)
+              .eq("payment_status", "paid")
+              .select("id")
+              .maybeSingle();
+            if (claimError || !claimed)
+              return Response.json(
+                { error: "Status zamówienia zmienił się. Odśwież panel." },
+                { status: 409 },
+              );
+          }
           const stripe = new Stripe(config.key);
           const transfers = await stripe.transfers.list({
             transfer_group: `order_${order.data.id}`,
