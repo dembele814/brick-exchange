@@ -8,6 +8,7 @@ export async function handleCheckout(
   stripe: Stripe,
   appUrl: string,
   expectedLiveMode = false,
+  validatePickupPoint: (pointId: string) => Promise<unknown> = async () => undefined,
 ) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (!token) return Response.json({ error: "Zaloguj się, aby kupić ofertę." }, { status: 401 });
@@ -29,6 +30,21 @@ export async function handleCheckout(
   const parsed = checkoutInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return Response.json({ error: "Nieprawidłowe dane zamówienia." }, { status: 400 });
+  if (parsed.data.carrier === "inpost") {
+    try {
+      await validatePickupPoint(parsed.data.lockerId);
+    } catch (cause) {
+      return Response.json(
+        {
+          error:
+            cause instanceof Error
+              ? cause.message
+              : "Nie udało się potwierdzić punktu odbioru InPost.",
+        },
+        { status: 400 },
+      );
+    }
+  }
   const { data, error } = await admin.rpc("reserve_stripe_checkout", {
     p_buyer_id: auth.user.id,
     p_listing_id: parsed.data.listingId,

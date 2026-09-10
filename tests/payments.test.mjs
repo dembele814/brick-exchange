@@ -130,6 +130,7 @@ before(async () => {
     "20260906_messaging.sql",
     "20260906_messaging_policy_fix.sql",
     "20260906_multi_carrier_shipping.sql",
+    "20260906_order_fulfillment.sql",
     "20260906_notifications.sql",
     "20260907_stripe_payment_safety.sql",
     "20260909_message_images_and_price_offers.sql",
@@ -137,6 +138,7 @@ before(async () => {
     "20260911_price_counteroffers.sql",
     "20260912_stripe_live_mode.sql",
     "20260913_private_seller_declaration.sql",
+    "20260914_production_shipping.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (

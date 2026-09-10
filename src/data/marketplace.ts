@@ -229,6 +229,7 @@ export type CreateListingInput = {
   year: number | null;
   hasInstructions: boolean;
   hasBox: boolean;
+  parcelTemplate: "small" | "medium" | "large";
   photos: File[];
 };
 
@@ -407,6 +408,7 @@ export async function createListing(input: CreateListingInput) {
       production_year: input.year,
       has_instructions: input.hasInstructions,
       has_box: input.hasBox,
+      parcel_template: input.parcelTemplate,
       seller_is_private: true,
       status: "draft",
     })
@@ -484,6 +486,9 @@ export type MarketplaceOrder = {
   carrierCode: "inpost" | "orlen" | "dpd" | "dhl";
   pickupPoint: string;
   trackingNumber: string | null;
+  carrierStatus: string | null;
+  labelReady: boolean;
+  shipmentCreated: boolean;
   at: string;
 };
 
@@ -544,6 +549,9 @@ async function loadOrders() {
       carrierCode: carrierCode as MarketplaceOrder["carrierCode"],
       pickupPoint: order.locker_id,
       trackingNumber: order.tracking_number ?? null,
+      carrierStatus: order.carrier_status ?? null,
+      labelReady: Boolean(order.shipping_label_ready_at && order.carrier_shipment_id),
+      shipmentCreated: Boolean(order.carrier_shipment_id),
       at: new Intl.DateTimeFormat("pl-PL", { dateStyle: "medium" }).format(
         new Date(order.created_at),
       ),
@@ -580,6 +588,8 @@ const orderEventLabels: Record<string, string> = {
   checkout_started: "Rozpoczęto płatność",
   payment_confirmed: "Płatność potwierdzona",
   shipment_marked_shipped: "Przesyłka została nadana",
+  shipping_label_created: "Utworzono etykietę wysyłkową",
+  carrier_tracking_updated: "Przewoźnik zaktualizował śledzenie",
   delivery_confirmed: "Odbiór został potwierdzony",
   payment_refunded: "Płatność została zwrócona",
   problem_reported: "Kupujący zgłosił problem",
@@ -638,6 +648,34 @@ export async function markOrderShipped(orderId: string, trackingNumber: string) 
   });
   const result = (await response.json()) as { error?: string };
   if (!response.ok) throw new Error(result.error ?? "Nie udało się zapisać nadania.");
+}
+
+export async function createInpostOrderShipment(orderId: string) {
+  const client = requireSupabase();
+  const response = await authenticatedRequest(client, "/api/orders", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, action: "create_inpost_shipment" }),
+  });
+  const result = (await response.json()) as { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "Nie udało się utworzyć etykiety InPost.");
+}
+
+export async function downloadInpostLabel(orderId: string) {
+  const client = requireSupabase();
+  const response = await authenticatedRequest(client, `/api/orders?label=${encodeURIComponent(orderId)}`, {
+    method: "GET",
+  });
+  if (!response.ok) {
+    const result = (await response.json()) as { error?: string };
+    throw new Error(result.error ?? "Nie udało się pobrać etykiety InPost.");
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `etykieta-${orderId}.pdf`;
+  anchor.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 export async function confirmOrderDelivered(orderId: string) {

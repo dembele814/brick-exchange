@@ -9,6 +9,8 @@ import { useAccount } from "@/data/account";
 import {
   cancelOrderBeforeShipment,
   confirmOrderDelivered,
+  createInpostOrderShipment,
+  downloadInpostLabel,
   markOrderShipped,
   submitReview,
   startOrderConversation,
@@ -62,6 +64,7 @@ function OrdersPage() {
   const [tab, setTab] = useState<"bought" | "sold">("bought");
   const [fulfillmentError, setFulfillmentError] = useState<string | null>(null);
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
+  const [labelOrderId, setLabelOrderId] = useState<string | null>(null);
   const [deliveryOrderId, setDeliveryOrderId] = useState<string | null>(null);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [problemOrderId, setProblemOrderId] = useState<string | null>(null);
@@ -191,6 +194,11 @@ function OrdersPage() {
                     </button>
                   </div>
                 )}
+                {o.carrierStatus && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Status przewoźnika: <span className="font-medium text-foreground">{o.carrierStatus}</span>
+                  </p>
+                )}
                 {o.trackingNumber && (
                   <a
                     href={carrierTrackingPages[o.carrierCode].href}
@@ -211,7 +219,62 @@ function OrdersPage() {
                         : "Otworzyliśmy zamówienie z Twojego powiadomienia."}
                   </p>
                 )}
-                {tab === "sold" && o.status === "Opłacone" && (
+                {tab === "sold" && o.status === "Opłacone" && o.carrierCode === "inpost" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {!o.labelReady ? (
+                      <button
+                        type="button"
+                        disabled={labelOrderId === o.id}
+                        onClick={() => {
+                          setLabelOrderId(o.id);
+                          setFulfillmentError(null);
+                          void createInpostOrderShipment(o.id)
+                            .then(reload)
+                            .catch((cause) =>
+                              setFulfillmentError(
+                                cause instanceof Error
+                                  ? cause.message
+                                  : "Nie udało się utworzyć etykiety.",
+                              ),
+                            )
+                            .finally(() => setLabelOrderId(null));
+                        }}
+                        className="rounded-full bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground disabled:opacity-60"
+                      >
+                        {labelOrderId === o.id
+                          ? "Sprawdzanie…"
+                          : o.shipmentCreated
+                            ? "Sprawdź gotowość etykiety"
+                            : "Utwórz przesyłkę i etykietę"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={labelOrderId === o.id}
+                        onClick={() => {
+                          setLabelOrderId(o.id);
+                          setFulfillmentError(null);
+                          void downloadInpostLabel(o.id)
+                            .catch((cause) =>
+                              setFulfillmentError(
+                                cause instanceof Error
+                                  ? cause.message
+                                  : "Nie udało się pobrać etykiety.",
+                              ),
+                            )
+                            .finally(() => setLabelOrderId(null));
+                        }}
+                        className="rounded-full bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground disabled:opacity-60"
+                      >
+                        {labelOrderId === o.id ? "Pobieranie…" : "Pobierz etykietę PDF"}
+                      </button>
+                    )}
+                    <p className="w-full text-xs text-muted-foreground">
+                      Po nadaniu status i numer przesyłki zaktualizują się automatycznie.
+                    </p>
+                  </div>
+                )}
+                {tab === "sold" && o.status === "Opłacone" && o.carrierCode !== "inpost" && (
                   <form
                     className="mt-3 flex flex-wrap gap-2"
                     onSubmit={(event) => {

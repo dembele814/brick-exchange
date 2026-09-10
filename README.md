@@ -12,6 +12,9 @@ are implemented. Apply the payment-safety migration before enabling test payment
 Run `npm run test:payments` with Node 24 for local payment and database tests that
 do not require API keys.
 
+Production InPost labels and tracking are described in
+[the InPost activation guide](docs/inpost-production.md).
+
 For the complete local test suite, run `npm test`. Use `npm run lint` to check
 the source code and `npm run build` to verify the production build.
 

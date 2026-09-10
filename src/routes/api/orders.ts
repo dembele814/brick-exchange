@@ -4,6 +4,12 @@ import { z } from "zod";
 import { createDeliveredTransfer } from "@/server/connect";
 import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
+import {
+  createInpostShipment,
+  getInpostLabel,
+  getInpostShipment,
+  inpostConfig,
+} from "@/server/inpost";
 
 const fulfillmentInput = z.object({
   orderId: z.string().uuid(),
@@ -32,6 +38,10 @@ const conversationInput = z.object({
   orderId: z.string().uuid(),
   action: z.literal("start_conversation"),
 });
+const createShipmentInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("create_inpost_shipment"),
+});
 const orderActionInput = z.discriminatedUnion("action", [
   fulfillmentInput,
   deliveryInput,
@@ -39,6 +49,7 @@ const orderActionInput = z.discriminatedUnion("action", [
   problemInput,
   resolveProblemInput,
   conversationInput,
+  createShipmentInput,
 ]);
 
 async function authenticatedUser(request: Request) {
@@ -73,10 +84,44 @@ export const Route = createFileRoute("/api/orders")({
         const user = await authenticatedUser(request);
         if (!user)
           return Response.json({ error: "Zaloguj się, aby zobaczyć zamówienia." }, { status: 401 });
+        const url = new URL(request.url);
+        const labelOrderId = url.searchParams.get("label");
+        if (labelOrderId) {
+          if (!z.string().uuid().safeParse(labelOrderId).success)
+            return Response.json({ error: "Nieprawidłowe zamówienie." }, { status: 400 });
+          const admin = getSupabaseAdmin();
+          const { data: order, error: labelOrderError } = await admin
+            .from("orders")
+            .select("id,seller_id,shipping_carrier,carrier_shipment_id,shipping_livemode")
+            .eq("id", labelOrderId)
+            .maybeSingle();
+          if (labelOrderError || !order)
+            return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
+          if (order.seller_id !== user.id)
+            return Response.json({ error: "Tylko sprzedawca może pobrać etykietę." }, { status: 403 });
+          if (order.shipping_carrier !== "inpost" || !order.carrier_shipment_id)
+            return Response.json({ error: "Etykieta nie jest jeszcze gotowa." }, { status: 409 });
+          try {
+            const config = inpostConfig();
+            if (config.liveMode !== order.shipping_livemode)
+              return Response.json({ error: "Tryb wysyłki nie zgadza się z etykietą." }, { status: 409 });
+            const label = await getInpostLabel(order.carrier_shipment_id, config);
+            return new Response(label.body, {
+              status: 200,
+              headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `attachment; filename="etykieta-${order.id}.pdf"`,
+                "Cache-Control": "private, no-store",
+              },
+            });
+          } catch {
+            return Response.json({ error: "Nie udało się pobrać etykiety InPost." }, { status: 503 });
+          }
+        }
         const { data, error } = await getSupabaseAdmin()
           .from("orders")
           .select(
-            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,locker_id,tracking_number,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
+            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,locker_id,tracking_number,carrier_shipment_id,carrier_status,shipping_label_ready_at,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
           )
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .order("created_at", { ascending: false });
@@ -105,12 +150,102 @@ export const Route = createFileRoute("/api/orders")({
         const { data: order, error: orderError } = await admin
           .from("orders")
           .select(
-            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id,stripe_livemode",
+            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id,stripe_livemode,shipping_carrier,locker_id,receiver_email,receiver_phone,receiver_first_name,receiver_last_name,parcel_template,carrier_shipment_id,shipping_creation_started_at,shipping_livemode",
           )
           .eq("id", action.orderId)
           .maybeSingle();
         if (orderError || !order)
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
+        if (action.action === "create_inpost_shipment") {
+          if (order.seller_id !== user.id)
+            return Response.json({ error: "Tylko sprzedawca może utworzyć przesyłkę." }, { status: 403 });
+          if (order.status !== "paid" || order.payment_status !== "paid")
+            return Response.json({ error: "Etykietę można utworzyć po opłaceniu zamówienia." }, { status: 409 });
+          if (order.shipping_carrier !== "inpost")
+            return Response.json({ error: "Automatyczne etykiety są teraz dostępne dla InPost." }, { status: 409 });
+          if (order.carrier_shipment_id) {
+            try {
+              const config = inpostConfig();
+              if (config.liveMode !== order.shipping_livemode)
+                return Response.json({ error: "Tryb wysyłki nie zgadza się z przesyłką." }, { status: 409 });
+              const shipment = await getInpostShipment(order.carrier_shipment_id, config);
+              const trackingNumber =
+                typeof shipment.tracking_number === "string" ? shipment.tracking_number : null;
+              const now = new Date().toISOString();
+              await admin
+                .from("orders")
+                .update({
+                  tracking_number: trackingNumber,
+                  carrier_status:
+                    typeof shipment.status === "string" ? shipment.status : "created",
+                  carrier_status_updated_at: now,
+                  shipping_label_ready_at: trackingNumber ? now : null,
+                })
+                .eq("id", order.id);
+              return Response.json({ ok: true, labelReady: Boolean(trackingNumber) });
+            } catch {
+              return Response.json({ error: "InPost jeszcze przygotowuje przesyłkę." }, { status: 503 });
+            }
+          }
+          const staleBefore = new Date(Date.now() - 2 * 60_000).toISOString();
+          const { data: claimed, error: claimError } = await admin
+            .from("orders")
+            .update({ shipping_creation_started_at: new Date().toISOString() })
+            .eq("id", order.id)
+            .is("carrier_shipment_id", null)
+            .or(`shipping_creation_started_at.is.null,shipping_creation_started_at.lt.${staleBefore}`)
+            .select("id")
+            .maybeSingle();
+          if (claimError || !claimed)
+            return Response.json({ error: "Etykieta jest już tworzona. Odśwież za chwilę." }, { status: 409 });
+          try {
+            const config = inpostConfig();
+            const shipment = await createInpostShipment(
+              {
+                receiver: {
+                  email: order.receiver_email,
+                  phone: order.receiver_phone,
+                  firstName: order.receiver_first_name,
+                  lastName: order.receiver_last_name,
+                },
+                parcelLockerId: order.locker_id,
+                parcelTemplate: order.parcel_template,
+                reference: order.id,
+              },
+              config,
+            );
+            const now = new Date().toISOString();
+            const { error: saveError } = await admin
+              .from("orders")
+              .update({
+                carrier_shipment_id: shipment.id,
+                tracking_number: shipment.trackingNumber,
+                carrier_status: shipment.status,
+                carrier_status_updated_at: now,
+                shipping_label_ready_at: shipment.trackingNumber ? now : null,
+                shipping_livemode: config.liveMode,
+                shipping_creation_started_at: null,
+              })
+              .eq("id", order.id)
+              .is("carrier_shipment_id", null);
+            if (saveError) throw saveError;
+            await admin.from("order_events").insert({
+              order_id: order.id,
+              actor_id: user.id,
+              event_type: "shipping_label_created",
+              payload: { provider: "inpost", tracking_number: shipment.trackingNumber },
+            });
+            return Response.json({ ok: true, labelReady: Boolean(shipment.trackingNumber) });
+          } catch (cause) {
+            await admin
+              .from("orders")
+              .update({ shipping_creation_started_at: null })
+              .eq("id", order.id)
+              .is("carrier_shipment_id", null);
+            const message = cause instanceof Error ? cause.message : "Nie udało się utworzyć przesyłki.";
+            return Response.json({ error: message }, { status: 503 });
+          }
+        }
         if (action.action === "start_conversation") {
           if (order.buyer_id !== user.id && order.seller_id !== user.id)
             return Response.json(

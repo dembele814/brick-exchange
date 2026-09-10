@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getSupabaseAdmin } from "@/server/supabase-admin";
 import { paymentConfig } from "@/server/payments";
 import { handleCheckout } from "@/server/checkout-handler";
+import { validateInpostPoint } from "@/server/inpost";
 
 export const Route = createFileRoute("/api/checkout")({
   server: {
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/api/checkout")({
             new Stripe(config.key),
             config.appUrl,
             config.liveMode,
+            validateInpostPoint,
           );
         } catch {
           console.error(

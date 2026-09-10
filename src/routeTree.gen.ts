@@ -31,6 +31,7 @@ import { Route as ApiReportsRouteImport } from './routes/api/reports'
 import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
+import { Route as ApiWebhooksInpostRouteImport } from './routes/api/webhooks/inpost'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 
 const IndexRoute = IndexRouteImport.update({
@@ -143,6 +144,11 @@ const UzytkownikNameRoute = UzytkownikNameRouteImport.update({
   path: '/uzytkownik/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiWebhooksInpostRoute = ApiWebhooksInpostRouteImport.update({
+  id: '/api/webhooks/inpost',
+  path: '/api/webhooks/inpost',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
   id: '/api/webhooks/stripe',
   path: '/api/webhooks/stripe',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesById {
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRouteTypes {
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   id:
     | '__root__'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
@@ -326,6 +338,7 @@ export interface RootRouteChildren {
   ApiReviewsRoute: typeof ApiReviewsRoute
   OfertaIdRoute: typeof OfertaIdRoute
   UzytkownikNameRoute: typeof UzytkownikNameRoute
+  ApiWebhooksInpostRoute: typeof ApiWebhooksInpostRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
 
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UzytkownikNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/webhooks/inpost': {
+      id: '/api/webhooks/inpost'
+      path: '/api/webhooks/inpost'
+      fullPath: '/api/webhooks/inpost'
+      preLoaderRoute: typeof ApiWebhooksInpostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/stripe': {
       id: '/api/webhooks/stripe'
       path: '/api/webhooks/stripe'
@@ -518,6 +538,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiReviewsRoute: ApiReviewsRoute,
   OfertaIdRoute: OfertaIdRoute,
   UzytkownikNameRoute: UzytkownikNameRoute,
+  ApiWebhooksInpostRoute: ApiWebhooksInpostRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport

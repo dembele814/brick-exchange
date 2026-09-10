@@ -78,6 +78,7 @@ function SellPage() {
   const [condition, setCondition] = useState(conditionLevels[2]!);
   const [hasManual, setHasManual] = useState(false);
   const [hasBox, setHasBox] = useState(false);
+  const [parcelTemplate, setParcelTemplate] = useState<"small" | "medium" | "large">("medium");
   const [price, setPrice] = useState("");
   const [title, setTitle] = useState("");
   const [setNumber, setSetNumber] = useState("");
@@ -178,6 +179,7 @@ function SellPage() {
                 year: year.trim() ? Number(year) : null,
                 hasInstructions: hasManual,
                 hasBox,
+                parcelTemplate,
                 photos: photos.map((photo) => photo.file),
               });
               setSent(true);
@@ -464,6 +466,25 @@ function SellPage() {
                 </label>
               </div>
             </fieldset>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold">Rozmiar paczki InPost</h2>
+            <p className="text-xs text-muted-foreground">
+              Wybierz najmniejszą skrytkę, w której zmieści się zapakowany zestaw.
+            </p>
+            <select
+              value={parcelTemplate}
+              onChange={(event) =>
+                setParcelTemplate(event.target.value as "small" | "medium" | "large")
+              }
+              className={field}
+              aria-label="Rozmiar paczki InPost"
+            >
+              <option value="small">Mała — gabaryt A, do 8 × 38 × 64 cm</option>
+              <option value="medium">Średnia — gabaryt B, do 19 × 38 × 64 cm</option>
+              <option value="large">Duża — gabaryt C, do 41 × 38 × 64 cm</option>
+            </select>
           </section>
 
           {/* Cena */}
