@@ -136,6 +136,7 @@ before(async () => {
     "20260910_accepted_offer_checkout.sql",
     "20260911_price_counteroffers.sql",
     "20260912_stripe_live_mode.sql",
+    "20260913_private_seller_declaration.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -214,7 +215,8 @@ beforeEach(async () => {
     truncate auth.users cascade;
     insert into auth.users(id) values ('${seller}'), ('${buyer}'), ('${otherBuyer}');
     insert into public.listings(id, seller_id, title, category, theme, condition, price_grosz, status)
-    values ('${listing}', '${seller}', 'LEGO test set', 'sets', 'City', 'new', 12345, 'active');`);
+    values ('${listing}', '${seller}', 'LEGO test set', 'sets', 'City', 'new', 12345, 'draft');
+    update public.listings set seller_is_private=true, status='active' where id='${listing}';`);
 });
 after(async () => {
   await db.close();

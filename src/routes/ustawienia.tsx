@@ -422,7 +422,7 @@ function SettingsPage() {
           {accountNotice && <span className="text-sm text-brand">{accountNotice}</span>}
           {saveError && <span className="text-sm text-destructive">{saveError}</span>}
           <a
-            href={`mailto:feelip.awf@gmail.com?subject=${encodeURIComponent("Prośba o usunięcie konta Klockownia")}&body=${encodeURIComponent(`Proszę o usunięcie konta przypisanego do adresu: ${profile.email}`)}`}
+            href={`mailto:feelip.wojcik@gmail.com?subject=${encodeURIComponent("Prośba o usunięcie konta Klockownia")}&body=${encodeURIComponent(`Proszę o usunięcie konta przypisanego do adresu: ${profile.email}`)}`}
             className="ml-auto inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             <Mail className="size-4" aria-hidden /> Poproś o usunięcie konta

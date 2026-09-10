@@ -203,6 +203,11 @@ function OfferPage() {
               </p>
             )}
 
+            <p className="mt-3 rounded-xl border border-sky/25 bg-sky-soft/60 px-3 py-2 text-xs leading-relaxed text-foreground">
+              Sprzedający oświadczył, że sprzedaje prywatnie. Do zakupu nie stosuje się ustawowego
+              14-dniowego prawa odstąpienia przysługującego przy zakupie od przedsiębiorcy.
+            </p>
+
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-foreground">
                 {listing.condition}

@@ -87,6 +87,7 @@ function SellPage() {
   const [sent, setSent] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privateSaleConfirmed, setPrivateSaleConfirmed] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -99,7 +100,10 @@ function SellPage() {
     const room = MAX_PHOTOS - photos.length;
     const all = Array.from(files);
     const next = all
-      .filter((f) => ["image/jpeg", "image/png", "image/webp"].includes(f.type) && f.size <= 10 * 1024 * 1024)
+      .filter(
+        (f) =>
+          ["image/jpeg", "image/png", "image/webp"].includes(f.type) && f.size <= 10 * 1024 * 1024,
+      )
       .slice(0, Math.max(room, 0))
       .map((f) => ({
         id: `${f.name}-${f.lastModified}-${Math.random().toString(36).slice(2, 7)}`,
@@ -108,7 +112,8 @@ function SellPage() {
         file: f,
       }));
     setPhotos((p) => [...p, ...next]);
-    if (all.length !== next.length) setError("Pomijamy pliki inne niż JPG, PNG, WebP lub większe niż 10 MB.");
+    if (all.length !== next.length)
+      setError("Pomijamy pliki inne niż JPG, PNG, WebP lub większe niż 10 MB.");
   };
 
   const removePhoto = (id: string) =>
@@ -154,18 +159,33 @@ function SellPage() {
           className="mt-8 space-y-8"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (!privateSaleConfirmed) {
+              setError("Potwierdź, że sprzedajesz jako osoba prywatna.");
+              return;
+            }
             setSaving(true);
             setError(null);
             try {
               await createListing({
-                title, description, category, theme: motif, condition, price: priceNum,
-                setNumber, pieces: pieces.trim() ? Number(pieces) : null, year: year.trim() ? Number(year) : null,
-                hasInstructions: hasManual, hasBox, photos: photos.map((photo) => photo.file),
+                title,
+                description,
+                category,
+                theme: motif,
+                condition,
+                price: priceNum,
+                setNumber,
+                pieces: pieces.trim() ? Number(pieces) : null,
+                year: year.trim() ? Number(year) : null,
+                hasInstructions: hasManual,
+                hasBox,
+                photos: photos.map((photo) => photo.file),
               });
               setSent(true);
               window.setTimeout(() => navigate({ to: "/", search: { q: undefined } }), 900);
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : "Nie udało się opublikować oferty.");
+              setError(
+                cause instanceof Error ? cause.message : "Nie udało się opublikować oferty.",
+              );
             } finally {
               setSaving(false);
             }
@@ -199,7 +219,8 @@ function SellPage() {
               <ImagePlus className="size-6 text-brand" aria-hidden />
               <p className="text-sm font-medium">Przeciągnij i upuść zdjęcia tutaj</p>
               <p className="text-xs text-muted-foreground">
-                Pierwsze zdjęcie będzie okładką oferty. JPG, PNG lub WebP, maks. 10 MB. Do {MAX_PHOTOS} zdjęć.
+                Pierwsze zdjęcie będzie okładką oferty. JPG, PNG lub WebP, maks. 10 MB. Do{" "}
+                {MAX_PHOTOS} zdjęć.
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
@@ -260,7 +281,12 @@ function SellPage() {
                     )}
                     <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between gap-1">
                       {i > 0 && (
-                        <button type="button" onClick={() => movePhoto(p.id, -1)} aria-label="Przesuń zdjęcie wcześniej" className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card">
+                        <button
+                          type="button"
+                          onClick={() => movePhoto(p.id, -1)}
+                          aria-label="Przesuń zdjęcie wcześniej"
+                          className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card"
+                        >
                           <ChevronLeft className="size-3.5" aria-hidden />
                         </button>
                       )}
@@ -275,7 +301,12 @@ function SellPage() {
                         </button>
                       )}
                       {i < photos.length - 1 && (
-                        <button type="button" onClick={() => movePhoto(p.id, 1)} aria-label="Przesuń zdjęcie później" className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card">
+                        <button
+                          type="button"
+                          onClick={() => movePhoto(p.id, 1)}
+                          aria-label="Przesuń zdjęcie później"
+                          className="rounded-full bg-card/90 p-1.5 shadow-card hover:bg-card"
+                        >
                           <ChevronRight className="size-3.5" aria-hidden />
                         </button>
                       )}
@@ -309,11 +340,47 @@ function SellPage() {
             </label>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <label className="block text-sm font-medium">Numer zestawu<input value={setNumber} onChange={(e) => setSetNumber(e.target.value)} maxLength={50} placeholder="np. 10305" className={field} /></label>
-              <label className="block text-sm font-medium">Elementy<input value={pieces} onChange={(e) => setPieces(e.target.value)} inputMode="numeric" type="number" min="0" step="1" placeholder="np. 1038" className={field} /></label>
-              <label className="block text-sm font-medium">Rok wydania<input value={year} onChange={(e) => setYear(e.target.value)} inputMode="numeric" type="number" min="1949" max={new Date().getFullYear() + 1} step="1" placeholder="np. 2023" className={field} /></label>
+              <label className="block text-sm font-medium">
+                Numer zestawu
+                <input
+                  value={setNumber}
+                  onChange={(e) => setSetNumber(e.target.value)}
+                  maxLength={50}
+                  placeholder="np. 10305"
+                  className={field}
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                Elementy
+                <input
+                  value={pieces}
+                  onChange={(e) => setPieces(e.target.value)}
+                  inputMode="numeric"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="np. 1038"
+                  className={field}
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                Rok wydania
+                <input
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  inputMode="numeric"
+                  type="number"
+                  min="1949"
+                  max={new Date().getFullYear() + 1}
+                  step="1"
+                  placeholder="np. 2023"
+                  className={field}
+                />
+              </label>
             </div>
-            <p className="-mt-3 text-xs text-muted-foreground">Pola opcjonalne, ale pomagają kupującym łatwiej znaleźć właściwy zestaw.</p>
+            <p className="-mt-3 text-xs text-muted-foreground">
+              Pola opcjonalne, ale pomagają kupującym łatwiej znaleźć właściwy zestaw.
+            </p>
 
             <div>
               <span className="text-sm font-medium">Kategoria</span>
@@ -415,21 +482,54 @@ function SellPage() {
                 className={field}
               />
             </label>
-            <div className="card-surface flex justify-between p-4 text-sm font-semibold">
-              <span>Otrzymasz</span>
-              <span>{priceNum.toFixed(2)} zł</span>
+            <div className="card-surface space-y-2 p-4 text-sm">
+              <div className="flex justify-between">
+                <span>Prowizja Klockowni</span>
+                <span>{Math.min(priceNum, 1 + Math.round(priceNum * 5) / 100).toFixed(2)} zł</span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span>Otrzymasz po odbiorze</span>
+                <span>
+                  {Math.max(
+                    0,
+                    priceNum - Math.min(priceNum, 1 + Math.round(priceNum * 5) / 100),
+                  ).toFixed(2)}{" "}
+                  zł
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">Prowizja: 1 zł + 5% ceny.</p>
             </div>
           </section>
 
+          <label className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 text-sm">
+            <input
+              required
+              type="checkbox"
+              checked={privateSaleConfirmed}
+              onChange={(event) => setPrivateSaleConfirmed(event.target.checked)}
+              className="mt-0.5 size-4 accent-brand"
+            />
+            <span>
+              Sprzedaję jako osoba prywatna, a podane informacje i zdjęcia są zgodne z prawdą.
+              Rozumiem, że kupującemu nie przysługuje ustawowe 14-dniowe odstąpienie konsumenckie.
+            </span>
+          </label>
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || !privateSaleConfirmed}
             className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
             {saving ? "Publikuję…" : "Opublikuj ofertę"}
           </button>
-          {error && <p role="alert" className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p>}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
 
           {sent && (
             <p className="rounded-lg bg-brand-soft px-4 py-3 text-sm">

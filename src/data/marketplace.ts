@@ -407,6 +407,7 @@ export async function createListing(input: CreateListingInput) {
       production_year: input.year,
       has_instructions: input.hasInstructions,
       has_box: input.hasBox,
+      seller_is_private: true,
       status: "draft",
     })
     .select("id")
