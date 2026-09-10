@@ -37,6 +37,7 @@ function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const field =
     "mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus-within:ring-2 focus-within:ring-ring/40";
@@ -77,6 +78,10 @@ function AuthPage() {
           type="button"
           disabled={submitting}
           onClick={() => {
+            if (mode === "register" && !acceptedTerms) {
+              setError("Potwierdź pełnoletność i zaakceptuj regulamin oraz politykę prywatności.");
+              return;
+            }
             setSubmitting(true);
             setError(null);
             void loginWithGoogle()
@@ -106,6 +111,10 @@ function AuthPage() {
           onSubmit={async (e) => {
             e.preventDefault();
             setError(null);
+            if (mode === "register" && !acceptedTerms) {
+              setError("Potwierdź pełnoletność i zaakceptuj regulamin oraz politykę prywatności.");
+              return;
+            }
             setSubmitting(true);
             try {
               const result =
@@ -157,6 +166,32 @@ function AuthPage() {
             </span>
           </label>
 
+          {mode === "register" && (
+            <label className="flex items-start gap-3 rounded-2xl border border-border bg-card p-3 text-sm">
+              <input
+                required
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(event) => setAcceptedTerms(event.target.checked)}
+                className="mt-0.5 size-4 accent-brand"
+              />
+              <span>
+                Mam co najmniej 18 lat i akceptuję{" "}
+                <Link to="/regulamin" className="font-semibold text-brand hover:underline">
+                  regulamin
+                </Link>{" "}
+                oraz{" "}
+                <Link
+                  to="/polityka-prywatnosci"
+                  className="font-semibold text-brand hover:underline"
+                >
+                  politykę prywatności
+                </Link>
+                .
+              </span>
+            </label>
+          )}
+
           {mode === "login" && (
             <button
               type="button"
@@ -202,7 +237,7 @@ function AuthPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (mode === "register" && !acceptedTerms)}
             className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
             {submitting ? "Trwa przetwarzanie…" : mode === "login" ? "Zaloguj się" : "Załóż konto"}
