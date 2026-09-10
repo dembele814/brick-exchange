@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkoutInput, sessionParameters, type CheckoutOrder } from "./payments.ts";
+import { RateLimitExceededError } from "./rate-limit.ts";
 
 export async function handleCheckout(
   request: Request,
@@ -9,6 +10,7 @@ export async function handleCheckout(
   appUrl: string,
   expectedLiveMode = false,
   validatePickupPoint: (pointId: string) => Promise<unknown> = async () => undefined,
+  enforcePurchaseRateLimit: (userId: string) => Promise<unknown> = async () => undefined,
 ) {
   const token = request.headers.get("authorization")?.match(/^Bearer\s+(\S+)$/i)?.[1];
   if (!token) return Response.json({ error: "Zaloguj się, aby kupić ofertę." }, { status: 401 });
@@ -27,6 +29,13 @@ export async function handleCheckout(
   }
   if (authError || !auth.user)
     return Response.json({ error: "Zaloguj się, aby kupić ofertę." }, { status: 401 });
+  try {
+    await enforcePurchaseRateLimit(auth.user.id);
+  } catch (cause) {
+    if (cause instanceof RateLimitExceededError)
+      return Response.json({ error: cause.message }, { status: 429 });
+    return Response.json({ error: "Nie można teraz rozpocząć płatności." }, { status: 503 });
+  }
   const parsed = checkoutInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return Response.json({ error: "Nieprawidłowe dane zamówienia." }, { status: 400 });

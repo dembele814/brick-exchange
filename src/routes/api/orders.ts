@@ -10,6 +10,7 @@ import {
   getInpostShipment,
   inpostConfig,
 } from "@/server/inpost";
+import { enforceRateLimit, RateLimitExceededError } from "@/server/rate-limit";
 
 const fulfillmentInput = z.object({
   orderId: z.string().uuid(),
@@ -90,6 +91,20 @@ export const Route = createFileRoute("/api/orders")({
           if (!z.string().uuid().safeParse(labelOrderId).success)
             return Response.json({ error: "Nieprawidłowe zamówienie." }, { status: 400 });
           const admin = getSupabaseAdmin();
+          try {
+            await enforceRateLimit(admin, "shipping-label", user.id, 20, 60);
+          } catch (cause) {
+            const status = cause instanceof RateLimitExceededError ? 429 : 503;
+            return Response.json(
+              {
+                error:
+                  cause instanceof RateLimitExceededError
+                    ? cause.message
+                    : "Etykiety są chwilowo niedostępne.",
+              },
+              { status },
+            );
+          }
           const { data: order, error: labelOrderError } = await admin
             .from("orders")
             .select("id,seller_id,shipping_carrier,carrier_shipment_id,shipping_livemode")
@@ -98,13 +113,19 @@ export const Route = createFileRoute("/api/orders")({
           if (labelOrderError || !order)
             return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
           if (order.seller_id !== user.id)
-            return Response.json({ error: "Tylko sprzedawca może pobrać etykietę." }, { status: 403 });
+            return Response.json(
+              { error: "Tylko sprzedawca może pobrać etykietę." },
+              { status: 403 },
+            );
           if (order.shipping_carrier !== "inpost" || !order.carrier_shipment_id)
             return Response.json({ error: "Etykieta nie jest jeszcze gotowa." }, { status: 409 });
           try {
             const config = inpostConfig();
             if (config.liveMode !== order.shipping_livemode)
-              return Response.json({ error: "Tryb wysyłki nie zgadza się z etykietą." }, { status: 409 });
+              return Response.json(
+                { error: "Tryb wysyłki nie zgadza się z etykietą." },
+                { status: 409 },
+              );
             const label = await getInpostLabel(order.carrier_shipment_id, config);
             return new Response(label.body, {
               status: 200,
@@ -115,7 +136,10 @@ export const Route = createFileRoute("/api/orders")({
               },
             });
           } catch {
-            return Response.json({ error: "Nie udało się pobrać etykiety InPost." }, { status: 503 });
+            return Response.json(
+              { error: "Nie udało się pobrać etykiety InPost." },
+              { status: 503 },
+            );
           }
         }
         const { data, error } = await getSupabaseAdmin()
@@ -141,6 +165,20 @@ export const Route = createFileRoute("/api/orders")({
             { error: "Zaloguj się, aby zarządzać zamówieniem." },
             { status: 401 },
           );
+        try {
+          await enforceRateLimit(getSupabaseAdmin(), "order-action", user.id, 30, 60);
+        } catch (cause) {
+          const status = cause instanceof RateLimitExceededError ? 429 : 503;
+          return Response.json(
+            {
+              error:
+                cause instanceof RateLimitExceededError
+                  ? cause.message
+                  : "Zamówienia są chwilowo niedostępne.",
+            },
+            { status },
+          );
+        }
         const body = await request.json();
         const parsed = orderActionInput.safeParse(body);
         if (!parsed.success)
@@ -158,16 +196,28 @@ export const Route = createFileRoute("/api/orders")({
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
         if (action.action === "create_inpost_shipment") {
           if (order.seller_id !== user.id)
-            return Response.json({ error: "Tylko sprzedawca może utworzyć przesyłkę." }, { status: 403 });
+            return Response.json(
+              { error: "Tylko sprzedawca może utworzyć przesyłkę." },
+              { status: 403 },
+            );
           if (order.status !== "paid" || order.payment_status !== "paid")
-            return Response.json({ error: "Etykietę można utworzyć po opłaceniu zamówienia." }, { status: 409 });
+            return Response.json(
+              { error: "Etykietę można utworzyć po opłaceniu zamówienia." },
+              { status: 409 },
+            );
           if (order.shipping_carrier !== "inpost")
-            return Response.json({ error: "Automatyczne etykiety są teraz dostępne dla InPost." }, { status: 409 });
+            return Response.json(
+              { error: "Automatyczne etykiety są teraz dostępne dla InPost." },
+              { status: 409 },
+            );
           if (order.carrier_shipment_id) {
             try {
               const config = inpostConfig();
               if (config.liveMode !== order.shipping_livemode)
-                return Response.json({ error: "Tryb wysyłki nie zgadza się z przesyłką." }, { status: 409 });
+                return Response.json(
+                  { error: "Tryb wysyłki nie zgadza się z przesyłką." },
+                  { status: 409 },
+                );
               const shipment = await getInpostShipment(order.carrier_shipment_id, config);
               const trackingNumber =
                 typeof shipment.tracking_number === "string" ? shipment.tracking_number : null;
@@ -176,15 +226,17 @@ export const Route = createFileRoute("/api/orders")({
                 .from("orders")
                 .update({
                   tracking_number: trackingNumber,
-                  carrier_status:
-                    typeof shipment.status === "string" ? shipment.status : "created",
+                  carrier_status: typeof shipment.status === "string" ? shipment.status : "created",
                   carrier_status_updated_at: now,
                   shipping_label_ready_at: trackingNumber ? now : null,
                 })
                 .eq("id", order.id);
               return Response.json({ ok: true, labelReady: Boolean(trackingNumber) });
             } catch {
-              return Response.json({ error: "InPost jeszcze przygotowuje przesyłkę." }, { status: 503 });
+              return Response.json(
+                { error: "InPost jeszcze przygotowuje przesyłkę." },
+                { status: 503 },
+              );
             }
           }
           const staleBefore = new Date(Date.now() - 2 * 60_000).toISOString();
@@ -193,11 +245,16 @@ export const Route = createFileRoute("/api/orders")({
             .update({ shipping_creation_started_at: new Date().toISOString() })
             .eq("id", order.id)
             .is("carrier_shipment_id", null)
-            .or(`shipping_creation_started_at.is.null,shipping_creation_started_at.lt.${staleBefore}`)
+            .or(
+              `shipping_creation_started_at.is.null,shipping_creation_started_at.lt.${staleBefore}`,
+            )
             .select("id")
             .maybeSingle();
           if (claimError || !claimed)
-            return Response.json({ error: "Etykieta jest już tworzona. Odśwież za chwilę." }, { status: 409 });
+            return Response.json(
+              { error: "Etykieta jest już tworzona. Odśwież za chwilę." },
+              { status: 409 },
+            );
           try {
             const config = inpostConfig();
             const shipment = await createInpostShipment(
@@ -242,7 +299,8 @@ export const Route = createFileRoute("/api/orders")({
               .update({ shipping_creation_started_at: null })
               .eq("id", order.id)
               .is("carrier_shipment_id", null);
-            const message = cause instanceof Error ? cause.message : "Nie udało się utworzyć przesyłki.";
+            const message =
+              cause instanceof Error ? cause.message : "Nie udało się utworzyć przesyłki.";
             return Response.json({ error: message }, { status: 503 });
           }
         }

@@ -139,6 +139,7 @@ before(async () => {
     "20260912_stripe_live_mode.sql",
     "20260913_private_seller_declaration.sql",
     "20260914_production_shipping.sql",
+    "20260915_api_rate_limits.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -158,6 +159,18 @@ test("message images and price-offer migration is safely repeatable", async () =
     "select public, file_size_limit from storage.buckets where id='message-images'",
   );
   assert.deepEqual(result.rows[0], { public: false, file_size_limit: 5_242_880 });
+});
+
+test("database rate limit allows the configured burst and rejects the next request", async () => {
+  const results = [];
+  for (let index = 0; index < 3; index += 1) {
+    const result = await db.query(
+      "select public.consume_api_rate_limit('checkout', $1, 2, 60) as allowed",
+      ["a".repeat(64)],
+    );
+    results.push(result.rows[0].allowed);
+  }
+  assert.deepEqual(results, [true, true, false]);
 });
 
 test("an accepted offer becomes the immutable checkout amount", async () => {

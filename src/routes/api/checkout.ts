@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/server/supabase-admin";
 import { paymentConfig } from "@/server/payments";
 import { handleCheckout } from "@/server/checkout-handler";
 import { validateInpostPoint } from "@/server/inpost";
+import { enforceRateLimit } from "@/server/rate-limit";
 
 export const Route = createFileRoute("/api/checkout")({
   server: {
@@ -11,13 +12,15 @@ export const Route = createFileRoute("/api/checkout")({
       POST: async ({ request }) => {
         try {
           const config = paymentConfig(process.env, true);
+          const admin = getSupabaseAdmin();
           return await handleCheckout(
             request,
-            getSupabaseAdmin(),
+            admin,
             new Stripe(config.key),
             config.appUrl,
             config.liveMode,
             validateInpostPoint,
+            (userId) => enforceRateLimit(admin, "checkout", userId, 10, 60),
           );
         } catch {
           console.error(
