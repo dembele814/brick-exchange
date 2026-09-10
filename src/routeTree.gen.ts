@@ -31,6 +31,7 @@ import { Route as ApiReportsRouteImport } from './routes/api/reports'
 import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
+import { Route as ApiCronEmailsRouteImport } from './routes/api/cron/emails'
 import { Route as ApiCronReconcileRouteImport } from './routes/api/cron/reconcile'
 import { Route as ApiWebhooksInpostRouteImport } from './routes/api/webhooks/inpost'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
@@ -145,6 +146,11 @@ const UzytkownikNameRoute = UzytkownikNameRouteImport.update({
   path: '/uzytkownik/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronEmailsRoute = ApiCronEmailsRouteImport.update({
+  id: '/api/cron/emails',
+  path: '/api/cron/emails',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronReconcileRoute = ApiCronReconcileRouteImport.update({
   id: '/api/cron/reconcile',
   path: '/api/cron/reconcile',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -239,6 +247,7 @@ export interface FileRoutesById {
   '/api/reviews': typeof ApiReviewsRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
+  '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/cron/emails'
     | '/api/cron/reconcile'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
@@ -295,6 +305,7 @@ export interface FileRouteTypes {
     | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/cron/emails'
     | '/api/cron/reconcile'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
@@ -322,6 +333,7 @@ export interface FileRouteTypes {
     | '/api/reviews'
     | '/oferta/$id'
     | '/uzytkownik/$name'
+    | '/api/cron/emails'
     | '/api/cron/reconcile'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
@@ -350,6 +362,7 @@ export interface RootRouteChildren {
   ApiReviewsRoute: typeof ApiReviewsRoute
   OfertaIdRoute: typeof OfertaIdRoute
   UzytkownikNameRoute: typeof UzytkownikNameRoute
+  ApiCronEmailsRoute: typeof ApiCronEmailsRoute
   ApiCronReconcileRoute: typeof ApiCronReconcileRoute
   ApiWebhooksInpostRoute: typeof ApiWebhooksInpostRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
@@ -511,6 +524,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UzytkownikNameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/emails': {
+      id: '/api/cron/emails'
+      path: '/api/cron/emails'
+      fullPath: '/api/cron/emails'
+      preLoaderRoute: typeof ApiCronEmailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/reconcile': {
       id: '/api/cron/reconcile'
       path: '/api/cron/reconcile'
@@ -558,6 +578,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiReviewsRoute: ApiReviewsRoute,
   OfertaIdRoute: OfertaIdRoute,
   UzytkownikNameRoute: UzytkownikNameRoute,
+  ApiCronEmailsRoute: ApiCronEmailsRoute,
   ApiCronReconcileRoute: ApiCronReconcileRoute,
   ApiWebhooksInpostRoute: ApiWebhooksInpostRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,

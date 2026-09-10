@@ -17,6 +17,7 @@ Przed publikacją nowej wersji wykonać kolejno brakujące migracje:
 3. `20260914_production_shipping.sql`
 4. `20260915_api_rate_limits.sql`
 5. `20260916_payment_reconciliation.sql`
+6. `20260917_transactional_email_outbox.sql`
 
 Każdą migrację wykonać tylko w projekcie `wrgrjnduppjagdmflnan` i sprawdzić komunikat powodzenia przed przejściem dalej.
 
@@ -26,6 +27,7 @@ Każdą migrację wykonać tylko w projekcie `wrgrjnduppjagdmflnan` i sprawdzić
 - InPost: token, ID organizacji i sekret HMAC właściwego środowiska.
 - Supabase: klucz service role zapisany pod obsługiwaną nazwą sekretu Lovable.
 - Uzgadnianie: losowy `RECONCILIATION_SECRET` o długości co najmniej 32 znaków.
+- E-mail: `EMAIL_ENABLED`, tryb, klucz Resend, zweryfikowany nadawca i adres testowy.
 
 Żadnego sekretu nie wolno wpisywać w kodzie, wiadomości ani zmiennej z prefiksem `VITE_`.
 
@@ -39,6 +41,10 @@ Po zapisaniu wysłać zdarzenie testowe i potwierdzić odpowiedź HTTP 200.
 Skonfigurować wywołanie `POST /api/cron/reconcile` co 5 minut z nagłówkiem
 `Authorization: Bearer RECONCILIATION_SECRET`. Sekret musi pochodzić z menedżera
 sekretów, a nie z adresu URL.
+
+Skonfigurować także `POST /api/cron/emails` co minutę z tym samym nagłówkiem. W trybie
+testowym wszystkie wiadomości muszą trafiać na `EMAIL_TEST_RECIPIENT`. Tryb live wolno
+włączyć dopiero po zweryfikowaniu domeny nadawcy w Resend.
 
 ## 5. Opublikować i wykonać test końcowy
 
