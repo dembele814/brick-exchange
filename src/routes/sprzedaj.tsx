@@ -9,13 +9,13 @@ import { createListing } from "@/data/marketplace";
 export const Route = createFileRoute("/sprzedaj")({
   head: () => ({
     meta: [
-      { title: "Dodaj ofertę LEGO — Klockownia" },
+      { title: "Dodaj ofertę LEGO — Klockogram" },
       {
         name: "description",
         content:
           "Wystaw zestaw, minifigurki lub klocki luzem w kilku krokach: do 20 zdjęć, stan, braki, cena, wysyłka i płatność.",
       },
-      { property: "og:title", content: "Dodaj ofertę LEGO — Klockownia" },
+      { property: "og:title", content: "Dodaj ofertę LEGO — Klockogram" },
       {
         property: "og:description",
         content: "Darmowe wystawienie oferty, prowizja tylko po sprzedaży.",
@@ -505,7 +505,7 @@ function SellPage() {
             </label>
             <div className="card-surface space-y-2 p-4 text-sm">
               <div className="flex justify-between">
-                <span>Prowizja Klockowni</span>
+                <span>Prowizja Klockogramu</span>
                 <span>{Math.min(priceNum, 1 + Math.round(priceNum * 5) / 100).toFixed(2)} zł</span>
               </div>
               <div className="flex justify-between font-semibold">

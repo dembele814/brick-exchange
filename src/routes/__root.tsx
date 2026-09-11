@@ -79,18 +79,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Klockownia — marketplace klocków LEGO" },
+      { title: "Klockogram — marketplace klocków LEGO" },
       {
         name: "description",
         content: "Kupuj i sprzedawaj używane zestawy, minifigurki i klocki LEGO.",
       },
-      { property: "og:title", content: "Klockownia — marketplace klocków LEGO" },
+      { property: "og:title", content: "Klockogram — marketplace klocków LEGO" },
       {
         property: "og:description",
         content: "Kupuj i sprzedawaj używane zestawy, minifigurki i klocki LEGO.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "Klockownia" },
+      { property: "og:site_name", content: "Klockogram" },
       { property: "og:locale", content: "pl_PL" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#ffffff" },

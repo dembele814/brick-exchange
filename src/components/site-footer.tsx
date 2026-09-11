@@ -36,7 +36,7 @@ export function SiteFooter() {
         </dl>
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 text-sm text-muted-foreground">
-          <p>© 2026 Klockownia — operator: Anna Wójcik, działalność nierejestrowana.</p>
+          <p>© 2026 Klockogram — operator: Anna Wójcik, działalność nierejestrowana.</p>
           <nav className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Informacje prawne">
             <Link to="/regulamin" className="hover:text-foreground hover:underline">
               Regulamin

@@ -1,4 +1,4 @@
--- Klockownia: safe final database catch-up.
+-- Klockogram: safe final database catch-up.
 -- It can be run more than once in the Supabase SQL Editor.
 
 alter table public.orders

@@ -4,8 +4,8 @@ import { LegalPage } from "@/components/legal-page";
 export const Route = createFileRoute("/polityka-prywatnosci")({
   head: () => ({
     meta: [
-      { title: "Polityka prywatności — Klockownia" },
-      { name: "description", content: "Jak Klockownia wykorzystuje i chroni dane osobowe." },
+      { title: "Polityka prywatności — Klockogram" },
+      { name: "description", content: "Jak Klockogram wykorzystuje i chroni dane osobowe." },
     ],
   }),
   component: PrivacyPolicy,
@@ -15,7 +15,7 @@ const Contact = () => <a href="mailto:feelip.wojcik@gmail.com">feelip.wojcik@gma
 
 function PrivacyPolicy() {
   return (
-    <LegalPage title="Polityka prywatności Klockowni" updated="10 września 2026">
+    <LegalPage title="Polityka prywatności Klockogramu" updated="10 września 2026">
       <section>
         <h2>1. Administrator</h2>
         <p>
@@ -114,7 +114,7 @@ function PrivacyPolicy() {
       <section>
         <h2>9. Automatyczne decyzje</h2>
         <p>
-          Klockownia nie podejmuje decyzji wywołujących skutki prawne wyłącznie automatycznie i nie
+          Klockogram nie podejmuje decyzji wywołujących skutki prawne wyłącznie automatycznie i nie
           profiluje reklamowo. Stripe może prowadzić własną automatyczną ocenę ryzyka płatności
           zgodnie ze swoją polityką.
         </p>

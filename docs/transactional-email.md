@@ -1,4 +1,4 @@
-# E-maile transakcyjne Klockowni
+# E-maile transakcyjne Klockogramu
 
 ## Usługa
 
@@ -9,7 +9,7 @@ blokuje rekord, wysyła wiadomość z kluczem idempotencji i ponawia ją najwyż
 ## Bezpieczne uruchomienie
 
 1. Utwórz konto Resend dla operatora platformy.
-2. Dodaj subdomenę, np. `send.klockownia.pl`, i skopiuj rekordy DNS SPF oraz DKIM.
+2. Dodaj subdomenę, np. `send.klockogram.pl`, i skopiuj rekordy DNS SPF oraz DKIM.
 3. Poczekaj na status `Verified` w Resend.
 4. Utwórz klucz API wyłącznie do wysyłki.
 5. W Lovable ustaw najpierw:
@@ -19,7 +19,7 @@ blokuje rekord, wysyła wiadomość z kluczem idempotencji i ponawia ją najwyż
    EMAIL_MODE=test
    EMAIL_LIVE_ENABLED=false
    RESEND_API_KEY=re_...
-   EMAIL_FROM=Klockownia <powiadomienia@send.klockownia.pl>
+   EMAIL_FROM=Klockogram <powiadomienia@send.klockogram.pl>
    EMAIL_TEST_RECIPIENT=feelip.wojcik@gmail.com
    ```
 

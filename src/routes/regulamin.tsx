@@ -4,8 +4,8 @@ import { LegalPage } from "@/components/legal-page";
 export const Route = createFileRoute("/regulamin")({
   head: () => ({
     meta: [
-      { title: "Regulamin — Klockownia" },
-      { name: "description", content: "Zasady sprzedaży, płatności i korzystania z Klockowni." },
+      { title: "Regulamin — Klockogram" },
+      { name: "description", content: "Zasady sprzedaży, płatności i korzystania z Klockogramu." },
     ],
   }),
   component: Terms,
@@ -15,15 +15,15 @@ const Contact = () => <a href="mailto:feelip.wojcik@gmail.com">feelip.wojcik@gma
 
 function Terms() {
   return (
-    <LegalPage title="Regulamin Klockowni" updated="10 września 2026">
+    <LegalPage title="Regulamin Klockogramu" updated="10 września 2026">
       <section>
         <h2>1. Operator i usługa</h2>
         <p>
-          Operatorem Klockowni jest Anna Wójcik, prowadząca działalność nierejestrowaną pod adresem
+          Operatorem Klockogramu jest Anna Wójcik, prowadząca działalność nierejestrowaną pod adresem
           ul. Sybiraków 20/19, 15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />.
         </p>
         <p>
-          Klockownia udostępnia serwis do publikowania ofert LEGO, rozmów, płatności i obsługi
+          Klockogram udostępnia serwis do publikowania ofert LEGO, rozmów, płatności i obsługi
           przesyłek. Operator jest pośrednikiem technicznym. Umowę sprzedaży zawierają bezpośrednio
           kupujący i sprzedający.
         </p>
@@ -130,7 +130,7 @@ function Terms() {
         </p>
       </section>
       <section>
-        <h2>11. Reklamacje Klockowni</h2>
+        <h2>11. Reklamacje Klockogramu</h2>
         <p>
           Reklamację działania platformy, prowizji lub wypłaty należy wysłać na <Contact />, podając
           konto, zamówienie i opis problemu. Operator odpowie w ciągu 14 dni. Roszczenia dotyczące

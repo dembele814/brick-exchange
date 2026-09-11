@@ -21,13 +21,13 @@ export const Route = createFileRoute("/wiadomosci")({
   }),
   head: () => ({
     meta: [
-      { title: "Wiadomości — Klockownia" },
+      { title: "Wiadomości — Klockogram" },
       {
         name: "description",
         content:
-          "Skrzynka odbiorcza Klockowni: rozmowy ze sprzedającymi o zestawach, wysyłce i stanie klocków.",
+          "Skrzynka odbiorcza Klockogramu: rozmowy ze sprzedającymi o zestawach, wysyłce i stanie klocków.",
       },
-      { property: "og:title", content: "Wiadomości — Klockownia" },
+      { property: "og:title", content: "Wiadomości — Klockogram" },
       {
         property: "og:description",
         content: "Pisz do sprzedających i śledź odpowiedzi w jednym miejscu.",

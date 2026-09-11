@@ -16,7 +16,7 @@ export function LegalPage({
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10">
-          <p className="text-sm font-semibold text-brand">Klockownia</p>
+          <p className="text-sm font-semibold text-brand">Klockogram</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
             {title}
           </h1>

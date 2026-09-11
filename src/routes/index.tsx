@@ -13,13 +13,13 @@ export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({ q: typeof search["q"] === "string" ? search["q"] : undefined }),
   head: () => ({
     meta: [
-      { title: "Klockownia — marketplace zestawów i klocków LEGO" },
+      { title: "Klockogram — marketplace zestawów i klocków LEGO" },
       {
         name: "description",
         content:
           "Testuj kupowanie i sprzedawanie używanych zestawów, minifigurek i klocków LEGO. Przejrzyste opisy stanu i płatności testowe Stripe.",
       },
-      { property: "og:title", content: "Klockownia — marketplace zestawów LEGO" },
+      { property: "og:title", content: "Klockogram — marketplace zestawów LEGO" },
       {
         property: "og:description",
         content: "Tysiące zestawów, minifigurek i klocków od kolekcjonerów z całej Polski.",

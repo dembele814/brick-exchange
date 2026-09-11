@@ -43,7 +43,7 @@ export function connectAccountCreateParams(
       locales: ["pl-PL"],
       profile: {
         business_url: appUrl,
-        product_description: "Sprzedaż zestawów, minifigurek i klocków LEGO w Klockowni.",
+        product_description: "Sprzedaż zestawów, minifigurek i klocków LEGO w Klockogramie.",
       },
       responsibilities: { fees_collector: "application", losses_collector: "application" },
     },

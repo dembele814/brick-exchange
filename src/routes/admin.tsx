@@ -6,7 +6,7 @@ import { authenticatedRequest } from "@/lib/authenticated-request";
 import { requireSupabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin")({
-  head: () => ({ meta: [{ title: "Panel administratora — Klockownia" }] }),
+  head: () => ({ meta: [{ title: "Panel administratora — Klockogram" }] }),
   component: AdminPage,
 });
 

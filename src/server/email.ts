@@ -77,9 +77,9 @@ function escapeHtml(value: string) {
 
 export function notificationEmail(row: Pick<OutboxRow, "subject" | "body" | "href">, config: EmailConfig) {
   const url = row.href ? new URL(row.href, `${config.appUrl}/`).toString() : config.appUrl;
-  const subject = `Klockownia: ${row.subject}`;
-  const text = `${row.body}\n\nSprawdź szczegóły: ${url}\n\nKlockownia`;
-  const html = `<!doctype html><html lang="pl"><body style="margin:0;background:#f5f7fb;font-family:Arial,sans-serif;color:#172033"><div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px"><p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#2563eb">Klockownia</p><h1 style="margin:0 0 12px;font-size:22px">${escapeHtml(row.subject)}</h1><p style="margin:0 0 24px;line-height:1.6">${escapeHtml(row.body)}</p><a href="${escapeHtml(url)}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-weight:700">Sprawdź szczegóły</a><p style="margin:28px 0 0;color:#64748b;font-size:12px">Automatyczna wiadomość dotycząca Twojego konta w Klockowni.</p></div></body></html>`;
+  const subject = `Klockogram: ${row.subject}`;
+  const text = `${row.body}\n\nSprawdź szczegóły: ${url}\n\nKlockogram`;
+  const html = `<!doctype html><html lang="pl"><body style="margin:0;background:#f5f7fb;font-family:Arial,sans-serif;color:#172033"><div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:32px"><p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#2563eb">Klockogram</p><h1 style="margin:0 0 12px;font-size:22px">${escapeHtml(row.subject)}</h1><p style="margin:0 0 24px;line-height:1.6">${escapeHtml(row.body)}</p><a href="${escapeHtml(url)}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;padding:12px 18px;font-weight:700">Sprawdź szczegóły</a><p style="margin:28px 0 0;color:#64748b;font-size:12px">Automatyczna wiadomość dotycząca Twojego konta w Klockogramie.</p></div></body></html>`;
   return { subject, text, html };
 }
 

@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/logowanie")({
   head: () => ({
     meta: [
-      { title: "Zaloguj się lub załóż konto — Klockownia" },
+      { title: "Zaloguj się lub załóż konto — Klockogram" },
       {
         name: "description",
         content:
           "Przeglądaj oferty LEGO bez konta. Zaloguj się, aby kupować, polubić ofertę i pisać do sprzedających.",
       },
-      { property: "og:title", content: "Zaloguj się lub załóż konto — Klockownia" },
+      { property: "og:title", content: "Zaloguj się lub załóż konto — Klockogram" },
       {
         property: "og:description",
         content: "Konto potrzebne jest tylko do zakupów, ulubionych i wiadomości.",

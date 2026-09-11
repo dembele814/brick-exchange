@@ -7,7 +7,7 @@ import { listings } from "@/data/listings";
 import { usePublicListings, usePublicSellerProfile } from "@/data/marketplace";
 
 export const Route = createFileRoute("/uzytkownik/$name")({
-  head: () => ({ meta: [{ title: "Profil sprzedającego — Klockownia" }] }),
+  head: () => ({ meta: [{ title: "Profil sprzedającego — Klockogram" }] }),
   errorComponent: () => (
     <p className="p-10 text-center text-sm text-muted-foreground">
       Nie udało się wczytać profilu. Odśwież stronę.
@@ -39,7 +39,7 @@ function SellerProfilePage() {
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-bold">{name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {profile ? `Sprzedawca na Klockowni od ${profile.joined}` : "Sprzedawca na Klockowni"}
+              {profile ? `Sprzedawca na Klockogramie od ${profile.joined}` : "Sprzedawca na Klockogramie"}
             </p>
             {profile?.rating !== null && profile?.rating !== undefined && <p className="mt-1 inline-flex items-center gap-1 text-sm font-semibold"><Star className="size-4 fill-sun text-sun" /> {profile.rating.toFixed(1)} <span className="font-normal text-muted-foreground">· {profile.reviews.length} opinii</span></p>}
             {city && (

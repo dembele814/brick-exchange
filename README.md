@@ -1,4 +1,4 @@
-# Brick Exchange
+# Klockogram
 
 stwórz nowoczesną aplikację webową marketplace poświęconą wyłącznie produktom LEGO. Design zainspirowany prostotą i użytecznością Vinted, ale bez kopiowania brandingu, grafiki czy zastrzeżonych elementów.
 

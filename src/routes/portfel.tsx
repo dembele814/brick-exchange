@@ -12,12 +12,12 @@ import { requireSupabase } from "@/lib/supabase";
 export const Route = createFileRoute("/portfel")({
   head: () => ({
     meta: [
-      { title: "Zakupy, sprzedaż i wypłaty — Klockownia" },
+      { title: "Zakupy, sprzedaż i wypłaty — Klockogram" },
       {
         name: "description",
-        content: "Podsumowanie zakupów, sprzedaży oraz stan wypłat w Klockowni.",
+        content: "Podsumowanie zakupów, sprzedaży oraz stan wypłat w Klockogramie.",
       },
-      { property: "og:title", content: "Zakupy, sprzedaż i wypłaty — Klockownia" },
+      { property: "og:title", content: "Zakupy, sprzedaż i wypłaty — Klockogram" },
       {
         property: "og:description",
         content: "Kupione i sprzedane zestawy, wartości zamówień oraz informacje o wypłatach.",
@@ -155,7 +155,7 @@ function WalletPage() {
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">Twoje transakcje</p>
         <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Zakupy, sprzedaż i wypłaty</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Zakupy i sprzedaże są pokazane obok siebie. Prowizja Klockowni wynosi 1 zł + 5% ceny
+          Zakupy i sprzedaże są pokazane obok siebie. Prowizja Klockogramu wynosi 1 zł + 5% ceny
           oferty. Wypłata dla sprzedającego jest dostępna po potwierdzeniu odbioru.
         </p>
 

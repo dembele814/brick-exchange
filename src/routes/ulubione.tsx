@@ -7,7 +7,7 @@ import { useFavoriteListings } from "@/data/marketplace";
 import { useAccount } from "@/data/account";
 
 export const Route = createFileRoute("/ulubione")({
-  head: () => ({ meta: [{ title: "Ulubione oferty — Klockownia" }] }),
+  head: () => ({ meta: [{ title: "Ulubione oferty — Klockogram" }] }),
   component: FavoritesPage,
 });
 

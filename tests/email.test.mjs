@@ -7,7 +7,7 @@ const baseEnv = {
   EMAIL_MODE: "test",
   EMAIL_LIVE_ENABLED: "false",
   RESEND_API_KEY: "re_fixture",
-  EMAIL_FROM: "Klockownia <powiadomienia@send.example.com>",
+  EMAIL_FROM: "Klockogram <powiadomienia@send.example.com>",
   EMAIL_TEST_RECIPIENT: "owner@example.com",
   APP_URL: "https://shop.example.com",
 };

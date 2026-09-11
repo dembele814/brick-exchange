@@ -26,12 +26,12 @@ export const Route = createFileRoute("/zamowienia")({
   }),
   head: () => ({
     meta: [
-      { title: "Zakupy i sprzedaże — Klockownia" },
+      { title: "Zakupy i sprzedaże — Klockogram" },
       {
         name: "description",
         content: "Podgląd zestawów LEGO, które kupiłeś i sprzedałeś, wraz ze statusem wysyłki.",
       },
-      { property: "og:title", content: "Zakupy i sprzedaże — Klockownia" },
+      { property: "og:title", content: "Zakupy i sprzedaże — Klockogram" },
       { property: "og:description", content: "Kupione i sprzedane zestawy w jednym widoku." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

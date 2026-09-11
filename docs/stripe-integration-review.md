@@ -1,4 +1,4 @@
-# Klockownia: Payments + Connect review
+# Klockogram: Payments + Connect review
 
 Status: planner-guided review and local payment hardening, 2026-09-06.
 The user selected `wojcik industries` (`acct_1UCjeV2KczG9r5pt`) for read-only
@@ -12,7 +12,7 @@ created or changed. Only local code, tests, and documentation were changed.
 
 ## Product and baseline payment flow
 
-Klockownia is a Polish web marketplace for physical LEGO goods. The application
+Klockogram is a Polish web marketplace for physical LEGO goods. The application
 uses React, TanStack Start server routes, Supabase Auth/Postgres/RLS, and Stripe's
 Node SDK. A buyer buys one listing from one seller, in PLN. Prices are stored as
 integer grosz. The buyer supplies a carrier, pickup point, and recipient details.
@@ -96,7 +96,7 @@ the reservation remains until Stripe reports expiry or an operator reconciles it
 Keep hosted Checkout for one-time purchases; a Stripe publishable key is not
 needed for the current server-created Session URL redirect. Use Connect for
 seller onboarding and proceeds, with Stripe-hosted onboarding rather than
-collecting identity or bank documents in Klockownia.
+collecting identity or bank documents in Klockogram.
 
 The charge model depends on the business's release policy:
 
@@ -110,7 +110,7 @@ The charge model depends on the business's release policy:
   from a platform-to-connected-account transfer. Do not describe this as escrow.
 
 The selected business model is a platform charge followed by a transfer after the
-buyer confirms delivery. Klockownia is responsible for refunds and disputes. Its
+buyer confirms delivery. Klockogram is responsible for refunds and disputes. Its
 fee is 100 grosz plus 5% of the listing price, capped at the full order amount.
 Shipping allocation and the exact refund/transfer-reversal operating procedure
 still require a production policy before live mode.
@@ -211,7 +211,7 @@ For test mode:
    ```
 
 7. Register two test users, publish a test listing, and buy it through the actual
-   application. A generic CLI fixture does not contain an existing Klockownia
+   application. A generic CLI fixture does not contain an existing Klockogram
    order or its session binding and is insufficient to prove fulfillment. Set
    `STRIPE_PAYMENTS_ENABLED=true` for this test rollout. Use Stripe's test payment
    methods; select card/BLIK/P24 in the test Dashboard only where available for

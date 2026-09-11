@@ -1,6 +1,6 @@
 {
-  "name": "Klockownia",
-  "short_name": "Klockownia",
+  "name": "Klockogram",
+  "short_name": "Klockogram",
   "description": "Marketplace używanych zestawów, minifigurek i klocków LEGO.",
   "start_url": "/",
   "display": "standalone",

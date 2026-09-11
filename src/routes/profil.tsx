@@ -16,13 +16,13 @@ import { deleteListing, updateListingDetails, updateListingStatus, useMyListings
 export const Route = createFileRoute("/profil")({
   head: () => ({
     meta: [
-      { title: "Mój profil — Klockownia" },
+      { title: "Mój profil — Klockogram" },
       {
         name: "description",
         content:
-          "Twój profil na Klockowni: opinie, opis, lokalizacja oraz Twoje ogłoszenia — aktywne, ukryte i wersje robocze.",
+          "Twój profil na Klockogramie: opinie, opis, lokalizacja oraz Twoje ogłoszenia — aktywne, ukryte i wersje robocze.",
       },
-      { property: "og:title", content: "Mój profil — Klockownia" },
+      { property: "og:title", content: "Mój profil — Klockogram" },
       {
         property: "og:description",
         content: "Zarządzaj swoimi ogłoszeniami LEGO i wyróżnieniami w jednym miejscu.",
@@ -84,7 +84,7 @@ function ProfilePage() {
                 <MapPin className="size-4" aria-hidden />
                 {profile.country}
                 {profile.city && profile.showCity ? `, ${profile.city}` : ""}
-                <span className="ml-2">· na Klockowni od {profile.joined}</span>
+                <span className="ml-2">· na Klockogramie od {profile.joined}</span>
               </p>
             </div>
             <Link

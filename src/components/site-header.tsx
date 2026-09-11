@@ -23,7 +23,7 @@ export function SiteHeader() {
             <i className="block size-2 rounded-[2px] bg-sun" />
             <i className="block size-2 rounded-[2px] bg-brand" />
           </span>
-          <span className="font-display text-lg font-bold tracking-tight">Klockownia</span>
+          <span className="font-display text-lg font-bold tracking-tight">Klockogram</span>
         </Link>
 
         <form

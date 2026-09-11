@@ -40,7 +40,7 @@ const shippingOptions = [
 
 export const Route = createFileRoute("/oferta/$id")({
   validateSearch: z.object({ offer: z.string().uuid().optional() }),
-  head: () => ({ meta: [{ title: "Oferta — Klockownia" }] }),
+  head: () => ({ meta: [{ title: "Oferta — Klockogram" }] }),
   component: OfferPage,
 });
 
@@ -229,7 +229,7 @@ function OfferPage() {
                     setCheckoutError(null);
                     if (!liveListing) {
                       setCheckoutError(
-                        "Płatność jest dostępna dla ofert opublikowanych w Klockowni. Wybierz ofertę z bieżącej listy.",
+                        "Płatność jest dostępna dla ofert opublikowanych w Klockogramie. Wybierz ofertę z bieżącej listy.",
                       );
                       return;
                     }

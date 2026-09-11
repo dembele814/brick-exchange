@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { setRecoveredPassword } from "@/data/account";
 
 export const Route = createFileRoute("/reset-hasla")({
-  head: () => ({ meta: [{ title: "Ustaw nowe hasło — Klockownia" }] }),
+  head: () => ({ meta: [{ title: "Ustaw nowe hasło — Klockogram" }] }),
   component: ResetPasswordPage,
 });
 
