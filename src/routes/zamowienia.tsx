@@ -9,9 +9,10 @@ import { useAccount } from "@/data/account";
 import {
   cancelOrderBeforeShipment,
   confirmOrderDelivered,
-  createInpostOrderShipment,
+  createFurgonetkaOrderShipment,
   downloadInpostLabel,
   markOrderShipped,
+  quoteFurgonetkaOrderShipment,
   submitReview,
   startOrderConversation,
   updateOrderProblem,
@@ -196,7 +197,8 @@ function OrdersPage() {
                 )}
                 {o.carrierStatus && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Status przewoźnika: <span className="font-medium text-foreground">{o.carrierStatus}</span>
+                    Status przewoźnika:{" "}
+                    <span className="font-medium text-foreground">{o.carrierStatus}</span>
                   </p>
                 )}
                 {o.trackingNumber && (
@@ -228,8 +230,34 @@ function OrdersPage() {
                         onClick={() => {
                           setLabelOrderId(o.id);
                           setFulfillmentError(null);
-                          void createInpostOrderShipment(o.id)
-                            .then(reload)
+                          if (o.shipmentCreated) {
+                            void createFurgonetkaOrderShipment(o.id, 1)
+                              .then(reload)
+                              .catch((cause) =>
+                                setFulfillmentError(
+                                  cause instanceof Error
+                                    ? cause.message
+                                    : "Nie udało się sprawdzić etykiety.",
+                                ),
+                              )
+                              .finally(() => setLabelOrderId(null));
+                            return;
+                          }
+                          void quoteFurgonetkaOrderShipment(o.id)
+                            .then(async (quote) => {
+                              const price = new Intl.NumberFormat("pl-PL", {
+                                style: "currency",
+                                currency: quote.currency,
+                              }).format(quote.priceGrosz / 100);
+                              if (
+                                !window.confirm(
+                                  `Zamówić etykietę InPost przez Furgonetkę za ${price}? Kwota zostanie pobrana z salda Furgonetki.`,
+                                )
+                              )
+                                return;
+                              await createFurgonetkaOrderShipment(o.id, quote.priceGrosz);
+                              reload();
+                            })
                             .catch((cause) =>
                               setFulfillmentError(
                                 cause instanceof Error
@@ -245,7 +273,7 @@ function OrdersPage() {
                           ? "Sprawdzanie…"
                           : o.shipmentCreated
                             ? "Sprawdź gotowość etykiety"
-                            : "Utwórz przesyłkę i etykietę"}
+                            : "Wyceń i zamów etykietę"}
                       </button>
                     ) : (
                       <button

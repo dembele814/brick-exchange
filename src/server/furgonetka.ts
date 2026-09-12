@@ -3,6 +3,7 @@ import {
   createDecipheriv,
   createHmac,
   randomBytes,
+  randomUUID,
   timingSafeEqual,
 } from "node:crypto";
 
@@ -148,4 +149,268 @@ export function decryptFurgonetkaToken(value: string, config = furgonetkaConfig(
 
 export function tokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + Math.max(60, expiresIn - 300) * 1000).toISOString();
+}
+
+type ShippingAccountRow = {
+  access_token_encrypted: string;
+  refresh_token_encrypted: string;
+  access_token_expires_at: string;
+};
+
+type ShippingAccountAdmin = {
+  from(table: string): {
+    select(columns: string): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        eq(
+          column: string,
+          value: string,
+        ): {
+          maybeSingle(): Promise<{ data: ShippingAccountRow | null; error: unknown }>;
+        };
+      };
+    };
+    update(values: Record<string, unknown>): {
+      eq(
+        column: string,
+        value: string,
+      ): {
+        eq(column: string, value: string): Promise<{ error: unknown }>;
+      };
+    };
+  };
+};
+
+export type FurgonetkaAddress = {
+  name: string;
+  company?: string;
+  email?: string;
+  phone: string;
+  street: string;
+  postcode: string;
+  city: string;
+  country_code: "PL";
+  county: string;
+  point?: string;
+};
+
+export type FurgonetkaPackage = {
+  pickup: FurgonetkaAddress;
+  receiver: FurgonetkaAddress;
+  service_id: number;
+  parcels: Array<{
+    height: number;
+    width: number;
+    depth: number;
+    weight: number;
+    quantity: 1;
+    type: "package";
+  }>;
+  additional_services: Record<string, never>;
+  user_reference_number: string;
+  type: "package";
+};
+
+type FurgonetkaService = { id: number; service: string; owner?: string };
+type FurgonetkaPoint = {
+  point_id?: string;
+  code?: string;
+  address?: { street?: string; postcode?: string; city?: string };
+};
+
+export async function furgonetkaAccessToken(
+  admin: ShippingAccountAdmin,
+  userId: string,
+  config = furgonetkaConfig(),
+) {
+  const query = await admin
+    .from("shipping_provider_accounts")
+    .select("access_token_encrypted,refresh_token_encrypted,access_token_expires_at")
+    .eq("user_id", userId)
+    .eq("provider", "furgonetka")
+    .maybeSingle();
+  if (query.error) throw new Error("Nie udało się odczytać połączenia z Furgonetką.");
+  if (!query.data) throw new Error("Najpierw połącz konto Furgonetki w Ustawieniach.");
+
+  if (new Date(query.data.access_token_expires_at).getTime() > Date.now() + 60_000)
+    return decryptFurgonetkaToken(query.data.access_token_encrypted, config);
+
+  const tokens = await refreshFurgonetkaToken(
+    decryptFurgonetkaToken(query.data.refresh_token_encrypted, config),
+    config,
+  );
+  const update = await admin
+    .from("shipping_provider_accounts")
+    .update({
+      access_token_encrypted: encryptFurgonetkaToken(tokens.accessToken, config),
+      refresh_token_encrypted: encryptFurgonetkaToken(tokens.refreshToken, config),
+      access_token_expires_at: tokenExpiresAt(tokens.expiresIn),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("provider", "furgonetka");
+  if (update.error) throw new Error("Nie udało się zapisać odświeżonego połączenia Furgonetki.");
+  return tokens.accessToken;
+}
+
+async function apiRequest<T>(
+  accessToken: string,
+  path: string,
+  init: RequestInit = {},
+  version = 1,
+) {
+  const response = await fetch(`https://api.furgonetka.pl${path}`, {
+    ...init,
+    signal: AbortSignal.timeout(20_000),
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: `application/vnd.furgonetka.v${version}+json`,
+      "X-Language": "pl_PL",
+      ...(init.body ? { "Content-Type": `application/vnd.furgonetka.v${version}+json` } : {}),
+      ...init.headers,
+    },
+  });
+  if (!response.ok) {
+    const result = (await response.json().catch(() => ({}))) as {
+      message?: string;
+      details?: string;
+      errors?: Array<{ message?: string; details?: string }>;
+    };
+    const first = result.errors?.[0];
+    throw new Error(
+      first?.details ||
+        first?.message ||
+        result.details ||
+        result.message ||
+        "Furgonetka odrzuciła dane przesyłki.",
+    );
+  }
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
+}
+
+export async function getFurgonetkaInpostService(accessToken: string) {
+  const result = await apiRequest<{ services?: FurgonetkaService[] }>(
+    accessToken,
+    "/account/services",
+  );
+  const services = (result.services ?? []).filter((item) => item.service === "inpost");
+  const service = services.find((item) => item.owner === "furgonetka") ?? services[0];
+  if (!service) throw new Error("Na koncie Furgonetki nie ma aktywnej usługi InPost.");
+  return service.id;
+}
+
+export async function getFurgonetkaPoint(accessToken: string, pointId: string) {
+  const result = await apiRequest<{ points?: FurgonetkaPoint[] }>(accessToken, "/points/map", {
+    method: "POST",
+    body: JSON.stringify({
+      location: { search_phrase: pointId },
+      filters: { services: ["inpost"], point_id: pointId, limit: "1" },
+    }),
+  });
+  const point = result.points?.find((item) => item.point_id === pointId || item.code === pointId);
+  if (!point?.address?.street || !point.address.postcode || !point.address.city)
+    throw new Error("Wybrany Paczkomat nie istnieje lub jest chwilowo niedostępny.");
+  return point.address as { street: string; postcode: string; city: string };
+}
+
+export function furgonetkaParcel(template: "small" | "medium" | "large") {
+  const dimensions = {
+    small: { height: 8, width: 38, depth: 64, weight: 5 },
+    medium: { height: 19, width: 38, depth: 64, weight: 10 },
+    large: { height: 41, width: 38, depth: 64, weight: 15 },
+  }[template];
+  return { ...dimensions, quantity: 1 as const, type: "package" as const };
+}
+
+export async function validateFurgonetkaPackage(
+  accessToken: string,
+  packageData: FurgonetkaPackage,
+) {
+  await apiRequest<void>(
+    accessToken,
+    "/packages/validate",
+    { method: "POST", body: JSON.stringify(packageData) },
+    2,
+  );
+}
+
+export async function quoteFurgonetkaPackage(accessToken: string, packageData: FurgonetkaPackage) {
+  const result = await apiRequest<{
+    services_prices?: Array<{
+      service_id?: number;
+      available?: boolean;
+      errors?: Array<{ message?: string }>;
+      pricing?: { price_gross?: number | string; currency?: string };
+    }>;
+  }>(
+    accessToken,
+    "/packages/calculate-price",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        package: packageData,
+        services: { service_id: [packageData.service_id] },
+      }),
+    },
+    2,
+  );
+  const quote = result.services_prices?.find((item) => item.service_id === packageData.service_id);
+  if (!quote?.available) throw new Error(quote?.errors?.[0]?.message || "Brak wyceny InPost.");
+  const gross = Number(quote.pricing?.price_gross);
+  if (!Number.isFinite(gross) || gross <= 0) throw new Error("Furgonetka nie zwróciła ceny.");
+  return {
+    priceGrosz: Math.round(gross * 100),
+    currency: quote.pricing?.currency || "PLN",
+  };
+}
+
+export async function createFurgonetkaPackage(accessToken: string, packageData: FurgonetkaPackage) {
+  const created = await apiRequest<{ package_id?: string | number }>(
+    accessToken,
+    "/packages",
+    { method: "POST", body: JSON.stringify(packageData) },
+    2,
+  );
+  if (created.package_id === undefined) throw new Error("Nie udało się zapisać przesyłki.");
+  return String(created.package_id);
+}
+
+export async function orderFurgonetkaPackage(accessToken: string, packageId: string) {
+  const commandId = randomUUID();
+  await apiRequest<{ uuid?: string }>(accessToken, `/order-commands/${commandId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      packages: [{ id: packageId }],
+      label: { file_format: "pdf", page_format: "a6" },
+    }),
+  });
+  return commandId;
+}
+
+export async function getFurgonetkaPackage(accessToken: string, packageId: string) {
+  return apiRequest<{
+    state?: string;
+    status?: string;
+    tracking_number?: string;
+    trackingNumber?: string;
+  }>(accessToken, `/packages/${encodeURIComponent(packageId)}`, {}, 2);
+}
+
+export async function getFurgonetkaLabel(accessToken: string, packageId: string) {
+  const response = await fetch(
+    `https://api.furgonetka.pl/packages/${encodeURIComponent(packageId)}/label`,
+    {
+      signal: AbortSignal.timeout(20_000),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/pdf",
+        "X-Language": "pl_PL",
+      },
+    },
+  );
+  if (!response.ok) throw new Error("Etykieta nie jest jeszcze gotowa.");
+  return response;
 }

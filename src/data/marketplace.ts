@@ -650,22 +650,47 @@ export async function markOrderShipped(orderId: string, trackingNumber: string) 
   if (!response.ok) throw new Error(result.error ?? "Nie udało się zapisać nadania.");
 }
 
-export async function createInpostOrderShipment(orderId: string) {
+export async function quoteFurgonetkaOrderShipment(orderId: string) {
   const client = requireSupabase();
   const response = await authenticatedRequest(client, "/api/orders", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId, action: "create_inpost_shipment" }),
+    body: JSON.stringify({ orderId, action: "quote_furgonetka_shipment" }),
+  });
+  const result = (await response.json()) as {
+    error?: string;
+    priceGrosz?: number;
+    currency?: string;
+  };
+  if (!response.ok || !result.priceGrosz)
+    throw new Error(result.error ?? "Nie udało się wycenić przesyłki InPost.");
+  return { priceGrosz: result.priceGrosz, currency: result.currency ?? "PLN" };
+}
+
+export async function createFurgonetkaOrderShipment(orderId: string, confirmedPriceGrosz: number) {
+  const client = requireSupabase();
+  const response = await authenticatedRequest(client, "/api/orders", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      orderId,
+      action: "create_furgonetka_shipment",
+      confirmedPriceGrosz,
+    }),
   });
   const result = (await response.json()) as { error?: string };
-  if (!response.ok) throw new Error(result.error ?? "Nie udało się utworzyć etykiety InPost.");
+  if (!response.ok) throw new Error(result.error ?? "Nie udało się zamówić etykiety InPost.");
 }
 
 export async function downloadInpostLabel(orderId: string) {
   const client = requireSupabase();
-  const response = await authenticatedRequest(client, `/api/orders?label=${encodeURIComponent(orderId)}`, {
-    method: "GET",
-  });
+  const response = await authenticatedRequest(
+    client,
+    `/api/orders?label=${encodeURIComponent(orderId)}`,
+    {
+      method: "GET",
+    },
+  );
   if (!response.ok) {
     const result = (await response.json()) as { error?: string };
     throw new Error(result.error ?? "Nie udało się pobrać etykiety InPost.");

@@ -4,13 +4,21 @@ import { z } from "zod";
 import { connectAccountIdFor, createDeliveredTransfer } from "@/server/connect";
 import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
-import {
-  createInpostShipment,
-  getInpostLabel,
-  getInpostShipment,
-  inpostConfig,
-} from "@/server/inpost";
+import { getInpostLabel, inpostConfig } from "@/server/inpost";
 import { enforceRateLimit, RateLimitExceededError } from "@/server/rate-limit";
+import {
+  createFurgonetkaPackage,
+  furgonetkaAccessToken,
+  furgonetkaParcel,
+  getFurgonetkaInpostService,
+  getFurgonetkaLabel,
+  getFurgonetkaPackage,
+  getFurgonetkaPoint,
+  orderFurgonetkaPackage,
+  quoteFurgonetkaPackage,
+  validateFurgonetkaPackage,
+  type FurgonetkaPackage,
+} from "@/server/furgonetka";
 
 const fulfillmentInput = z.object({
   orderId: z.string().uuid(),
@@ -41,7 +49,12 @@ const conversationInput = z.object({
 });
 const createShipmentInput = z.object({
   orderId: z.string().uuid(),
-  action: z.literal("create_inpost_shipment"),
+  action: z.literal("create_furgonetka_shipment"),
+  confirmedPriceGrosz: z.number().int().positive(),
+});
+const quoteShipmentInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("quote_furgonetka_shipment"),
 });
 const orderActionInput = z.discriminatedUnion("action", [
   fulfillmentInput,
@@ -50,8 +63,78 @@ const orderActionInput = z.discriminatedUnion("action", [
   problemInput,
   resolveProblemInput,
   conversationInput,
+  quoteShipmentInput,
   createShipmentInput,
 ]);
+
+function furgonetkaTracking(shipment: { tracking_number?: string; trackingNumber?: string }) {
+  return shipment.tracking_number || shipment.trackingNumber || null;
+}
+
+async function furgonetkaPackageForOrder(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  user: { id: string; email?: string },
+  order: {
+    id: string;
+    locker_id: string;
+    receiver_email: string;
+    receiver_phone: string;
+    receiver_first_name: string;
+    receiver_last_name: string;
+    parcel_template: "small" | "medium" | "large";
+  },
+) {
+  const accessToken = await furgonetkaAccessToken(admin, user.id);
+  const [{ data: profile, error: profileError }, serviceId, point] = await Promise.all([
+    admin
+      .from("private_profiles")
+      .select("full_name,phone,shipping_street,shipping_postcode,shipping_city")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    getFurgonetkaInpostService(accessToken),
+    getFurgonetkaPoint(accessToken, order.locker_id),
+  ]);
+  if (profileError) throw new Error("Nie udało się odczytać adresu nadania.");
+  if (
+    !profile?.full_name ||
+    !profile.phone ||
+    !profile.shipping_street ||
+    !profile.shipping_postcode ||
+    !profile.shipping_city ||
+    !user.email
+  )
+    throw new Error("Uzupełnij imię, telefon i adres nadania w Ustawieniach.");
+
+  const packageData: FurgonetkaPackage = {
+    pickup: {
+      name: profile.full_name,
+      email: user.email,
+      phone: profile.phone,
+      street: profile.shipping_street,
+      postcode: profile.shipping_postcode,
+      city: profile.shipping_city,
+      country_code: "PL",
+      county: "",
+    },
+    receiver: {
+      name: `${order.receiver_first_name} ${order.receiver_last_name}`.trim(),
+      email: order.receiver_email,
+      phone: order.receiver_phone,
+      street: point.street,
+      postcode: point.postcode,
+      city: point.city,
+      country_code: "PL",
+      county: "",
+      point: order.locker_id,
+    },
+    service_id: serviceId,
+    parcels: [furgonetkaParcel(order.parcel_template)],
+    additional_services: {},
+    user_reference_number: order.id,
+    type: "package",
+  };
+  return { accessToken, packageData };
+}
 
 async function authenticatedUser(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -107,7 +190,9 @@ export const Route = createFileRoute("/api/orders")({
           }
           const { data: order, error: labelOrderError } = await admin
             .from("orders")
-            .select("id,seller_id,shipping_carrier,carrier_shipment_id,shipping_livemode")
+            .select(
+              "id,seller_id,shipping_carrier,shipping_provider,carrier_shipment_id,shipping_livemode",
+            )
             .eq("id", labelOrderId)
             .maybeSingle();
           if (labelOrderError || !order)
@@ -120,6 +205,18 @@ export const Route = createFileRoute("/api/orders")({
           if (order.shipping_carrier !== "inpost" || !order.carrier_shipment_id)
             return Response.json({ error: "Etykieta nie jest jeszcze gotowa." }, { status: 409 });
           try {
+            if (order.shipping_provider === "furgonetka") {
+              const accessToken = await furgonetkaAccessToken(admin, user.id);
+              const label = await getFurgonetkaLabel(accessToken, order.carrier_shipment_id);
+              return new Response(label.body, {
+                status: 200,
+                headers: {
+                  "Content-Type": "application/pdf",
+                  "Content-Disposition": `attachment; filename="etykieta-${order.id}.pdf"`,
+                  "Cache-Control": "private, no-store",
+                },
+              });
+            }
             const config = inpostConfig();
             if (config.liveMode !== order.shipping_livemode)
               return Response.json(
@@ -145,7 +242,7 @@ export const Route = createFileRoute("/api/orders")({
         const { data, error } = await getSupabaseAdmin()
           .from("orders")
           .select(
-            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,locker_id,tracking_number,carrier_shipment_id,carrier_status,shipping_label_ready_at,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
+            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,shipping_provider,shipping_price_grosz,locker_id,tracking_number,carrier_shipment_id,carrier_status,shipping_label_ready_at,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
           )
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .order("created_at", { ascending: false });
@@ -188,13 +285,16 @@ export const Route = createFileRoute("/api/orders")({
         const { data: order, error: orderError } = await admin
           .from("orders")
           .select(
-            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id,stripe_livemode,shipping_carrier,locker_id,receiver_email,receiver_phone,receiver_first_name,receiver_last_name,parcel_template,carrier_shipment_id,shipping_creation_started_at,shipping_livemode",
+            "id,listing_id,seller_id,buyer_id,amount_grosz,status,payment_status,stripe_payment_intent_id,stripe_livemode,shipping_carrier,shipping_provider,shipping_price_grosz,locker_id,receiver_email,receiver_phone,receiver_first_name,receiver_last_name,parcel_template,carrier_order_command_id,carrier_shipment_id,shipping_creation_started_at,shipping_livemode",
           )
           .eq("id", action.orderId)
           .maybeSingle();
         if (orderError || !order)
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
-        if (action.action === "create_inpost_shipment") {
+        if (
+          action.action === "quote_furgonetka_shipment" ||
+          action.action === "create_furgonetka_shipment"
+        ) {
           if (order.seller_id !== user.id)
             return Response.json(
               { error: "Tylko sprzedawca może utworzyć przesyłkę." },
@@ -211,22 +311,34 @@ export const Route = createFileRoute("/api/orders")({
               { status: 409 },
             );
           if (order.carrier_shipment_id) {
+            if (action.action === "quote_furgonetka_shipment")
+              return Response.json(
+                { error: "Przesyłka dla tego zamówienia została już utworzona." },
+                { status: 409 },
+              );
             try {
-              const config = inpostConfig();
-              if (config.liveMode !== order.shipping_livemode)
+              if (order.shipping_provider !== "furgonetka")
                 return Response.json(
-                  { error: "Tryb wysyłki nie zgadza się z przesyłką." },
+                  { error: "Ta przesyłka została utworzona przez innego operatora." },
                   { status: 409 },
                 );
-              const shipment = await getInpostShipment(order.carrier_shipment_id, config);
-              const trackingNumber =
-                typeof shipment.tracking_number === "string" ? shipment.tracking_number : null;
+              if (!order.carrier_order_command_id)
+                return Response.json(
+                  {
+                    error:
+                      "Furgonetka zapisała szkic, ale zakup etykiety nie został potwierdzony. Żadna kolejna opłata nie zostanie naliczona automatycznie.",
+                  },
+                  { status: 409 },
+                );
+              const accessToken = await furgonetkaAccessToken(admin, user.id);
+              const shipment = await getFurgonetkaPackage(accessToken, order.carrier_shipment_id);
+              const trackingNumber = furgonetkaTracking(shipment);
               const now = new Date().toISOString();
               await admin
                 .from("orders")
                 .update({
                   tracking_number: trackingNumber,
-                  carrier_status: typeof shipment.status === "string" ? shipment.status : "created",
+                  carrier_status: shipment.state || shipment.status || "ordered",
                   carrier_status_updated_at: now,
                   shipping_label_ready_at: trackingNumber ? now : null,
                 })
@@ -234,11 +346,39 @@ export const Route = createFileRoute("/api/orders")({
               return Response.json({ ok: true, labelReady: Boolean(trackingNumber) });
             } catch {
               return Response.json(
-                { error: "InPost jeszcze przygotowuje przesyłkę." },
+                { error: "Furgonetka jeszcze przygotowuje etykietę. Spróbuj za chwilę." },
                 { status: 503 },
               );
             }
           }
+
+          let prepared: Awaited<ReturnType<typeof furgonetkaPackageForOrder>>;
+          let quote: Awaited<ReturnType<typeof quoteFurgonetkaPackage>>;
+          try {
+            prepared = await furgonetkaPackageForOrder(admin, user, order);
+            await validateFurgonetkaPackage(prepared.accessToken, prepared.packageData);
+            quote = await quoteFurgonetkaPackage(prepared.accessToken, prepared.packageData);
+          } catch (cause) {
+            const message =
+              cause instanceof Error ? cause.message : "Nie udało się wycenić przesyłki.";
+            return Response.json({ error: message }, { status: 503 });
+          }
+          if (action.action === "quote_furgonetka_shipment")
+            return Response.json({
+              priceGrosz: quote.priceGrosz,
+              currency: quote.currency,
+            });
+          if (action.confirmedPriceGrosz !== quote.priceGrosz)
+            return Response.json(
+              {
+                error: "Cena przesyłki zmieniła się. Potwierdź nową kwotę.",
+                code: "shipping_price_changed",
+                priceGrosz: quote.priceGrosz,
+                currency: quote.currency,
+              },
+              { status: 409 },
+            );
+
           const staleBefore = new Date(Date.now() - 2 * 60_000).toISOString();
           const { data: claimed, error: claimError } = await admin
             .from("orders")
@@ -256,43 +396,49 @@ export const Route = createFileRoute("/api/orders")({
               { status: 409 },
             );
           try {
-            const config = inpostConfig();
-            const shipment = await createInpostShipment(
-              {
-                receiver: {
-                  email: order.receiver_email,
-                  phone: order.receiver_phone,
-                  firstName: order.receiver_first_name,
-                  lastName: order.receiver_last_name,
-                },
-                parcelLockerId: order.locker_id,
-                parcelTemplate: order.parcel_template,
-                reference: order.id,
-              },
-              config,
+            const packageId = await createFurgonetkaPackage(
+              prepared.accessToken,
+              prepared.packageData,
             );
             const now = new Date().toISOString();
-            const { error: saveError } = await admin
+            const { error: draftSaveError } = await admin
               .from("orders")
               .update({
-                carrier_shipment_id: shipment.id,
-                tracking_number: shipment.trackingNumber,
-                carrier_status: shipment.status,
+                shipping_provider: "furgonetka",
+                shipping_price_grosz: quote.priceGrosz,
+                carrier_shipment_id: packageId,
+                tracking_number: null,
+                carrier_status: "waiting",
                 carrier_status_updated_at: now,
-                shipping_label_ready_at: shipment.trackingNumber ? now : null,
-                shipping_livemode: config.liveMode,
+                shipping_label_ready_at: null,
+                shipping_livemode: true,
                 shipping_creation_started_at: null,
               })
               .eq("id", order.id)
               .is("carrier_shipment_id", null);
-            if (saveError) throw saveError;
+            if (draftSaveError) throw draftSaveError;
+            const commandId = await orderFurgonetkaPackage(prepared.accessToken, packageId);
+            const { error: orderSaveError } = await admin
+              .from("orders")
+              .update({
+                carrier_order_command_id: commandId,
+                carrier_status: "ordered",
+                carrier_status_updated_at: new Date().toISOString(),
+              })
+              .eq("id", order.id)
+              .eq("carrier_shipment_id", packageId);
+            if (orderSaveError) throw orderSaveError;
             await admin.from("order_events").insert({
               order_id: order.id,
               actor_id: user.id,
               event_type: "shipping_label_created",
-              payload: { provider: "inpost", tracking_number: shipment.trackingNumber },
+              payload: {
+                provider: "furgonetka",
+                carrier: "inpost",
+                price_grosz: quote.priceGrosz,
+              },
             });
-            return Response.json({ ok: true, labelReady: Boolean(shipment.trackingNumber) });
+            return Response.json({ ok: true, labelReady: false });
           } catch (cause) {
             await admin
               .from("orders")

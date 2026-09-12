@@ -7,6 +7,7 @@ import {
   encryptFurgonetkaToken,
   furgonetkaAuthorizationUrl,
   furgonetkaConfig,
+  furgonetkaParcel,
   readOAuthState,
 } from "../src/server/furgonetka.ts";
 import { enforceRateLimit, RateLimitExceededError } from "../src/server/rate-limit.ts";
@@ -34,6 +35,19 @@ test("InPost live mode requires an explicit opt-in and separate credentials", ()
   };
   assert.throws(() => inpostConfig(live), /disabled/);
   assert.equal(inpostConfig({ ...live, INPOST_LIVE_ENABLED: "true" }).liveMode, true);
+});
+
+test("Furgonetka InPost parcel templates stay within locker dimensions", () => {
+  assert.deepEqual(furgonetkaParcel("small"), {
+    height: 8,
+    width: 38,
+    depth: 64,
+    weight: 5,
+    quantity: 1,
+    type: "package",
+  });
+  assert.equal(furgonetkaParcel("medium").height, 19);
+  assert.equal(furgonetkaParcel("large").height, 41);
 });
 
 test("InPost HMAC verification accepts the official raw-body test vector and rejects changes", () => {
