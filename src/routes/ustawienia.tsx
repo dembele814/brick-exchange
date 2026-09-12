@@ -100,6 +100,7 @@ function SettingsPage() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [shippingConnected, setShippingConnected] = useState<boolean | null>(null);
   const [shippingConnecting, setShippingConnecting] = useState(false);
+  const [shippingAuthUrl, setShippingAuthUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -132,6 +133,29 @@ function SettingsPage() {
   const set = <K extends keyof typeof profile>(key: K, value: (typeof profile)[K]) => {
     updateProfile({ [key]: value } as never);
     setSaved(false);
+  };
+
+  const prepareFurgonetkaConnection = async (openImmediately: boolean) => {
+    if (!supabase) return;
+    setShippingConnecting(true);
+    setSaveError(null);
+    try {
+      const response = await authenticatedRequest(supabase, "/api/furgonetka/connect", {
+        method: "POST",
+      });
+      const result = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !result.url)
+        throw new Error(result.error ?? "Nie udało się rozpocząć połączenia.");
+      if (openImmediately) {
+        window.location.assign(result.url);
+        return;
+      }
+      setShippingAuthUrl(result.url);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Nie udało się połączyć Furgonetki.");
+    } finally {
+      if (!openImmediately) setShippingConnecting(false);
+    }
   };
 
   if (!loggedIn)
@@ -435,24 +459,7 @@ function SettingsPage() {
             <button
               type="button"
               disabled={shippingConnecting || shippingConnected === null}
-              onClick={() => {
-                if (!supabase) return;
-                setShippingConnecting(true);
-                setSaveError(null);
-                void authenticatedRequest(supabase, "/api/furgonetka/connect", { method: "POST" })
-                  .then(async (response) => {
-                    const result = (await response.json()) as { url?: string; error?: string };
-                    if (!response.ok || !result.url)
-                      throw new Error(result.error ?? "Nie udało się rozpocząć połączenia.");
-                    window.location.assign(result.url);
-                  })
-                  .catch((error) => {
-                    setShippingConnecting(false);
-                    setSaveError(
-                      error instanceof Error ? error.message : "Nie udało się połączyć Furgonetki.",
-                    );
-                  });
-              }}
+              onClick={() => void prepareFurgonetkaConnection(true)}
               className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60"
             >
               {shippingConnecting
@@ -474,7 +481,42 @@ function SettingsPage() {
                   ? "Konto połączone"
                   : "Konto niepołączone"}
             </span>
+            {!shippingConnected && (
+              <button
+                type="button"
+                disabled={shippingConnecting || shippingConnected === null}
+                onClick={() => void prepareFurgonetkaConnection(false)}
+                className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+              >
+                Pokaż link do Edge
+              </button>
+            )}
           </div>
+          {shippingAuthUrl && !shippingConnected && (
+            <div className="rounded-xl border border-border bg-secondary/40 p-3">
+              <p className="text-sm font-medium">Otwórz ten link w Edge w ciągu 10 minut:</p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  aria-label="Link autoryzacji Furgonetki"
+                  readOnly
+                  value={shippingAuthUrl}
+                  className={`${inputClass} min-w-0`}
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(shippingAuthUrl).then(() => {
+                      setAccountNotice("Link do Furgonetki został skopiowany.");
+                    });
+                  }}
+                  className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground"
+                >
+                  Kopiuj
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="card-surface mt-6 p-5">
