@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { z } from "zod";
+import { emailConfig } from "@/server/email";
+import { inpostConfig } from "@/server/inpost";
 import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 import { reconcileStripeMoney } from "@/server/reconciliation";
@@ -50,15 +52,36 @@ export const Route = createFileRoute("/api/admin")({
         for (const event of events.data ?? [])
           if (!latest.has(event.order_id)) latest.set(event.order_id, event);
         let stripeMode: "test" | "live" | "unconfigured" = "unconfigured";
+        let emailMode: "test" | "live" | "unconfigured" = "unconfigured";
+        let shippingMode: "stage" | "live" | "unconfigured" = "unconfigured";
+        let appOrigin: string | null = null;
         try {
           stripeMode = paymentConfig().liveMode ? "live" : "test";
         } catch {
           // The panel remains useful for moderation when payments are disabled.
         }
+        try {
+          emailMode = emailConfig().mode;
+        } catch {
+          // A missing email integration must be visible without breaking moderation.
+        }
+        try {
+          shippingMode = inpostConfig().mode;
+        } catch {
+          // A missing shipping integration must be visible without breaking moderation.
+        }
+        try {
+          appOrigin = new URL(process.env["APP_URL"] ?? "").origin;
+        } catch {
+          // Invalid or missing APP_URL is reported as unconfigured below.
+        }
         return Response.json({
           problems: [...latest.values()].filter((event) => event.event_type === "problem_reported"),
           reports: reports.data ?? [],
           stripeMode,
+          emailMode,
+          shippingMode,
+          appOrigin,
         });
       },
       PATCH: async ({ request }) => {

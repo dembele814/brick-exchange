@@ -25,7 +25,17 @@ type AdminData = {
   problems: AdminProblem[];
   reports: AdminReport[];
   stripeMode: "test" | "live" | "unconfigured";
+  emailMode: "test" | "live" | "unconfigured";
+  shippingMode: "stage" | "live" | "unconfigured";
+  appOrigin: string | null;
 };
+
+const modeLabel = {
+  live: "Produkcyjne",
+  test: "Testowe",
+  stage: "Testowe",
+  unconfigured: "Brak konfiguracji",
+} as const;
 
 function AdminPage() {
   const [data, setData] = useState<AdminData | null>(null);
@@ -96,78 +106,120 @@ function AdminPage() {
         )}
         {!data && !error && <p className="mt-6 text-sm">Wczytujemy panel…</p>}
         {data && (
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <section>
-              <h2 className="text-lg font-bold">
-                Problemy z zamówieniami ({data.problems.length})
-              </h2>
-              <ul className="mt-3 space-y-3">
-                {data.problems.map((problem) => (
-                  <li key={problem.id} className="card-surface p-4 text-sm">
-                    <p className="font-semibold">Zamówienie {problem.order_id.slice(0, 8)}</p>
-                    <p className="mt-1 text-muted-foreground">
-                      {problem.payload?.details ?? "Brak opisu"}
+          <>
+            <section className="mt-6 card-surface p-5">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-bold">Gotowość produkcyjna</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Najważniejsze usługi potrzebne do uruchomienia sprzedaży.
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground">Bez ujawniania kluczy i haseł</span>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["Płatności Stripe", modeLabel[data.stripeMode], data.stripeMode === "live"],
+                  ["E-maile", modeLabel[data.emailMode], data.emailMode === "live"],
+                  ["Przesyłki InPost", modeLabel[data.shippingMode], data.shippingMode === "live"],
+                  [
+                    "Adres aplikacji",
+                    data.appOrigin ?? "Brak konfiguracji",
+                    Boolean(data.appOrigin?.startsWith("https://")),
+                  ],
+                ].map(([name, value, ready]) => (
+                  <div
+                    key={String(name)}
+                    className="rounded-xl border border-border bg-background p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {name}
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        disabled={Boolean(working)}
-                        onClick={() =>
-                          void action({ action: "close_problem", orderId: problem.order_id })
-                        }
-                        className="rounded-full border border-border px-3 py-2 text-xs font-semibold"
-                      >
-                        Zamknij zgłoszenie
-                      </button>
-                      <button
-                        disabled={Boolean(working)}
-                        onClick={() =>
-                          window.confirm(
-                            data.stripeMode === "live"
-                              ? "To jest prawdziwa płatność. Cofnąć transfer i zwrócić kupującemu pełną kwotę?"
-                              : "Cofnąć transfer i zwrócić pełną płatność testową?",
-                          ) && void action({ action: "refund_order", orderId: problem.order_id })
-                        }
-                        className="rounded-full bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground"
-                      >
-                        {data.stripeMode === "live" ? "Pełny zwrot" : "Pełny zwrot testowy"}
-                      </button>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className={`h-2.5 w-2.5 shrink-0 rounded-full ${ready ? "bg-emerald-500" : "bg-amber-500"}`}
+                      />
+                      <p className="break-all text-sm font-semibold">{value}</p>
                     </div>
-                  </li>
+                  </div>
                 ))}
-                {!data.problems.length && (
-                  <li className="text-sm text-muted-foreground">Brak otwartych problemów.</li>
-                )}
-              </ul>
+              </div>
             </section>
-            <section>
-              <h2 className="text-lg font-bold">Zgłoszone oferty ({data.reports.length})</h2>
-              <ul className="mt-3 space-y-3">
-                {data.reports.map((report) => {
-                  const listing = Array.isArray(report.listings)
-                    ? report.listings[0]
-                    : report.listings;
-                  return (
-                    <li key={report.id} className="card-surface p-4 text-sm">
-                      <p className="font-semibold">{listing?.title ?? "Usunięta oferta"}</p>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <section>
+                <h2 className="text-lg font-bold">
+                  Problemy z zamówieniami ({data.problems.length})
+                </h2>
+                <ul className="mt-3 space-y-3">
+                  {data.problems.map((problem) => (
+                    <li key={problem.id} className="card-surface p-4 text-sm">
+                      <p className="font-semibold">Zamówienie {problem.order_id.slice(0, 8)}</p>
                       <p className="mt-1 text-muted-foreground">
-                        {report.reason}: {report.details || "brak szczegółów"}
+                        {problem.payload?.details ?? "Brak opisu"}
                       </p>
-                      <button
-                        disabled={Boolean(working) || listing?.status === "hidden"}
-                        onClick={() => void action({ action: "hide_listing", reportId: report.id })}
-                        className="mt-3 rounded-full border border-border px-3 py-2 text-xs font-semibold disabled:opacity-50"
-                      >
-                        {listing?.status === "hidden" ? "Oferta ukryta" : "Ukryj ofertę"}
-                      </button>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          disabled={Boolean(working)}
+                          onClick={() =>
+                            void action({ action: "close_problem", orderId: problem.order_id })
+                          }
+                          className="rounded-full border border-border px-3 py-2 text-xs font-semibold"
+                        >
+                          Zamknij zgłoszenie
+                        </button>
+                        <button
+                          disabled={Boolean(working)}
+                          onClick={() =>
+                            window.confirm(
+                              data.stripeMode === "live"
+                                ? "To jest prawdziwa płatność. Cofnąć transfer i zwrócić kupującemu pełną kwotę?"
+                                : "Cofnąć transfer i zwrócić pełną płatność testową?",
+                            ) && void action({ action: "refund_order", orderId: problem.order_id })
+                          }
+                          className="rounded-full bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground"
+                        >
+                          {data.stripeMode === "live" ? "Pełny zwrot" : "Pełny zwrot testowy"}
+                        </button>
+                      </div>
                     </li>
-                  );
-                })}
-                {!data.reports.length && (
-                  <li className="text-sm text-muted-foreground">Brak zgłoszonych ofert.</li>
-                )}
-              </ul>
-            </section>
-          </div>
+                  ))}
+                  {!data.problems.length && (
+                    <li className="text-sm text-muted-foreground">Brak otwartych problemów.</li>
+                  )}
+                </ul>
+              </section>
+              <section>
+                <h2 className="text-lg font-bold">Zgłoszone oferty ({data.reports.length})</h2>
+                <ul className="mt-3 space-y-3">
+                  {data.reports.map((report) => {
+                    const listing = Array.isArray(report.listings)
+                      ? report.listings[0]
+                      : report.listings;
+                    return (
+                      <li key={report.id} className="card-surface p-4 text-sm">
+                        <p className="font-semibold">{listing?.title ?? "Usunięta oferta"}</p>
+                        <p className="mt-1 text-muted-foreground">
+                          {report.reason}: {report.details || "brak szczegółów"}
+                        </p>
+                        <button
+                          disabled={Boolean(working) || listing?.status === "hidden"}
+                          onClick={() =>
+                            void action({ action: "hide_listing", reportId: report.id })
+                          }
+                          className="mt-3 rounded-full border border-border px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                        >
+                          {listing?.status === "hidden" ? "Oferta ukryta" : "Ukryj ofertę"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {!data.reports.length && (
+                    <li className="text-sm text-muted-foreground">Brak zgłoszonych ofert.</li>
+                  )}
+                </ul>
+              </section>
+            </div>
+          </>
         )}
       </main>
       <SiteFooter />
