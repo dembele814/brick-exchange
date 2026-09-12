@@ -13,6 +13,7 @@ import {
   useAccount,
 } from "@/data/account";
 import { supabase } from "@/lib/supabase";
+import { authenticatedRequest } from "@/lib/authenticated-request";
 
 export const Route = createFileRoute("/ustawienia")({
   head: () => ({
@@ -97,9 +98,15 @@ function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [shippingConnected, setShippingConnected] = useState<boolean | null>(null);
+  const [shippingConnecting, setShippingConnecting] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
+    const shippingResult = new URLSearchParams(window.location.search).get("shipping");
+    if (shippingResult === "connected") setAccountNotice("Konto Furgonetki zostało połączone.");
+    if (shippingResult === "error")
+      setSaveError("Nie udało się połączyć Furgonetki. Spróbuj ponownie.");
     if (
       window.location.hash.includes("type=recovery") ||
       new URLSearchParams(window.location.search).get("type") === "recovery"
@@ -110,6 +117,17 @@ function SettingsPage() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!loggedIn || !supabase) return;
+    void authenticatedRequest(supabase, "/api/furgonetka/status", { method: "GET" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error();
+        const result = (await response.json()) as { connected?: boolean };
+        setShippingConnected(Boolean(result.connected));
+      })
+      .catch(() => setShippingConnected(false));
+  }, [loggedIn]);
 
   const set = <K extends keyof typeof profile>(key: K, value: (typeof profile)[K]) => {
     updateProfile({ [key]: value } as never);
@@ -373,6 +391,89 @@ function SettingsPage() {
             >
               Połącz konto Google
             </button>
+          </div>
+        </section>
+
+        <section className="card-surface mt-6 space-y-4 p-5">
+          <div>
+            <h2 className="text-lg font-semibold">Wysyłka przez Furgonetkę</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Połącz prywatne konto, aby tworzyć etykiety InPost i śledzić paczki z poziomu
+              Klockogramu.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Ulica i numer nadawcy">
+              <input
+                className={inputClass}
+                maxLength={120}
+                value={profile.shippingStreet}
+                onChange={(e) => set("shippingStreet", e.target.value)}
+                placeholder="np. Sybiraków 20/19"
+              />
+            </Field>
+            <Field label="Kod pocztowy">
+              <input
+                className={inputClass}
+                maxLength={10}
+                value={profile.shippingPostcode}
+                onChange={(e) => set("shippingPostcode", e.target.value)}
+                placeholder="15-204"
+              />
+            </Field>
+            <Field label="Miasto nadawcy">
+              <input
+                className={inputClass}
+                maxLength={80}
+                value={profile.shippingCity}
+                onChange={(e) => set("shippingCity", e.target.value)}
+                placeholder="Białystok"
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={shippingConnecting || shippingConnected === null}
+              onClick={() => {
+                if (!supabase) return;
+                setShippingConnecting(true);
+                setSaveError(null);
+                void authenticatedRequest(supabase, "/api/furgonetka/connect", { method: "POST" })
+                  .then(async (response) => {
+                    const result = (await response.json()) as { url?: string; error?: string };
+                    if (!response.ok || !result.url)
+                      throw new Error(result.error ?? "Nie udało się rozpocząć połączenia.");
+                    window.location.assign(result.url);
+                  })
+                  .catch((error) => {
+                    setShippingConnecting(false);
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się połączyć Furgonetki.",
+                    );
+                  });
+              }}
+              className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60"
+            >
+              {shippingConnecting
+                ? "Łączenie…"
+                : shippingConnected
+                  ? "Połącz konto ponownie"
+                  : "Połącz konto Furgonetki"}
+            </button>
+            <span
+              className={
+                shippingConnected
+                  ? "text-sm font-medium text-mint"
+                  : "text-sm text-muted-foreground"
+              }
+            >
+              {shippingConnected === null
+                ? "Sprawdzanie…"
+                : shippingConnected
+                  ? "Konto połączone"
+                  : "Konto niepołączone"}
+            </span>
           </div>
         </section>
 

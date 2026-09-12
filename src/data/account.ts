@@ -52,6 +52,9 @@ export type Profile = {
   birthDate: string;
   email: string;
   phone: string;
+  shippingStreet: string;
+  shippingPostcode: string;
+  shippingCity: string;
   vacationMode: boolean;
   googleLinked: boolean;
   facebookLinked: boolean;
@@ -90,6 +93,9 @@ let state: State = {
     birthDate: "1994-06-12",
     email: "maks@example.com",
     phone: "+48 600 100 200",
+    shippingStreet: "",
+    shippingPostcode: "",
+    shippingCity: "",
     vacationMode: false,
     googleLinked: true,
     facebookLinked: false,
@@ -265,6 +271,9 @@ export async function saveProfile() {
     phone: profile.phone || null,
     birth_date: profile.birthDate || null,
     gender: profile.gender,
+    shipping_street: profile.shippingStreet || null,
+    shipping_postcode: profile.shippingPostcode || null,
+    shipping_city: profile.shippingCity || null,
     updated_at: new Date().toISOString(),
   });
   if (privateError) throw privateError;
@@ -466,7 +475,9 @@ async function syncSession(session: Session, revision: number) {
           .maybeSingle(),
         supabase
           .from("private_profiles")
-          .select("full_name,phone,birth_date,gender")
+          .select(
+            "full_name,phone,birth_date,gender,shipping_street,shipping_postcode,shipping_city",
+          )
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase.from("reviews").select("rating").eq("seller_id", user.id),
@@ -499,6 +510,9 @@ async function syncSession(session: Session, revision: number) {
         : state.profile.joined,
       realName: privateProfile?.full_name ?? state.profile.realName,
       phone: privateProfile?.phone ?? state.profile.phone,
+      shippingStreet: privateProfile?.shipping_street ?? "",
+      shippingPostcode: privateProfile?.shipping_postcode ?? "",
+      shippingCity: privateProfile?.shipping_city ?? "",
       birthDate: privateProfile?.birth_date ?? state.profile.birthDate,
       gender:
         privateProfile?.gender === "Kobieta" ||

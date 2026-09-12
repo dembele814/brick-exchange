@@ -33,6 +33,9 @@ import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
 import { Route as ApiCronEmailsRouteImport } from './routes/api/cron/emails'
 import { Route as ApiCronReconcileRouteImport } from './routes/api/cron/reconcile'
+import { Route as ApiFurgonetkaCallbackRouteImport } from './routes/api/furgonetka/callback'
+import { Route as ApiFurgonetkaConnectRouteImport } from './routes/api/furgonetka/connect'
+import { Route as ApiFurgonetkaStatusRouteImport } from './routes/api/furgonetka/status'
 import { Route as ApiWebhooksInpostRouteImport } from './routes/api/webhooks/inpost'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 
@@ -156,6 +159,21 @@ const ApiCronReconcileRoute = ApiCronReconcileRouteImport.update({
   path: '/api/cron/reconcile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFurgonetkaCallbackRoute = ApiFurgonetkaCallbackRouteImport.update({
+  id: '/api/furgonetka/callback',
+  path: '/api/furgonetka/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFurgonetkaConnectRoute = ApiFurgonetkaConnectRouteImport.update({
+  id: '/api/furgonetka/connect',
+  path: '/api/furgonetka/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFurgonetkaStatusRoute = ApiFurgonetkaStatusRouteImport.update({
+  id: '/api/furgonetka/status',
+  path: '/api/furgonetka/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksInpostRoute = ApiWebhooksInpostRouteImport.update({
   id: '/api/webhooks/inpost',
   path: '/api/webhooks/inpost',
@@ -192,6 +210,9 @@ export interface FileRoutesByFullPath {
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
+  '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
+  '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
+  '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -220,6 +241,9 @@ export interface FileRoutesByTo {
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
+  '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
+  '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
+  '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -249,6 +273,9 @@ export interface FileRoutesById {
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
+  '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
+  '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
+  '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -279,6 +306,9 @@ export interface FileRouteTypes {
     | '/uzytkownik/$name'
     | '/api/cron/emails'
     | '/api/cron/reconcile'
+    | '/api/furgonetka/callback'
+    | '/api/furgonetka/connect'
+    | '/api/furgonetka/status'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
@@ -307,6 +337,9 @@ export interface FileRouteTypes {
     | '/uzytkownik/$name'
     | '/api/cron/emails'
     | '/api/cron/reconcile'
+    | '/api/furgonetka/callback'
+    | '/api/furgonetka/connect'
+    | '/api/furgonetka/status'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   id:
@@ -335,6 +368,9 @@ export interface FileRouteTypes {
     | '/uzytkownik/$name'
     | '/api/cron/emails'
     | '/api/cron/reconcile'
+    | '/api/furgonetka/callback'
+    | '/api/furgonetka/connect'
+    | '/api/furgonetka/status'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
@@ -364,6 +400,9 @@ export interface RootRouteChildren {
   UzytkownikNameRoute: typeof UzytkownikNameRoute
   ApiCronEmailsRoute: typeof ApiCronEmailsRoute
   ApiCronReconcileRoute: typeof ApiCronReconcileRoute
+  ApiFurgonetkaCallbackRoute: typeof ApiFurgonetkaCallbackRoute
+  ApiFurgonetkaConnectRoute: typeof ApiFurgonetkaConnectRoute
+  ApiFurgonetkaStatusRoute: typeof ApiFurgonetkaStatusRoute
   ApiWebhooksInpostRoute: typeof ApiWebhooksInpostRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
@@ -538,6 +577,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/furgonetka/callback': {
+      id: '/api/furgonetka/callback'
+      path: '/api/furgonetka/callback'
+      fullPath: '/api/furgonetka/callback'
+      preLoaderRoute: typeof ApiFurgonetkaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/furgonetka/connect': {
+      id: '/api/furgonetka/connect'
+      path: '/api/furgonetka/connect'
+      fullPath: '/api/furgonetka/connect'
+      preLoaderRoute: typeof ApiFurgonetkaConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/furgonetka/status': {
+      id: '/api/furgonetka/status'
+      path: '/api/furgonetka/status'
+      fullPath: '/api/furgonetka/status'
+      preLoaderRoute: typeof ApiFurgonetkaStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/inpost': {
       id: '/api/webhooks/inpost'
       path: '/api/webhooks/inpost'
@@ -580,6 +640,9 @@ const rootRouteChildren: RootRouteChildren = {
   UzytkownikNameRoute: UzytkownikNameRoute,
   ApiCronEmailsRoute: ApiCronEmailsRoute,
   ApiCronReconcileRoute: ApiCronReconcileRoute,
+  ApiFurgonetkaCallbackRoute: ApiFurgonetkaCallbackRoute,
+  ApiFurgonetkaConnectRoute: ApiFurgonetkaConnectRoute,
+  ApiFurgonetkaStatusRoute: ApiFurgonetkaStatusRoute,
   ApiWebhooksInpostRoute: ApiWebhooksInpostRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }

@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { inpostConfig, verifyInpostWebhook } from "../src/server/inpost.ts";
+import {
+  createOAuthState,
+  decryptFurgonetkaToken,
+  encryptFurgonetkaToken,
+  furgonetkaAuthorizationUrl,
+  furgonetkaConfig,
+  readOAuthState,
+} from "../src/server/furgonetka.ts";
 import { enforceRateLimit, RateLimitExceededError } from "../src/server/rate-limit.ts";
 import {
   reconciliationAuthorized,
@@ -34,6 +42,27 @@ test("InPost HMAC verification accepts the official raw-body test vector and rej
   const signature = "8XJ/C5JpWFxeZQYFroMBS/JfoHWcVuIxDKtBv0QNP7Q=";
   assert.equal(verifyInpostWebhook(body, signature, null, "fdXbfU27DBNG6LuoHu@ThKl3"), true);
   assert.equal(verifyInpostWebhook(`${body} `, signature, null, "fdXbfU27DBNG6LuoHu@ThKl3"), false);
+});
+
+test("Furgonetka OAuth state is signed and its tokens are encrypted", () => {
+  const config = furgonetkaConfig({
+    FURGONETKA_CLIENT_ID: "client-id",
+    FURGONETKA_CLIENT_SECRET: "client-secret",
+    FURGONETKA_REDIRECT_URI: "https://shop.example.com/api/furgonetka/callback",
+    FURGONETKA_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
+  });
+  const state = createOAuthState("user-123", config);
+  assert.equal(readOAuthState(state, config), "user-123");
+  assert.throws(() => readOAuthState(`${state}x`, config), /Nieprawidłowy/);
+
+  const encrypted = encryptFurgonetkaToken("access-token", config);
+  assert.equal(encrypted.includes("access-token"), false);
+  assert.equal(decryptFurgonetkaToken(encrypted, config), "access-token");
+
+  const authorize = new URL(furgonetkaAuthorizationUrl("user-123", config));
+  assert.equal(authorize.origin, "https://api.furgonetka.pl");
+  assert.equal(authorize.searchParams.get("redirect_uri"), config.redirectUri);
+  assert.equal(authorize.searchParams.get("response_type"), "code");
 });
 
 test("server rate limiting hashes identities and rejects exhausted limits", async () => {
