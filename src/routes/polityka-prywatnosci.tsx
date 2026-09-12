@@ -40,7 +40,7 @@ function PrivacyPolicy() {
             obsługa transakcji;
           </li>
           <li>
-            płatności i wypłaty: identyfikatory Stripe, kwoty, prowizje, zwroty i konto Connect —
+            płatności i wypłaty: identyfikatory Stripe, kwoty, opłaty, zwroty i konto Connect —
             wykonanie umowy i obowiązki prawne; nie zapisujemy pełnego numeru karty;
           </li>
           <li>
@@ -85,8 +85,8 @@ function PrivacyPolicy() {
           <li>dane konta — przez okres posiadania konta;</li>
           <li>oferty i wiadomości — przez korzystanie z usługi, później do 3 lat;</li>
           <li>
-            zamówienia, płatności, prowizje i dane podatkowe — przez okres wymagany prawem,
-            zasadniczo 5 lat od końca właściwego roku rozliczeniowego;
+            zamówienia, płatności, opłaty i dane podatkowe — przez okres wymagany prawem, zasadniczo
+            5 lat od końca właściwego roku rozliczeniowego;
           </li>
           <li>spory i dowody — do przedawnienia roszczeń;</li>
           <li>logi bezpieczeństwa — co do zasady do 12 miesięcy;</li>

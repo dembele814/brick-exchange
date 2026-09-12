@@ -114,6 +114,9 @@ function OfferPage() {
     ["Oryginalne pudełko", listing.box],
   ];
   const checkoutPrice = acceptedOfferPrice ?? listing.price;
+  const checkoutPriceGrosz = Math.round(checkoutPrice * 100);
+  const checkoutTotal =
+    (checkoutPriceGrosz + 100 + Math.round((checkoutPriceGrosz * 5) / 100)) / 100;
 
   const shareOffer = async () => {
     const url = window.location.href;
@@ -407,7 +410,7 @@ function OfferPage() {
                 >
                   {submitting
                     ? "Przekierowujemy do płatności…"
-                    : `Przejdź do płatności testowej · ${checkoutPrice.toFixed(2)} zł`}
+                    : `Przejdź do płatności testowej · ${checkoutTotal.toFixed(2)} zł`}
                 </button>
               </form>
             )}

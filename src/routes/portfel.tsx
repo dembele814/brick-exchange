@@ -112,7 +112,7 @@ function WalletPage() {
           message:
             result.state === "transferred"
               ? `Przekazano testowo ${money.format((result.amount ?? 0) / 100)}`
-              : "Cała kwota pokrywa prowizję",
+              : "Brak kwoty do wypłaty",
         },
       }));
     } catch (cause) {
@@ -155,8 +155,8 @@ function WalletPage() {
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">Twoje transakcje</p>
         <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Zakupy, sprzedaż i wypłaty</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Zakupy i sprzedaże są pokazane obok siebie. Prowizja Klockogramu wynosi 1 zł + 5% ceny
-          oferty. Wypłata dla sprzedającego jest dostępna po potwierdzeniu odbioru.
+          Zakupy i sprzedaże są pokazane obok siebie. Sprzedający otrzymuje pełną cenę oferty.
+          Wypłata jest dostępna po potwierdzeniu odbioru.
         </p>
 
         <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

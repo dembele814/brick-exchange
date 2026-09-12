@@ -59,6 +59,7 @@ export type CheckoutOrder = {
 
 export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.SessionCreateParams {
   const platformFeeGrosz = connectFeeGrosz(order.amount_grosz);
+  const buyerTotalGrosz = order.amount_grosz + platformFeeGrosz;
   const transferGroup = `order_${order.id}`;
   return {
     mode: "payment",
@@ -68,18 +69,26 @@ export function sessionParameters(order: CheckoutOrder): Stripe.Checkout.Session
         price_data: {
           currency: "pln",
           product_data: { name: order.checkout_title },
-          unit_amount: order.amount_grosz,
+          unit_amount: buyerTotalGrosz,
         },
         quantity: 1,
       },
     ],
     client_reference_id: order.buyer_id,
-    metadata: { order_id: order.id, integration: "klockownia_checkout_v1" },
+    metadata: {
+      order_id: order.id,
+      integration: "klockownia_checkout_v1",
+      fee_payer: "buyer",
+      platform_fee_grosz: String(platformFeeGrosz),
+      seller_amount_grosz: String(order.amount_grosz),
+    },
     payment_intent_data: {
       transfer_group: transferGroup,
       metadata: {
         order_id: order.id,
         platform_fee_grosz: String(platformFeeGrosz),
+        fee_payer: "buyer",
+        seller_amount_grosz: String(order.amount_grosz),
         transfer_group: transferGroup,
         accepted_offer_id: order.accepted_offer_id ?? "",
       },
@@ -149,12 +158,26 @@ export function checkoutEvent(event: Stripe.Event, expectedLiveMode = false) {
     session.currency !== "pln"
   )
     throw new Error("Unexpected Checkout amount or currency");
+  let orderAmount = session.amount_total;
+  if (session.metadata?.["fee_payer"] === "buyer") {
+    const fee = Number(session.metadata["platform_fee_grosz"]);
+    const sellerAmount = Number(session.metadata["seller_amount_grosz"]);
+    if (
+      !Number.isSafeInteger(fee) ||
+      !Number.isSafeInteger(sellerAmount) ||
+      sellerAmount <= 0 ||
+      fee !== connectFeeGrosz(sellerAmount) ||
+      session.amount_total !== sellerAmount + fee
+    )
+      throw new Error("Unexpected buyer fee snapshot");
+    orderAmount = sellerAmount;
+  }
   return {
     p_event_id: event.id,
     p_event_type: event.type,
     p_order_id: orderId,
     p_session_id: session.id,
-    p_amount: session.amount_total,
+    p_amount: orderAmount,
     p_currency: session.currency,
     p_buyer_id: session.client_reference_id,
     p_integration: session.metadata?.["integration"] ?? null,

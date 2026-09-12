@@ -43,11 +43,11 @@ const env = {
   STRIPE_PAYMENTS_ENABLED: "true",
 };
 
-test("Connect fee is 1 PLN plus 5 percent and never exceeds the sale", () => {
-  assert.equal(connectFeeGrosz(100), 100);
+test("Buyer fee is 1 PLN plus 5 percent and seller receives the listed price", () => {
+  assert.equal(connectFeeGrosz(100), 105);
   assert.equal(connectFeeGrosz(1_000), 150);
   assert.equal(connectFeeGrosz(12_345), 717);
-  assert.equal(sellerProceedsGrosz(12_345), 11_628);
+  assert.equal(sellerProceedsGrosz(12_345), 12_345);
   assert.throws(() => connectFeeGrosz(0));
 });
 
@@ -90,7 +90,12 @@ test("delivered transfer is idempotent and returns the Stripe transfer identifie
         status: "succeeded",
         latest_charge: "ch_transfer",
         transfer_group: `order_${listing}`,
-        metadata: { order_id: listing, platform_fee_grosz: "600" },
+        metadata: {
+          order_id: listing,
+          platform_fee_grosz: "600",
+          fee_payer: "buyer",
+          seller_amount_grosz: "10000",
+        },
       }),
     },
     transfers: {
@@ -114,7 +119,7 @@ test("delivered transfer is idempotent and returns the Stripe transfer identifie
     false,
   );
   assert.equal(result.transferId, "tr_transfer");
-  assert.equal(calls[0].params.amount, 9_400);
+  assert.equal(calls[0].params.amount, 10_000);
   assert.equal(calls[0].options.idempotencyKey, `klockownia-transfer:${listing}:v1`);
 });
 
@@ -443,11 +448,31 @@ test("reservation is exclusive and immutable across buyer retries", async () => 
   await assert.rejects(reserve(buyer, { ...input.receiver, phone: "987654321" }));
   assert.equal(await count("orders"), 1);
   const params = sessionParameters(order);
-  assert.equal(params.line_items[0].price_data.unit_amount, 12345);
+  assert.equal(params.line_items[0].price_data.unit_amount, 13062);
   assert.equal(params.line_items[0].price_data.product_data.name, "LEGO test set");
   assert.equal(params.automatic_payment_methods, undefined);
   assert.equal(params.payment_intent_data.transfer_group, `order_${order.id}`);
   assert.equal(params.payment_intent_data.metadata.platform_fee_grosz, "717");
+  assert.equal(params.payment_intent_data.metadata.fee_payer, "buyer");
+  assert.equal(params.payment_intent_data.metadata.seller_amount_grosz, "12345");
+});
+
+test("buyer-funded checkout event validates the total but settles the listed price", async () => {
+  const order = await reserve();
+  const fee = connectFeeGrosz(order.amount_grosz);
+  const payload = checkoutEvent(
+    event(order, {
+      amount_total: order.amount_grosz + fee,
+      metadata: {
+        order_id: order.id,
+        integration: "klockownia_checkout_v1",
+        fee_payer: "buyer",
+        platform_fee_grosz: String(fee),
+        seller_amount_grosz: String(order.amount_grosz),
+      },
+    }),
+  );
+  assert.equal(payload.p_amount, order.amount_grosz);
 });
 
 test("a test reservation cannot be reused or fulfilled in live mode", async () => {

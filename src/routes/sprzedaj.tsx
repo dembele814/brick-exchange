@@ -18,7 +18,7 @@ export const Route = createFileRoute("/sprzedaj")({
       { property: "og:title", content: "Dodaj ofertę LEGO — Klockogram" },
       {
         property: "og:description",
-        content: "Darmowe wystawienie oferty, prowizja tylko po sprzedaży.",
+        content: "Darmowe wystawienie oferty na Klockogramie.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -503,22 +503,11 @@ function SellPage() {
                 className={field}
               />
             </label>
-            <div className="card-surface space-y-2 p-4 text-sm">
-              <div className="flex justify-between">
-                <span>Prowizja Klockogramu</span>
-                <span>{Math.min(priceNum, 1 + Math.round(priceNum * 5) / 100).toFixed(2)} zł</span>
-              </div>
+            <div className="card-surface p-4 text-sm">
               <div className="flex justify-between font-semibold">
                 <span>Otrzymasz po odbiorze</span>
-                <span>
-                  {Math.max(
-                    0,
-                    priceNum - Math.min(priceNum, 1 + Math.round(priceNum * 5) / 100),
-                  ).toFixed(2)}{" "}
-                  zł
-                </span>
+                <span>{priceNum.toFixed(2)} zł</span>
               </div>
-              <p className="text-xs text-muted-foreground">Prowizja: 1 zł + 5% ceny.</p>
             </div>
           </section>
 

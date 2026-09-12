@@ -20,14 +20,12 @@ export function connectAccountIdFor(
 export function connectFeeGrosz(amountGrosz: number) {
   if (!Number.isSafeInteger(amountGrosz) || amountGrosz <= 0)
     throw new Error("Invalid order amount");
-  return Math.min(
-    amountGrosz,
-    CONNECT_FEE_FIXED_GROSZ + Math.round((amountGrosz * CONNECT_FEE_PERCENT) / 100),
-  );
+  return CONNECT_FEE_FIXED_GROSZ + Math.round((amountGrosz * CONNECT_FEE_PERCENT) / 100);
 }
 
 export function sellerProceedsGrosz(amountGrosz: number) {
-  return amountGrosz - connectFeeGrosz(amountGrosz);
+  connectFeeGrosz(amountGrosz);
+  return amountGrosz;
 }
 
 export function connectAccountCreateParams(
@@ -116,9 +114,18 @@ export async function createDeliveredTransfer(
 
   const fallbackFee = connectFeeGrosz(order.amount_grosz);
   const storedFee = Number(paymentIntent.metadata["platform_fee_grosz"] ?? fallbackFee);
-  if (!Number.isSafeInteger(storedFee) || storedFee < 0 || storedFee > order.amount_grosz)
-    throw new Error("Invalid fee snapshot");
-  const amount = order.amount_grosz - storedFee;
+  const buyerFundedFee = paymentIntent.metadata["fee_payer"] === "buyer";
+  if (!Number.isSafeInteger(storedFee) || storedFee < 0) throw new Error("Invalid fee snapshot");
+  if (buyerFundedFee) {
+    if (
+      storedFee !== fallbackFee ||
+      Number(paymentIntent.metadata["seller_amount_grosz"]) !== order.amount_grosz
+    )
+      throw new Error("Invalid buyer fee snapshot");
+  } else if (storedFee > order.amount_grosz) {
+    throw new Error("Invalid legacy fee snapshot");
+  }
+  const amount = buyerFundedFee ? order.amount_grosz : order.amount_grosz - storedFee;
   if (amount <= 0) return { state: "no_transfer" as const, amount: 0, fee: storedFee };
 
   const transfer = await stripe.transfers.create(

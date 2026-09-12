@@ -19,8 +19,9 @@ function Terms() {
       <section>
         <h2>1. Operator i usługa</h2>
         <p>
-          Operatorem Klockogramu jest Anna Wójcik, prowadząca działalność nierejestrowaną pod adresem
-          ul. Sybiraków 20/19, 15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />.
+          Operatorem Klockogramu jest Anna Wójcik, prowadząca działalność nierejestrowaną pod
+          adresem ul. Sybiraków 20/19, 15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />
+          .
         </p>
         <p>
           Klockogram udostępnia serwis do publikowania ofert LEGO, rozmów, płatności i obsługi
@@ -52,15 +53,15 @@ function Terms() {
         </p>
       </section>
       <section>
-        <h2>4. Płatność i prowizja</h2>
+        <h2>4. Płatność i opłata Klockogramu</h2>
         <ul>
           <li>ceny są podawane w złotych, a płatności i zwroty obsługuje Stripe;</li>
-          <li>kupujący widzi cenę i dostawę przed zatwierdzeniem zakupu;</li>
+          <li>kupujący widzi łączną kwotę do zapłaty przed zatwierdzeniem zakupu;</li>
           <li>
-            prowizja operatora obciążająca sprzedającego wynosi 1 zł plus 5% ceny przedmiotu i jest
-            zaokrąglana do pełnych groszy;
+            do ceny przedmiotu doliczana jest opłata Klockogramu w wysokości 1 zł plus 5% ceny,
+            zaokrąglana do pełnych groszy i pokrywana przez kupującego;
           </li>
-          <li>prowizja nie przekroczy ceny i jest potrącana z kwoty dla sprzedającego.</li>
+          <li>sprzedający otrzymuje pełną cenę, za którą wystawił przedmiot.</li>
         </ul>
       </section>
       <section>
@@ -68,7 +69,7 @@ function Terms() {
         <p>
           Sprzedający prawidłowo pakuje rzecz, wysyła ją bez zbędnej zwłoki i podaje numer
           śledzenia. Kupujący sprawdza przesyłkę i potwierdza prawidłowy odbiór. Wtedy operator
-          zleca na zweryfikowane konto Stripe sprzedającego transfer ceny pomniejszonej o prowizję.
+          zleca na zweryfikowane konto Stripe sprzedającego transfer pełnej ceny przedmiotu.
           Weryfikacja, ograniczenie konta, spór lub kontrola bezpieczeństwa mogą opóźnić wypłatę.
         </p>
       </section>
@@ -132,7 +133,7 @@ function Terms() {
       <section>
         <h2>11. Reklamacje Klockogramu</h2>
         <p>
-          Reklamację działania platformy, prowizji lub wypłaty należy wysłać na <Contact />, podając
+          Reklamację działania platformy, opłaty lub wypłaty należy wysłać na <Contact />, podając
           konto, zamówienie i opis problemu. Operator odpowie w ciągu 14 dni. Roszczenia dotyczące
           przedmiotu kupujący kieruje do sprzedającego.
         </p>
