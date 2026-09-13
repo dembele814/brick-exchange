@@ -185,7 +185,10 @@ export async function searchInpostPoints(input: {
         openingHours: typeof point.opening_hours === "string" ? point.opening_hours : "",
         latitude,
         longitude,
-        distanceMeters: Number.isFinite(Number(point.distance)) ? Number(point.distance) : null,
+        distanceMeters:
+          typeof point.distance === "number" && Number.isFinite(point.distance)
+            ? point.distance
+            : null,
       };
     })
     .filter(

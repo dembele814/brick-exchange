@@ -53,7 +53,7 @@ test("InPost point search corrects BI01H and supports nearest-point coordinates"
           address_details: { city: "Białystok" },
           location_description: "W lokalu, obok apteki",
           opening_hours: "24/7",
-          distance: 125,
+          distance: requested.length === 1 ? null : 125,
         },
       ],
     });
@@ -63,10 +63,12 @@ test("InPost point search corrects BI01H and supports nearest-point coordinates"
     assert.match(requested[0], /query=BIA01H/);
     assert.equal(byCode[0].id, "BIA01H");
     assert.equal(byCode[0].address, "Sybiraków 4, 15-204 Białystok");
+    assert.equal(byCode[0].distanceMeters, null);
 
-    await searchInpostPoints({ latitude: 53.13, longitude: 23.2 });
+    const nearby = await searchInpostPoints({ latitude: 53.13, longitude: 23.2 });
     assert.match(requested[1], /relative_point=53\.13%2C23\.2/);
     assert.match(requested[1], /sort_by=distance_to_relative_point/);
+    assert.equal(nearby[0].distanceMeters, 125);
   } finally {
     globalThis.fetch = originalFetch;
   }
