@@ -220,8 +220,7 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
         <button
           type="button"
           onClick={() => setLocationDialog(true)}
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold hover:bg-secondary disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold hover:bg-secondary"
         >
           <LocateFixed className="size-4" aria-hidden /> Blisko mnie
         </button>
