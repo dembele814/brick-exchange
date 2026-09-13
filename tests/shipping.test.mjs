@@ -65,9 +65,16 @@ test("InPost point search corrects BI01H and supports nearest-point coordinates"
     assert.equal(byCode[0].address, "Sybiraków 4, 15-204 Białystok");
     assert.equal(byCode[0].distanceMeters, null);
 
-    const nearby = await searchInpostPoints({ latitude: 53.13, longitude: 23.2 });
+    const nearby = await searchInpostPoints({
+      latitude: 53.13,
+      longitude: 23.2,
+      radiusMeters: 900_000,
+      limit: 999,
+    });
     assert.match(requested[1], /relative_point=53\.13%2C23\.2/);
     assert.match(requested[1], /sort_by=distance_to_relative_point/);
+    assert.match(requested[1], /max_distance=700000/);
+    assert.match(requested[1], /per_page=100/);
     assert.equal(nearby[0].distanceMeters, 125);
   } finally {
     globalThis.fetch = originalFetch;

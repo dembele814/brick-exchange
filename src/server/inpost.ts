@@ -141,9 +141,15 @@ export async function searchInpostPoints(input: {
   query?: string;
   latitude?: number;
   longitude?: number;
+  radiusMeters?: number;
+  limit?: number;
 }): Promise<InpostPointSearchResult[]> {
   const normalizedQuery = input.query?.trim().slice(0, 80) ?? "";
-  const params = new URLSearchParams({ per_page: "12" });
+  const requestedLimit = input.limit ?? 25;
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(100, Math.max(1, Math.round(requestedLimit)))
+    : 25;
+  const params = new URLSearchParams({ per_page: String(limit) });
   if (normalizedQuery.length >= 2) {
     params.set("query", normalizedQuery.toUpperCase() === "BI01H" ? "BIA01H" : normalizedQuery);
   } else if (input.latitude !== undefined && input.longitude !== undefined) {
@@ -155,7 +161,11 @@ export async function searchInpostPoints(input: {
     )
       throw new Error("Nieprawidłowa lokalizacja.");
     params.set("relative_point", `${input.latitude},${input.longitude}`);
-    params.set("max_distance", "10000");
+    const requestedRadius = input.radiusMeters ?? 10_000;
+    const radius = Number.isFinite(requestedRadius)
+      ? Math.min(700_000, Math.max(1_000, Math.round(requestedRadius)))
+      : 10_000;
+    params.set("max_distance", String(radius));
     params.set("sort_by", "distance_to_relative_point");
   } else return [];
   const response = await fetch(`https://api-shipx-pl.easypack24.net/v1/points?${params}`, {

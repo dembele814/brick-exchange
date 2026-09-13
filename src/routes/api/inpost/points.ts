@@ -20,6 +20,8 @@ export const Route = createFileRoute("/api/inpost/points")({
               ? {
                   latitude: Number(url.searchParams.get("lat")),
                   longitude: Number(url.searchParams.get("lon")),
+                  radiusMeters: Number(url.searchParams.get("radius") ?? 10_000),
+                  limit: Number(url.searchParams.get("limit") ?? 25),
                 }
               : {}),
           });
