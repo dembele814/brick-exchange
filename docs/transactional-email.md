@@ -24,8 +24,9 @@ blokuje rekord, wysyła wiadomość z kluczem idempotencji i ponawia ją najwyż
    ```
 
 6. Wykonuj `POST https://bricklane-market.lovable.app/api/cron/emails` co minutę z
-   nagłówkiem `Authorization: Bearer ...`. Użyj `EMAIL_WORKER_SECRET` albo istniejącego
-   `RECONCILIATION_SECRET`.
+   nagłówkiem `Authorization: Bearer ...`. Wspólny automat płatności i e-maili powinien
+   używać `RECONCILIATION_SECRET`; `EMAIL_WORKER_SECRET` pozostaje zgodnym wstecznie
+   sekretem tylko dla e-maili.
 7. Wykonaj zakup testowy i sprawdź treść wiadomości oraz link.
 8. Po udanym teście ustaw `EMAIL_MODE=live` i `EMAIL_LIVE_ENABLED=true`. Od tej chwili
    wiadomości trafiają na adres e-mail przypisany do konta odbiorcy.

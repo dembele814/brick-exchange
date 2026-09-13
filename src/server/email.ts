@@ -61,7 +61,10 @@ export function emailConfig(env: Record<string, string | undefined> = process.en
 }
 
 export function emailWorkerSecret(env: Record<string, string | undefined> = process.env) {
-  const secret = env["EMAIL_WORKER_SECRET"] || env["RECONCILIATION_SECRET"];
+  // Prefer the shared scheduler credential so one external worker can invoke
+  // both reconciliation and transactional-email jobs. Keep the legacy
+  // email-only credential as a backwards-compatible fallback.
+  const secret = env["RECONCILIATION_SECRET"] || env["EMAIL_WORKER_SECRET"];
   if (!secret || secret.length < 32) throw new Error("EMAIL_WORKER_SECRET is not configured");
   return secret;
 }
