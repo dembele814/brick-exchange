@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { inpostConfig, searchInpostPoints, verifyInpostWebhook } from "../src/server/inpost.ts";
+import {
+  inpostConfig,
+  searchInpostPoints,
+  validateInpostPoint,
+  verifyInpostWebhook,
+} from "../src/server/inpost.ts";
 import {
   createOAuthState,
   decryptFurgonetkaToken,
@@ -76,6 +81,22 @@ test("InPost point search corrects BI01H and supports nearest-point coordinates"
     assert.match(requested[1], /max_distance=700000/);
     assert.match(requested[1], /per_page=100/);
     assert.equal(nearby[0].distanceMeters, 125);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("checkout validates map selections against the public production point directory", async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = "";
+  globalThis.fetch = async (url) => {
+    requestedUrl = String(url);
+    return Response.json({ name: "BIA01H", status: "Operating", type: "parcel_locker" });
+  };
+  try {
+    const point = await validateInpostPoint("bia01h");
+    assert.match(requestedUrl, /^https:\/\/api-shipx-pl\.easypack24\.net\/v1\/points\/BIA01H$/);
+    assert.equal(point.id, "BIA01H");
   } finally {
     globalThis.fetch = originalFetch;
   }

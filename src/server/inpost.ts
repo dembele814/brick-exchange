@@ -100,12 +100,9 @@ async function shipxRequest(config: InpostConfig, path: string, init: RequestIni
 export async function validateInpostPoint(pointId: string, config?: InpostConfig) {
   const normalized = pointId.trim().toUpperCase();
   if (!pointPattern.test(normalized)) throw new Error("Nieprawidłowy kod punktu InPost.");
-  const mode = config?.mode ?? (process.env["INPOST_MODE"] === "live" ? "live" : "stage");
-  const apiUrl =
-    config?.apiUrl ??
-    (mode === "live"
-      ? "https://api-shipx-pl.easypack24.net/v1"
-      : "https://sandbox-api-shipx-pl.easypack24.net/v1");
+  // Checkout selection uses the public production directory. The ShipX sandbox
+  // does not contain every real Paczkomat displayed on the customer map.
+  const apiUrl = config?.apiUrl ?? "https://api-shipx-pl.easypack24.net/v1";
   const response = config
     ? await shipxRequest(config, `/points/${encodeURIComponent(normalized)}`)
     : await fetch(`${apiUrl}/points/${encodeURIComponent(normalized)}`, {

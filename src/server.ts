@@ -9,7 +9,7 @@ type ServerEntry = {
 
 const SECURITY_HEADERS = {
   "cross-origin-opener-policy": "same-origin-allow-popups",
-  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+  "permissions-policy": "camera=(), microphone=(), geolocation=(self)",
   "referrer-policy": "strict-origin-when-cross-origin",
   "strict-transport-security": "max-age=31536000",
   "x-content-type-options": "nosniff",

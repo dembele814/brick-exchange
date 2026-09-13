@@ -127,15 +127,23 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
         const active = point.id === selected?.id;
         const icon = leaflet.divIcon({
           className: "",
-          html: `<span aria-hidden="true" style="display:block;width:${active ? 30 : 24}px;height:${active ? 30 : 24}px;border-radius:999px;background:${active ? "#dc2626" : "#111827"};border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35)"></span>`,
-          iconSize: [active ? 30 : 24, active ? 30 : 24],
-          iconAnchor: [active ? 15 : 12, active ? 15 : 12],
+          html: `<span aria-hidden="true" style="display:block;width:${active ? 34 : 28}px;height:${active ? 34 : 28}px;border-radius:999px;background:${active ? "#dc2626" : "#111827"};border:4px solid white;box-shadow:0 2px 10px rgba(0,0,0,.45)"></span>`,
+          iconSize: [active ? 34 : 28, active ? 34 : 28],
+          iconAnchor: [active ? 17 : 14, active ? 17 : 14],
         });
         const tooltip = document.createElement("span");
         tooltip.textContent = `${point.id} · ${point.address}`;
         leaflet
-          .marker([point.latitude, point.longitude], { icon, title: point.id })
-          .on("click", () => onSelectRef.current(point))
+          .marker([point.latitude, point.longitude], {
+            icon,
+            title: `Wybierz ${point.id}: ${point.address}`,
+            keyboard: true,
+            bubblingMouseEvents: false,
+          })
+          .on("click", () => {
+            onSelectRef.current(point);
+            mapRef.current?.panTo([point.latitude, point.longitude]);
+          })
           .bindTooltip(tooltip, { direction: "top" })
           .addTo(markersRef.current);
       }
@@ -192,6 +200,12 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
 
   return (
     <div className="space-y-3">
+      <div className="rounded-xl border border-brand/25 bg-brand/5 px-4 py-3">
+        <p className="text-sm font-bold">Kliknij wybrany Paczkomat bezpośrednio na mapie</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Wyszukiwanie miasta jest opcjonalne — nie musisz nic wpisywać.
+        </p>
+      </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-3 size-4 text-muted-foreground" />
