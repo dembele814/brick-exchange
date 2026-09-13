@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
 import { useAccount } from "@/data/account";
+import { usePublicStatus } from "@/data/public-status";
 import {
   cancelOrderBeforeShipment,
   confirmOrderDelivered,
@@ -56,6 +57,8 @@ const carrierTrackingPages = {
 function OrdersPage() {
   const { loggedIn } = useAccount();
   const { items: orders, loading, error, reload } = useOrders();
+  const { data: publicStatus } = usePublicStatus();
+  const livePayments = publicStatus?.stripeMode === "live";
   const { order: focusedOrderId, payment } = Route.useSearch();
   const {
     items: events,
@@ -474,7 +477,9 @@ function OrdersPage() {
                     onClick={() => {
                       if (
                         !window.confirm(
-                          "Anulować zamówienie i zwrócić całą płatność testową? Oferta ponownie trafi do sprzedaży.",
+                          livePayments
+                            ? "Anulować zamówienie i zwrócić kupującemu całą płatność? Oferta ponownie trafi do sprzedaży."
+                            : "Anulować zamówienie i zwrócić całą płatność testową? Oferta ponownie trafi do sprzedaży.",
                         )
                       )
                         return;
@@ -497,7 +502,9 @@ function OrdersPage() {
                       ? "Zwracanie płatności…"
                       : o.status === "Zwrot w toku"
                         ? "Sprawdź zwrot ponownie"
-                        : "Anuluj i zwróć płatność testową"}
+                        : livePayments
+                          ? "Anuluj i zwróć płatność"
+                          : "Anuluj i zwróć płatność testową"}
                   </button>
                 )}
                 {tab === "bought" &&

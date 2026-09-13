@@ -8,6 +8,7 @@ import { useAccount } from "@/data/account";
 import { useOrders } from "@/data/marketplace";
 import { authenticatedRequest } from "@/lib/authenticated-request";
 import { requireSupabase } from "@/lib/supabase";
+import { usePublicStatus } from "@/data/public-status";
 
 export const Route = createFileRoute("/portfel")({
   head: () => ({
@@ -35,6 +36,8 @@ const activeStatuses = new Set(["Opłacone", "Wysłane", "Dostarczone"]);
 function WalletPage() {
   const { loggedIn } = useAccount();
   const { items: orders, loading, error } = useOrders();
+  const { data: publicStatus } = usePublicStatus();
+  const livePayments = publicStatus?.stripeMode === "live";
   const [connectStatus, setConnectStatus] = useState<
     "loading" | "missing" | "pending" | "active" | "restricted" | "error"
   >("loading");
@@ -63,14 +66,14 @@ function WalletPage() {
                 orderId,
                 {
                   state: "done" as const,
-                  message: `Przekazano testowo ${money.format(transfer.amount / 100)}`,
+                  message: `${livePayments ? "Przekazano" : "Przekazano testowo"} ${money.format(transfer.amount / 100)}`,
                 },
               ]),
             ),
           );
       })
       .catch(() => setConnectStatus("error"));
-  }, [loggedIn]);
+  }, [livePayments, loggedIn]);
 
   const startConnect = async () => {
     setConnecting(true);
@@ -111,7 +114,7 @@ function WalletPage() {
           state: "done",
           message:
             result.state === "transferred"
-              ? `Przekazano testowo ${money.format((result.amount ?? 0) / 100)}`
+              ? `${livePayments ? "Przekazano" : "Przekazano testowo"} ${money.format((result.amount ?? 0) / 100)}`
               : "Brak kwoty do wypłaty",
         },
       }));
@@ -196,13 +199,21 @@ function WalletPage() {
             <div>
               <h2 className="text-lg font-semibold">
                 {connectStatus === "active"
-                  ? "Konto testowe Stripe jest gotowe"
-                  : "Skonfiguruj testowe konto wypłat"}
+                  ? livePayments
+                    ? "Konto Stripe jest gotowe do wypłat"
+                    : "Konto testowe Stripe jest gotowe"
+                  : livePayments
+                    ? "Skonfiguruj konto wypłat Stripe"
+                    : "Skonfiguruj testowe konto wypłat"}
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                 {connectStatus === "active"
-                  ? "Stripe potwierdził możliwość otrzymywania transferów w sandboxie. Prawdziwe pieniądze pozostają wyłączone."
-                  : "Stripe Connect przeprowadzi testową weryfikację sprzedawcy. W sandboxie używaj wyłącznie danych testowych."}
+                  ? livePayments
+                    ? "Stripe potwierdził możliwość otrzymywania wypłat za sprzedane przedmioty."
+                    : "Stripe potwierdził możliwość otrzymywania transferów w sandboxie. Prawdziwe pieniądze pozostają wyłączone."
+                  : livePayments
+                    ? "Stripe Connect przeprowadzi weryfikację sprzedawcy potrzebną do prawdziwych wypłat."
+                    : "Stripe Connect przeprowadzi testową weryfikację sprzedawcy. W sandboxie używaj wyłącznie danych testowych."}
               </p>
               {connectStatus !== "active" && connectStatus !== "loading" && !onboardingUrl && (
                 <button
@@ -214,8 +225,12 @@ function WalletPage() {
                   {connecting
                     ? "Otwieramy Stripe…"
                     : connectStatus === "missing"
-                      ? "Rozpocznij testową weryfikację"
-                      : "Dokończ testową weryfikację"}
+                      ? livePayments
+                        ? "Rozpocznij weryfikację wypłat"
+                        : "Rozpocznij testową weryfikację"
+                      : livePayments
+                        ? "Dokończ weryfikację wypłat"
+                        : "Dokończ testową weryfikację"}
                 </button>
               )}
               {onboardingUrl && (
@@ -331,7 +346,9 @@ function WalletPage() {
                               ? "Przekazujemy…"
                               : payouts[order.id]?.state === "done"
                                 ? payouts[order.id]?.message
-                                : "Wykonaj transfer testowy"}
+                                : livePayments
+                                  ? "Wypłać środki"
+                                  : "Wykonaj transfer testowy"}
                           </button>
                         )}
                         {payouts[order.id]?.state === "error" && (

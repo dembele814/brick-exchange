@@ -11,6 +11,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ListingCard } from "@/components/listing-card";
 import { InpostMapPicker, type LockerPoint } from "@/components/inpost-map-picker";
 import { getListing, listings } from "@/data/listings";
+import { usePublicStatus } from "@/data/public-status";
 import {
   ArrowLeft,
   Check,
@@ -56,6 +57,8 @@ function OfferPage() {
   const { guard } = useAuthGate();
   const { favorites, profile, userId } = useAccount();
   const acceptedOfferPrice = useAcceptedOfferPrice(offer, id);
+  const { data: publicStatus } = usePublicStatus();
+  const livePayments = publicStatus?.stripeMode === "live";
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const isOwnListing = Boolean(liveListing && userId && listing?.seller.id === userId);
@@ -229,7 +232,12 @@ function OfferPage() {
             <div className="mt-6 flex gap-2">
               <button
                 type="button"
-                disabled={listing.seller.away || isOwnListing}
+                disabled={
+                  listing.seller.away ||
+                  isOwnListing ||
+                  !publicStatus ||
+                  publicStatus.stripeMode === "unconfigured"
+                }
                 onClick={() =>
                   guard(() => {
                     setCheckoutError(null);
@@ -244,7 +252,7 @@ function OfferPage() {
                 }
                 className="flex-1 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isOwnListing ? "To Twoja oferta" : "Kup testowo"}
+                {isOwnListing ? "To Twoja oferta" : "Kup teraz"}
               </button>
               <button
                 type="button"
@@ -296,6 +304,12 @@ function OfferPage() {
             {isOwnListing && (
               <p className="mt-3 rounded-xl border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground">
                 To Twoja oferta. Możesz nią zarządzać w swoim profilu.
+              </p>
+            )}
+
+            {publicStatus?.stripeMode === "unconfigured" && !isOwnListing && (
+              <p className="mt-3 rounded-xl border border-sun/30 bg-sun-soft px-3 py-2 text-sm font-medium text-foreground">
+                Płatności są chwilowo niedostępne. Spróbuj ponownie później.
               </p>
             )}
 
@@ -413,17 +427,19 @@ function OfferPage() {
                     className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
                   />
                 )}{" "}
-                <p className="rounded-xl border border-sun/30 bg-sun-soft px-3 py-2 text-xs font-medium text-foreground">
-                  Płatność testowa: użyj karty 4242 4242 4242 4242, przyszłej daty i dowolnego CVC.
-                  Żadne prawdziwe środki nie zostaną pobrane.
-                </p>
+                {!livePayments && (
+                  <p className="rounded-xl border border-sun/30 bg-sun-soft px-3 py-2 text-xs font-medium text-foreground">
+                    Płatność testowa: użyj karty 4242 4242 4242 4242, przyszłej daty i dowolnego
+                    CVC. Żadne prawdziwe środki nie zostaną pobrane.
+                  </p>
+                )}
                 <button
                   disabled={submitting}
                   className="w-full rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground disabled:opacity-60"
                 >
                   {submitting
                     ? "Przekierowujemy do płatności…"
-                    : `Przejdź do płatności testowej · ${checkoutTotal.toFixed(2)} zł`}
+                    : `${livePayments ? "Przejdź do płatności" : "Przejdź do płatności testowej"} · ${checkoutTotal.toFixed(2)} zł`}
                 </button>
               </form>
             )}
@@ -451,10 +467,13 @@ function OfferPage() {
               </div>
               <div className="rounded-2xl border border-sky/20 bg-sky-soft/70 p-3.5">
                 <ShieldCheck className="size-4 text-sky" aria-hidden />
-                <p className="mt-2 text-sm font-semibold">Płatność testowa Stripe</p>
+                <p className="mt-2 text-sm font-semibold">
+                  {livePayments ? "Bezpieczna płatność Stripe" : "Płatność testowa Stripe"}
+                </p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  To test integracji. Prawdziwe płatności i wypłaty sprzedawców nie są jeszcze
-                  aktywne.
+                  {livePayments
+                    ? "Kwotę zobaczysz przed zatwierdzeniem płatności. Sprzedający otrzyma pełną cenę oferty po potwierdzeniu odbioru."
+                    : "To test integracji. Prawdziwe płatności i wypłaty sprzedawców nie są aktywne."}
                 </p>
               </div>
             </div>
