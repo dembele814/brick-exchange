@@ -34,6 +34,7 @@ import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
 import { Route as ApiCronEmailsRouteImport } from './routes/api/cron/emails'
 import { Route as ApiCronReconcileRouteImport } from './routes/api/cron/reconcile'
+import { Route as ApiCronShippingRouteImport } from './routes/api/cron/shipping'
 import { Route as ApiFurgonetkaCallbackRouteImport } from './routes/api/furgonetka/callback'
 import { Route as ApiFurgonetkaConnectRouteImport } from './routes/api/furgonetka/connect'
 import { Route as ApiFurgonetkaStatusRouteImport } from './routes/api/furgonetka/status'
@@ -166,6 +167,11 @@ const ApiCronReconcileRoute = ApiCronReconcileRouteImport.update({
   path: '/api/cron/reconcile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronShippingRoute = ApiCronShippingRouteImport.update({
+  id: '/api/cron/shipping',
+  path: '/api/cron/shipping',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFurgonetkaCallbackRoute = ApiFurgonetkaCallbackRouteImport.update({
   id: '/api/furgonetka/callback',
   path: '/api/furgonetka/callback',
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
+  '/api/cron/shipping': typeof ApiCronShippingRoute
   '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
   '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
   '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
+  '/api/cron/shipping': typeof ApiCronShippingRoute
   '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
   '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
   '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
@@ -290,6 +298,7 @@ export interface FileRoutesById {
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
   '/api/cron/reconcile': typeof ApiCronReconcileRoute
+  '/api/cron/shipping': typeof ApiCronShippingRoute
   '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
   '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
   '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
@@ -325,6 +334,7 @@ export interface FileRouteTypes {
     | '/uzytkownik/$name'
     | '/api/cron/emails'
     | '/api/cron/reconcile'
+    | '/api/cron/shipping'
     | '/api/furgonetka/callback'
     | '/api/furgonetka/connect'
     | '/api/furgonetka/status'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/uzytkownik/$name'
     | '/api/cron/emails'
     | '/api/cron/reconcile'
+    | '/api/cron/shipping'
     | '/api/furgonetka/callback'
     | '/api/furgonetka/connect'
     | '/api/furgonetka/status'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/uzytkownik/$name'
     | '/api/cron/emails'
     | '/api/cron/reconcile'
+    | '/api/cron/shipping'
     | '/api/furgonetka/callback'
     | '/api/furgonetka/connect'
     | '/api/furgonetka/status'
@@ -425,6 +437,7 @@ export interface RootRouteChildren {
   UzytkownikNameRoute: typeof UzytkownikNameRoute
   ApiCronEmailsRoute: typeof ApiCronEmailsRoute
   ApiCronReconcileRoute: typeof ApiCronReconcileRoute
+  ApiCronShippingRoute: typeof ApiCronShippingRoute
   ApiFurgonetkaCallbackRoute: typeof ApiFurgonetkaCallbackRoute
   ApiFurgonetkaConnectRoute: typeof ApiFurgonetkaConnectRoute
   ApiFurgonetkaStatusRoute: typeof ApiFurgonetkaStatusRoute
@@ -610,6 +623,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/shipping': {
+      id: '/api/cron/shipping'
+      path: '/api/cron/shipping'
+      fullPath: '/api/cron/shipping'
+      preLoaderRoute: typeof ApiCronShippingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/furgonetka/callback': {
       id: '/api/furgonetka/callback'
       path: '/api/furgonetka/callback'
@@ -681,6 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   UzytkownikNameRoute: UzytkownikNameRoute,
   ApiCronEmailsRoute: ApiCronEmailsRoute,
   ApiCronReconcileRoute: ApiCronReconcileRoute,
+  ApiCronShippingRoute: ApiCronShippingRoute,
   ApiFurgonetkaCallbackRoute: ApiFurgonetkaCallbackRoute,
   ApiFurgonetkaConnectRoute: ApiFurgonetkaConnectRoute,
   ApiFurgonetkaStatusRoute: ApiFurgonetkaStatusRoute,

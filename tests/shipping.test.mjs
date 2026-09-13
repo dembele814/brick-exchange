@@ -13,6 +13,7 @@ import {
   furgonetkaAuthorizationUrl,
   furgonetkaConfig,
   furgonetkaParcel,
+  furgonetkaTrackingState,
   readOAuthState,
 } from "../src/server/furgonetka.ts";
 import { enforceRateLimit, RateLimitExceededError } from "../src/server/rate-limit.ts";
@@ -113,6 +114,14 @@ test("Furgonetka InPost parcel templates stay within locker dimensions", () => {
   });
   assert.equal(furgonetkaParcel("medium").height, 19);
   assert.equal(furgonetkaParcel("large").height, 41);
+});
+
+test("Furgonetka tracking states only mark physically handled parcels as shipped", () => {
+  assert.equal(furgonetkaTrackingState("ordered").shipped, false);
+  assert.equal(furgonetkaTrackingState("collected").shipped, true);
+  assert.equal(furgonetkaTrackingState("transit").message, "Przesyłka jest w drodze.");
+  assert.match(furgonetkaTrackingState("delivered").message, /potwierdź odbiór/);
+  assert.equal(furgonetkaTrackingState("waiting").message, null);
 });
 
 test("InPost HMAC verification accepts the official raw-body test vector and rejects changes", () => {

@@ -404,6 +404,39 @@ export async function getFurgonetkaPackage(accessToken: string, packageId: strin
   }>(accessToken, `/packages/${encodeURIComponent(packageId)}`, {}, 2);
 }
 
+const shippedStates = new Set([
+  "collected",
+  "transit",
+  "delivery",
+  "delivered",
+  "delivery-problem",
+  "returned",
+]);
+
+export function furgonetkaTrackingState(state?: string, status?: string) {
+  const normalized = state?.trim().toLowerCase() || status?.trim().toLowerCase() || "ordered";
+  return {
+    state: normalized,
+    shipped: shippedStates.has(normalized),
+    message:
+      normalized === "collected"
+        ? "Przewoźnik odebrał przesyłkę od sprzedającego."
+        : normalized === "transit"
+          ? "Przesyłka jest w drodze."
+          : normalized === "delivery"
+            ? "Przesyłka jest przekazywana do punktu odbioru."
+            : normalized === "delivered"
+              ? "Przewoźnik potwierdził doręczenie przesyłki. Sprawdź paczkę i potwierdź odbiór w Klockogramie."
+              : normalized === "delivery-problem"
+                ? "Przewoźnik zgłosił problem z doręczeniem przesyłki."
+                : normalized === "returned"
+                  ? "Przesyłka jest zwracana do nadawcy."
+                  : normalized === "canceled"
+                    ? "Przesyłka została anulowana u przewoźnika."
+                    : null,
+  };
+}
+
 export async function getFurgonetkaLabel(accessToken: string, packageId: string) {
   const response = await fetch(
     `https://api.furgonetka.pl/packages/${encodeURIComponent(packageId)}/label`,
