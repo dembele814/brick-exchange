@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import Stripe from "stripe";
 import { z } from "zod";
 import { emailConfig } from "@/server/email";
+import { furgonetkaConfig } from "@/server/furgonetka";
 import { inpostConfig } from "@/server/inpost";
 import { paymentConfig, refundPayment } from "@/server/payments";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/api/admin")({
         const user = await adminUser(request);
         if (!user) return Response.json({ error: "Brak dostępu administratora." }, { status: 403 });
         const db = getSupabaseAdmin();
-        const [events, reports] = await Promise.all([
+        const [events, reports, furgonetkaAccounts] = await Promise.all([
           db
             .from("order_events")
             .select(
@@ -45,6 +46,11 @@ export const Route = createFileRoute("/api/admin")({
             )
             .order("created_at", { ascending: false })
             .limit(100),
+          db
+            .from("shipping_provider_accounts")
+            .select("user_id")
+            .eq("provider", "furgonetka")
+            .limit(1),
         ]);
         if (events.error || reports.error)
           return Response.json({ error: "Nie udało się pobrać panelu." }, { status: 500 });
@@ -54,6 +60,7 @@ export const Route = createFileRoute("/api/admin")({
         let stripeMode: "test" | "live" | "unconfigured" = "unconfigured";
         let emailMode: "test" | "live" | "unconfigured" = "unconfigured";
         let shippingMode: "stage" | "live" | "unconfigured" = "unconfigured";
+        let shippingProvider: "furgonetka" | "shipx" | null = null;
         let appOrigin: string | null = null;
         try {
           stripeMode = paymentConfig().liveMode ? "live" : "test";
@@ -66,9 +73,21 @@ export const Route = createFileRoute("/api/admin")({
           // A missing email integration must be visible without breaking moderation.
         }
         try {
-          shippingMode = inpostConfig().mode;
+          furgonetkaConfig();
+          if (!furgonetkaAccounts.error && (furgonetkaAccounts.data?.length ?? 0) > 0) {
+            shippingMode = "live";
+            shippingProvider = "furgonetka";
+          }
         } catch {
-          // A missing shipping integration must be visible without breaking moderation.
+          // Fall back to a direct ShipX configuration below.
+        }
+        if (shippingMode === "unconfigured") {
+          try {
+            shippingMode = inpostConfig().mode;
+            shippingProvider = "shipx";
+          } catch {
+            // A missing shipping integration must be visible without breaking moderation.
+          }
         }
         try {
           appOrigin = new URL(process.env["APP_URL"] ?? "").origin;
@@ -81,6 +100,7 @@ export const Route = createFileRoute("/api/admin")({
           stripeMode,
           emailMode,
           shippingMode,
+          shippingProvider,
           appOrigin,
         });
       },

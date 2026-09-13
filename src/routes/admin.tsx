@@ -27,6 +27,7 @@ type AdminData = {
   stripeMode: "test" | "live" | "unconfigured";
   emailMode: "test" | "live" | "unconfigured";
   shippingMode: "stage" | "live" | "unconfigured";
+  shippingProvider: "furgonetka" | "shipx" | null;
   appOrigin: string | null;
 };
 
@@ -121,7 +122,15 @@ function AdminPage() {
                 {[
                   ["Płatności Stripe", modeLabel[data.stripeMode], data.stripeMode === "live"],
                   ["E-maile", modeLabel[data.emailMode], data.emailMode === "live"],
-                  ["Przesyłki InPost", modeLabel[data.shippingMode], data.shippingMode === "live"],
+                  [
+                    "Przesyłki InPost",
+                    data.shippingProvider === "furgonetka"
+                      ? "Produkcyjne · Furgonetka"
+                      : data.shippingProvider === "shipx"
+                        ? `${modeLabel[data.shippingMode]} · ShipX`
+                        : modeLabel[data.shippingMode],
+                    data.shippingMode === "live",
+                  ],
                   [
                     "Adres aplikacji",
                     data.appOrigin ?? "Brak konfiguracji",
