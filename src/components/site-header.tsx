@@ -5,6 +5,7 @@ import { useUnreadCount } from "@/data/messages";
 import { useNotifications } from "@/data/notifications";
 import { useAuthGate } from "@/hooks/use-auth-gate";
 import { UserMenu } from "@/components/user-menu";
+import { usePublicStatus } from "@/data/public-status";
 
 export function SiteHeader() {
   const unread = useUnreadCount();
@@ -12,6 +13,7 @@ export function SiteHeader() {
   const { loggedIn } = useAuthGate();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const { data: publicStatus } = usePublicStatus();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -88,9 +90,13 @@ export function SiteHeader() {
           </Link>
         </nav>
       </div>
-      <div className="border-t border-sun/30 bg-sun-soft px-4 py-1.5 text-center text-xs font-medium text-foreground">
-        Wersja testowa — płatności Stripe nie pobierają prawdziwych pieniędzy.
-      </div>
+      {publicStatus?.stripeMode !== "live" && publicStatus && (
+        <div className="border-t border-sun/30 bg-sun-soft px-4 py-1.5 text-center text-xs font-medium text-foreground">
+          {publicStatus.stripeMode === "test"
+            ? "Wersja testowa — płatności Stripe nie pobierają prawdziwych pieniędzy."
+            : "Płatności są chwilowo niedostępne."}
+        </div>
+      )}
     </header>
   );
 }

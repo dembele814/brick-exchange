@@ -29,6 +29,7 @@ import { Route as ApiConnectRouteImport } from './routes/api/connect'
 import { Route as ApiOrdersRouteImport } from './routes/api/orders'
 import { Route as ApiReportsRouteImport } from './routes/api/reports'
 import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
+import { Route as ApiStatusRouteImport } from './routes/api/status'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
 import { Route as ApiCronEmailsRouteImport } from './routes/api/cron/emails'
@@ -140,6 +141,11 @@ const ApiReviewsRoute = ApiReviewsRouteImport.update({
   path: '/api/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStatusRoute = ApiStatusRouteImport.update({
+  id: '/api/status',
+  path: '/api/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfertaIdRoute = OfertaIdRouteImport.update({
   id: '/oferta/$id',
   path: '/oferta/$id',
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/api/orders': typeof ApiOrdersRoute
   '/api/reports': typeof ApiReportsRoute
   '/api/reviews': typeof ApiReviewsRoute
+  '/api/status': typeof ApiStatusRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/api/orders': typeof ApiOrdersRoute
   '/api/reports': typeof ApiReportsRoute
   '/api/reviews': typeof ApiReviewsRoute
+  '/api/status': typeof ApiStatusRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/api/orders': typeof ApiOrdersRoute
   '/api/reports': typeof ApiReportsRoute
   '/api/reviews': typeof ApiReviewsRoute
+  '/api/status': typeof ApiStatusRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
   '/api/cron/emails': typeof ApiCronEmailsRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/api/orders'
     | '/api/reports'
     | '/api/reviews'
+    | '/api/status'
     | '/oferta/$id'
     | '/uzytkownik/$name'
     | '/api/cron/emails'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/api/orders'
     | '/api/reports'
     | '/api/reviews'
+    | '/api/status'
     | '/oferta/$id'
     | '/uzytkownik/$name'
     | '/api/cron/emails'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/api/orders'
     | '/api/reports'
     | '/api/reviews'
+    | '/api/status'
     | '/oferta/$id'
     | '/uzytkownik/$name'
     | '/api/cron/emails'
@@ -408,6 +420,7 @@ export interface RootRouteChildren {
   ApiOrdersRoute: typeof ApiOrdersRoute
   ApiReportsRoute: typeof ApiReportsRoute
   ApiReviewsRoute: typeof ApiReviewsRoute
+  ApiStatusRoute: typeof ApiStatusRoute
   OfertaIdRoute: typeof OfertaIdRoute
   UzytkownikNameRoute: typeof UzytkownikNameRoute
   ApiCronEmailsRoute: typeof ApiCronEmailsRoute
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/status': {
+      id: '/api/status'
+      path: '/api/status'
+      fullPath: '/api/status'
+      preLoaderRoute: typeof ApiStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/oferta/$id': {
       id: '/oferta/$id'
       path: '/oferta/$id'
@@ -656,6 +676,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOrdersRoute: ApiOrdersRoute,
   ApiReportsRoute: ApiReportsRoute,
   ApiReviewsRoute: ApiReviewsRoute,
+  ApiStatusRoute: ApiStatusRoute,
   OfertaIdRoute: OfertaIdRoute,
   UzytkownikNameRoute: UzytkownikNameRoute,
   ApiCronEmailsRoute: ApiCronEmailsRoute,

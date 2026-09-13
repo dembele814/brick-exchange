@@ -1,12 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { usePublicStatus } from "@/data/public-status";
 
 const tiles = [
-  {
-    icon: ShieldCheck,
-    t: "Bezpieczna wersja testowa",
-    d: "Stripe obsługuje płatności i wypłaty testowe. Prawdziwe pieniądze pozostają wyłączone.",
-  },
   {
     icon: Sparkles,
     t: "Weryfikacja kompletności",
@@ -20,6 +16,26 @@ const tiles = [
 ];
 
 export function SiteFooter() {
+  const { data: publicStatus } = usePublicStatus();
+  const paymentTile =
+    publicStatus?.stripeMode === "test"
+      ? {
+          icon: ShieldCheck,
+          t: "Bezpieczna wersja testowa",
+          d: "Stripe obsługuje płatności testowe. Prawdziwe pieniądze pozostają wyłączone.",
+        }
+      : publicStatus?.stripeMode === "unconfigured"
+        ? {
+            icon: ShieldCheck,
+            t: "Płatności chwilowo niedostępne",
+            d: "Możesz przeglądać oferty. Zakup będzie możliwy po przywróceniu płatności.",
+          }
+        : {
+            icon: ShieldCheck,
+            t: "Bezpieczne płatności",
+            d: "Płatności kupujących oraz wypłaty sprzedających obsługuje Stripe.",
+          };
+
   return (
     <footer className="mt-14 border-t border-border bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-12">
@@ -30,7 +46,7 @@ export function SiteFooter() {
         </p>
 
         <dl className="mt-8 grid gap-4 sm:grid-cols-3">
-          {tiles.map(({ icon: Icon, t, d }) => (
+          {[paymentTile, ...tiles].map(({ icon: Icon, t, d }) => (
             <div key={t} className="card-surface p-4">
               <Icon className="size-5 text-brand" aria-hidden />
               <dt className="mt-3 text-sm font-semibold">{t}</dt>
