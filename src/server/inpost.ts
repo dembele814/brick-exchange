@@ -158,10 +158,10 @@ export async function searchInpostPoints(input: {
     )
       throw new Error("Nieprawidłowa lokalizacja.");
     params.set("relative_point", `${input.latitude},${input.longitude}`);
-    const requestedRadius = input.radiusMeters ?? 10_000;
+    const requestedRadius = input.radiusMeters ?? 1_000;
     const radius = Number.isFinite(requestedRadius)
       ? Math.min(700_000, Math.max(1_000, Math.round(requestedRadius)))
-      : 10_000;
+      : 1_000;
     params.set("max_distance", String(radius));
     params.set("sort_by", "distance_to_relative_point");
   } else return [];

@@ -32,6 +32,7 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<LayerGroup | null>(null);
+  const locationLayerRef = useRef<LayerGroup | null>(null);
   const requestRef = useRef<AbortController | null>(null);
   const onSelectRef = useRef(onSelect);
   const [query, setQuery] = useState("");
@@ -84,6 +85,7 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
         })
         .addTo(map);
       markersRef.current = leaflet.layerGroup().addTo(map);
+      locationLayerRef.current = leaflet.layerGroup().addTo(map);
       mapRef.current = map;
 
       const refreshVisibleArea = () => {
@@ -92,7 +94,7 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
           const center = map.getCenter();
           const radius = Math.min(
             700_000,
-            Math.max(5_000, Math.round(center.distanceTo(map.getBounds().getNorthEast()))),
+            Math.max(1_000, Math.round(center.distanceTo(map.getBounds().getNorthEast()))),
           );
           void loadPoints(
             new URLSearchParams({
@@ -114,6 +116,7 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current = null;
+      locationLayerRef.current = null;
     };
   }, [loadPoints]);
 
@@ -175,12 +178,36 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
       async (position) => {
         setPermissionBlocked(false);
         const { latitude, longitude } = position.coords;
-        mapRef.current?.setView([latitude, longitude], 14);
+        const leaflet = await import("leaflet");
+        locationLayerRef.current?.clearLayers();
+        if (locationLayerRef.current) {
+          leaflet
+            .circle([latitude, longitude], {
+              radius: 1_000,
+              color: "#2563eb",
+              weight: 2,
+              fillColor: "#3b82f6",
+              fillOpacity: 0.08,
+              interactive: false,
+            })
+            .addTo(locationLayerRef.current);
+          leaflet
+            .circleMarker([latitude, longitude], {
+              radius: 8,
+              color: "#ffffff",
+              weight: 3,
+              fillColor: "#2563eb",
+              fillOpacity: 1,
+              interactive: false,
+            })
+            .addTo(locationLayerRef.current);
+        }
+        mapRef.current?.setView([latitude, longitude], mapRef.current.getMaxZoom());
         await loadPoints(
           new URLSearchParams({
             lat: String(latitude),
             lon: String(longitude),
-            radius: "10000",
+            radius: "1000",
             limit: "100",
           }),
         );
@@ -286,8 +313,8 @@ export function InpostMapPicker({ selected, onSelect }: Props) {
           <DialogHeader>
             <DialogTitle>Pokaż Paczkomaty blisko Ciebie</DialogTitle>
             <DialogDescription>
-              Po kliknięciu poniżej przeglądarka pokaże małe okno zgody. Wybierz „Zezwól”.
-              Lokalizacja służy tylko do znalezienia pobliskich punktów.
+              Po kliknięciu poniżej przeglądarka pokaże małe okno zgody. Wybierz „Zezwól”. Mapa
+              maksymalnie przybliży Twoją pozycję i pokaże Paczkomaty w promieniu 1 km.
             </DialogDescription>
           </DialogHeader>
           {permissionBlocked && (
