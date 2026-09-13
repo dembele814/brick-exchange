@@ -15,6 +15,8 @@ import {
   Check,
   Flag,
   Heart,
+  LoaderCircle,
+  LocateFixed,
   MapPin,
   MessageCircle,
   Maximize2,
@@ -27,7 +29,7 @@ import {
 } from "lucide-react";
 
 const shippingOptions = [
-  { id: "inpost", label: "InPost", hint: "Paczkomat", point: "Kod Paczkomatu, np. WAW01A" },
+  { id: "inpost", label: "InPost", hint: "Paczkomat", point: "Wyszukaj Paczkomat" },
   {
     id: "orlen",
     label: "ORLEN Paczka",
@@ -37,6 +39,26 @@ const shippingOptions = [
   { id: "dpd", label: "DPD Pickup", hint: "Punkt odbioru", point: "Kod punktu DPD Pickup" },
   { id: "dhl", label: "DHL POP", hint: "Punkt lub DHL BOX", point: "Kod punktu DHL POP / BOX" },
 ] as const;
+
+type LockerPoint = {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  status: string;
+  description: string;
+  openingHours: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters: number | null;
+};
+
+function lockerMapUrl(point: LockerPoint) {
+  const bbox = encodeURIComponent(
+    `${point.longitude - 0.012},${point.latitude - 0.007},${point.longitude + 0.012},${point.latitude + 0.007}`,
+  );
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${point.latitude},${point.longitude}`;
+}
 
 export const Route = createFileRoute("/oferta/$id")({
   validateSearch: z.object({ offer: z.string().uuid().optional() }),
@@ -61,6 +83,11 @@ function OfferPage() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState("");
   const [carrier, setCarrier] = useState<(typeof shippingOptions)[number]["id"]>("inpost");
+  const [lockerQuery, setLockerQuery] = useState("");
+  const [lockerPoints, setLockerPoints] = useState<LockerPoint[]>([]);
+  const [selectedLocker, setSelectedLocker] = useState<LockerPoint | null>(null);
+  const [lockerSearching, setLockerSearching] = useState(false);
+  const [lockerError, setLockerError] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [reportSending, setReportSending] = useState(false);
@@ -68,6 +95,80 @@ function OfferPage() {
   const [shareMessage, setShareMessage] = useState<string | null>(null);
 
   useEffect(() => setSelectedImage(""), [id]);
+  useEffect(() => {
+    if (
+      carrier !== "inpost" ||
+      lockerQuery.trim().length < 2 ||
+      selectedLocker?.id === lockerQuery.trim()
+    ) {
+      setLockerPoints([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setLockerSearching(true);
+      setLockerError(null);
+      fetch(`/api/inpost/points?q=${encodeURIComponent(lockerQuery)}`, {
+        signal: controller.signal,
+      })
+        .then((response) => response.json() as Promise<{ points?: typeof lockerPoints }>)
+        .then((body) => {
+          const points = body.points ?? [];
+          setLockerPoints(points);
+          if (points.length === 0)
+            setLockerError("Nie znaleziono punktów. Wpisz ulicę lub miasto.");
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setLockerPoints([]);
+            setLockerError("Nie udało się pobrać punktów InPost.");
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setLockerSearching(false);
+        });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [carrier, lockerQuery, selectedLocker?.id]);
+
+  const findNearbyLockers = () => {
+    if (!navigator.geolocation) {
+      setLockerError("Ta przeglądarka nie obsługuje lokalizacji.");
+      return;
+    }
+    setLockerSearching(true);
+    setLockerError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        fetch(
+          `/api/inpost/points?lat=${encodeURIComponent(position.coords.latitude)}&lon=${encodeURIComponent(position.coords.longitude)}`,
+        )
+          .then(async (response) => {
+            const body = (await response.json()) as { points?: LockerPoint[]; error?: string };
+            if (!response.ok) throw new Error(body.error ?? "Nie udało się znaleźć Paczkomatów.");
+            setLockerPoints(body.points ?? []);
+            if (!body.points?.length)
+              setLockerError("Nie znaleziono Paczkomatów w promieniu 10 km.");
+          })
+          .catch((error) =>
+            setLockerError(
+              error instanceof Error ? error.message : "Nie udało się znaleźć Paczkomatów.",
+            ),
+          )
+          .finally(() => setLockerSearching(false));
+      },
+      () => {
+        setLockerSearching(false);
+        setLockerError(
+          "Zezwól przeglądarce na lokalizację albo wyszukaj Paczkomat po mieście lub ulicy.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  };
   useEffect(() => {
     if (!lightboxOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -304,13 +405,17 @@ function OfferPage() {
                 onSubmit={(event) => {
                   event.preventDefault();
                   const form = new FormData(event.currentTarget);
+                  if (carrier === "inpost" && selectedLocker?.id !== lockerQuery.trim()) {
+                    setCheckoutError("Wyszukaj i wybierz Paczkomat z listy.");
+                    return;
+                  }
                   setSubmitting(true);
                   setCheckoutError(null);
                   void startCheckout({
                     listingId: listing.id,
                     ...(acceptedOfferPrice !== null && offer ? { acceptedOfferId: offer } : {}),
                     carrier,
-                    lockerId: String(form.get("lockerId") ?? ""),
+                    lockerId: lockerQuery,
                     receiver: {
                       email: String(form.get("email") ?? ""),
                       phone: String(form.get("phone") ?? ""),
@@ -393,13 +498,109 @@ function OfferPage() {
                     className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
                   />
                 </div>
-                <input
-                  name="lockerId"
-                  required
-                  minLength={3}
-                  placeholder={shippingOptions.find((option) => option.id === carrier)?.point}
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
-                />
+                {carrier === "inpost" ? (
+                  <div className="space-y-3">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        name="lockerId"
+                        required
+                        minLength={2}
+                        value={lockerQuery}
+                        onChange={(event) => {
+                          setLockerQuery(event.target.value);
+                          setSelectedLocker(null);
+                        }}
+                        placeholder="Miasto, ulica lub kod, np. Sybiraków"
+                        aria-label="Wyszukaj Paczkomat"
+                        className="min-w-0 flex-1 rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={findNearbyLockers}
+                        disabled={lockerSearching}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold hover:bg-secondary disabled:opacity-60"
+                      >
+                        {lockerSearching ? (
+                          <LoaderCircle className="size-4 animate-spin" aria-hidden />
+                        ) : (
+                          <LocateFixed className="size-4" aria-hidden />
+                        )}
+                        Paczkomaty blisko mnie
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Nie musisz znać kodu. Wpisz ulicę lub miasto albo użyj swojej lokalizacji.
+                    </p>
+                    {lockerError && (
+                      <p className="text-xs font-medium text-destructive">{lockerError}</p>
+                    )}
+                    {lockerPoints.length > 0 && (
+                      <div className="grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                        {lockerPoints.map((point) => (
+                          <button
+                            key={`${point.id}-${point.address}`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedLocker(point);
+                              setLockerQuery(point.id);
+                              setLockerPoints([]);
+                              setLockerError(null);
+                            }}
+                            className="rounded-xl border border-border bg-card p-3 text-left text-sm transition-colors hover:bg-secondary"
+                          >
+                            <span className="flex items-center justify-between gap-2 font-semibold">
+                              <span>{point.id}</span>
+                              {point.distanceMeters !== null && (
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  {point.distanceMeters < 1000
+                                    ? `${Math.round(point.distanceMeters)} m`
+                                    : `${(point.distanceMeters / 1000).toFixed(1)} km`}
+                                </span>
+                              )}
+                            </span>
+                            <span className="mt-1 block text-xs text-muted-foreground">
+                              {point.address}
+                            </span>
+                            {point.description && (
+                              <span className="mt-1 block text-xs text-muted-foreground">
+                                {point.description}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedLocker && (
+                      <div className="overflow-hidden rounded-2xl border border-brand/30 bg-card">
+                        <div className="flex items-start gap-2 px-3 py-3 text-sm">
+                          <MapPin className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+                          <div>
+                            <p className="font-bold">Wybrano {selectedLocker.id}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {selectedLocker.address}
+                            </p>
+                          </div>
+                        </div>
+                        <iframe
+                          title={`Mapa Paczkomatu ${selectedLocker.id}`}
+                          src={lockerMapUrl(selectedLocker)}
+                          loading="lazy"
+                          className="h-52 w-full border-0"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    name="lockerId"
+                    required
+                    minLength={3}
+                    value={lockerQuery}
+                    onChange={(event) => setLockerQuery(event.target.value.toUpperCase())}
+                    placeholder={shippingOptions.find((option) => option.id === carrier)?.point}
+                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm"
+                  />
+                )}
                 <p className="rounded-xl border border-sun/30 bg-sun-soft px-3 py-2 text-xs font-medium text-foreground">
                   Płatność testowa: użyj karty 4242 4242 4242 4242, przyszłej daty i dowolnego CVC.
                   Żadne prawdziwe środki nie zostaną pobrane.

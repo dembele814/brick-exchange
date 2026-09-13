@@ -12,7 +12,11 @@ const tiles = [
     t: "Weryfikacja kompletności",
     d: "Każda oferta ma listę braków i stan instrukcji.",
   },
-  { icon: Truck, t: "Wysyłka do punktu", d: "Wybierz przewoźnika i podaj kod punktu odbioru." },
+  {
+    icon: Truck,
+    t: "Wysyłka do punktu",
+    d: "Wyszukaj punkt po adresie lub znajdź najbliższy dzięki lokalizacji.",
+  },
 ];
 
 export function SiteFooter() {

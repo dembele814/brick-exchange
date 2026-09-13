@@ -303,14 +303,19 @@ export async function getFurgonetkaInpostService(accessToken: string) {
 }
 
 export async function getFurgonetkaPoint(accessToken: string, pointId: string) {
+  const normalizedPointId = pointId.trim().toUpperCase();
   const result = await apiRequest<{ points?: FurgonetkaPoint[] }>(accessToken, "/points/map", {
     method: "POST",
     body: JSON.stringify({
-      location: { search_phrase: pointId },
-      filters: { services: ["inpost"], point_id: pointId, limit: "1" },
+      location: { search_phrase: normalizedPointId },
+      filters: { services: ["inpost"], point_id: normalizedPointId, limit: "5" },
     }),
   });
-  const point = result.points?.find((item) => item.point_id === pointId || item.code === pointId);
+  const point = result.points?.find(
+    (item) =>
+      String(item.point_id ?? "").toUpperCase() === normalizedPointId ||
+      String(item.code ?? "").toUpperCase() === normalizedPointId,
+  );
   if (!point?.address?.street || !point.address.postcode || !point.address.city)
     throw new Error("Wybrany Paczkomat nie istnieje lub jest chwilowo niedostępny.");
   return point.address as { street: string; postcode: string; city: string };

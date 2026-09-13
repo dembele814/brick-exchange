@@ -36,6 +36,7 @@ import { Route as ApiCronReconcileRouteImport } from './routes/api/cron/reconcil
 import { Route as ApiFurgonetkaCallbackRouteImport } from './routes/api/furgonetka/callback'
 import { Route as ApiFurgonetkaConnectRouteImport } from './routes/api/furgonetka/connect'
 import { Route as ApiFurgonetkaStatusRouteImport } from './routes/api/furgonetka/status'
+import { Route as ApiInpostPointsRouteImport } from './routes/api/inpost/points'
 import { Route as ApiWebhooksInpostRouteImport } from './routes/api/webhooks/inpost'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 
@@ -174,6 +175,11 @@ const ApiFurgonetkaStatusRoute = ApiFurgonetkaStatusRouteImport.update({
   path: '/api/furgonetka/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInpostPointsRoute = ApiInpostPointsRouteImport.update({
+  id: '/api/inpost/points',
+  path: '/api/inpost/points',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiWebhooksInpostRoute = ApiWebhooksInpostRouteImport.update({
   id: '/api/webhooks/inpost',
   path: '/api/webhooks/inpost',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
   '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
   '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
+  '/api/inpost/points': typeof ApiInpostPointsRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
   '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
   '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
+  '/api/inpost/points': typeof ApiInpostPointsRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
   '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
   '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
+  '/api/inpost/points': typeof ApiInpostPointsRoute
   '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
@@ -309,6 +318,7 @@ export interface FileRouteTypes {
     | '/api/furgonetka/callback'
     | '/api/furgonetka/connect'
     | '/api/furgonetka/status'
+    | '/api/inpost/points'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/api/furgonetka/callback'
     | '/api/furgonetka/connect'
     | '/api/furgonetka/status'
+    | '/api/inpost/points'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   id:
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/api/furgonetka/callback'
     | '/api/furgonetka/connect'
     | '/api/furgonetka/status'
+    | '/api/inpost/points'
     | '/api/webhooks/inpost'
     | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
@@ -403,6 +415,7 @@ export interface RootRouteChildren {
   ApiFurgonetkaCallbackRoute: typeof ApiFurgonetkaCallbackRoute
   ApiFurgonetkaConnectRoute: typeof ApiFurgonetkaConnectRoute
   ApiFurgonetkaStatusRoute: typeof ApiFurgonetkaStatusRoute
+  ApiInpostPointsRoute: typeof ApiInpostPointsRoute
   ApiWebhooksInpostRoute: typeof ApiWebhooksInpostRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
@@ -598,6 +611,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFurgonetkaStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/inpost/points': {
+      id: '/api/inpost/points'
+      path: '/api/inpost/points'
+      fullPath: '/api/inpost/points'
+      preLoaderRoute: typeof ApiInpostPointsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/webhooks/inpost': {
       id: '/api/webhooks/inpost'
       path: '/api/webhooks/inpost'
@@ -643,6 +663,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFurgonetkaCallbackRoute: ApiFurgonetkaCallbackRoute,
   ApiFurgonetkaConnectRoute: ApiFurgonetkaConnectRoute,
   ApiFurgonetkaStatusRoute: ApiFurgonetkaStatusRoute,
+  ApiInpostPointsRoute: ApiInpostPointsRoute,
   ApiWebhooksInpostRoute: ApiWebhooksInpostRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }
