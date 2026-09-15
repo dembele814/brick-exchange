@@ -33,8 +33,8 @@ Każdą migrację wykonać tylko w projekcie `wrgrjnduppjagdmflnan` i sprawdzić
 
 ## 4. Skonfigurować webhooki
 
-- Stripe: `https://bricklane-market.lovable.app/api/webhooks/stripe`
-- InPost: `https://bricklane-market.lovable.app/api/webhooks/inpost`, temat `Shipment.Tracking`
+- Stripe: `https://klockogram.pl/api/webhooks/stripe`
+- InPost: `https://klockogram.pl/api/webhooks/inpost`, temat `Shipment.Tracking`
 
 Po zapisaniu wysłać zdarzenie testowe i potwierdzić odpowiedź HTTP 200.
 

@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://bricklane-market.lovable.app/sitemap.xml
+Sitemap: https://klockogram.pl/sitemap.xml

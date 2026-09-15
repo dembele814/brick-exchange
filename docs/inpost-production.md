@@ -13,7 +13,7 @@ Operator platformy powinien uzyskać od InPost:
 
 Adres webhooka produkcyjnego:
 
-`https://bricklane-market.lovable.app/api/webhooks/inpost`
+`https://klockogram.pl/api/webhooks/inpost`
 
 Temat: `Shipment.Tracking`. Nie wysyłaj żadnego klucza w czacie ani w kodzie. Wszystkie wartości wpisz jako sekrety serwerowe Lovable.
 

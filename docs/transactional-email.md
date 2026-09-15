@@ -23,7 +23,7 @@ blokuje rekord, wysyła wiadomość z kluczem idempotencji i ponawia ją najwyż
    EMAIL_TEST_RECIPIENT=feelip.wojcik@gmail.com
    ```
 
-6. Wykonuj `POST https://bricklane-market.lovable.app/api/cron/emails` co minutę z
+6. Wykonuj `POST https://klockogram.pl/api/cron/emails` co minutę z
    nagłówkiem `Authorization: Bearer ...`. Wspólny automat płatności i e-maili powinien
    używać `RECONCILIATION_SECRET`; `EMAIL_WORKER_SECRET` pozostaje zgodnym wstecznie
    sekretem tylko dla e-maili.
