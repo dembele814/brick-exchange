@@ -11,15 +11,15 @@ export const Route = createFileRoute("/polityka-prywatnosci")({
   component: PrivacyPolicy,
 });
 
-const Contact = () => <a href="mailto:feelip.wojcik@gmail.com">feelip.wojcik@gmail.com</a>;
+const Contact = () => <a href="mailto:feelip.awf@gmail.com">feelip.awf@gmail.com</a>;
 
 function PrivacyPolicy() {
   return (
-    <LegalPage title="Polityka prywatności Klockogramu" updated="10 września 2026">
+    <LegalPage title="Polityka prywatności Klockogramu" updated="19 września 2026">
       <section>
         <h2>1. Administrator</h2>
         <p>
-          Administratorem danych jest Anna Wójcik, działalność nierejestrowana, ul. Sybiraków 20/19,
+          Administratorem danych jest Paweł Wójcik, działalność nierejestrowana, ul. Sybiraków 20/19,
           15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />. Nie wyznaczono inspektora
           ochrony danych.
         </p>

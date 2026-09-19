@@ -11,15 +11,15 @@ export const Route = createFileRoute("/regulamin")({
   component: Terms,
 });
 
-const Contact = () => <a href="mailto:feelip.wojcik@gmail.com">feelip.wojcik@gmail.com</a>;
+const Contact = () => <a href="mailto:feelip.awf@gmail.com">feelip.awf@gmail.com</a>;
 
 function Terms() {
   return (
-    <LegalPage title="Regulamin Klockogramu" updated="10 września 2026">
+    <LegalPage title="Regulamin Klockogramu" updated="19 września 2026">
       <section>
         <h2>1. Operator i usługa</h2>
         <p>
-          Operatorem Klockogramu jest Anna Wójcik, prowadząca działalność nierejestrowaną pod
+          Operatorem Klockogramu jest Paweł Wójcik, prowadzący działalność nierejestrowaną pod
           adresem ul. Sybiraków 20/19, 15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />
           .
         </p>

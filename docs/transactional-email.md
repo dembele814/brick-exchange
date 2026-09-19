@@ -20,7 +20,7 @@ blokuje rekord, wysyła wiadomość z kluczem idempotencji i ponawia ją najwyż
    EMAIL_LIVE_ENABLED=false
    RESEND_API_KEY=re_...
    EMAIL_FROM=Klockogram <powiadomienia@send.klockogram.pl>
-   EMAIL_TEST_RECIPIENT=feelip.wojcik@gmail.com
+   EMAIL_TEST_RECIPIENT=feelip.awf@gmail.com
    ```
 
 6. Wykonuj `POST https://klockogram.pl/api/cron/emails` co minutę z
