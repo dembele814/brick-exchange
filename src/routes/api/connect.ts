@@ -26,6 +26,37 @@ function stripeClient() {
   return { stripe: new Stripe(config.key), appUrl: config.appUrl, liveMode: config.liveMode };
 }
 
+function connectPublishableKey(liveMode: boolean) {
+  const key = process.env.STRIPE_PUBLISHABLE_KEY?.trim();
+  const expectedPrefix = liveMode ? "pk_live_" : "pk_test_";
+  if (!key?.startsWith(expectedPrefix)) throw new Error("Stripe publishable key mode mismatch");
+  return key;
+}
+
+async function ensureConnectedAccount(
+  stripe: Stripe,
+  user: NonNullable<Awaited<ReturnType<typeof authenticatedUser>>>,
+  liveMode: boolean,
+  appUrl: string,
+) {
+  let accountId = connectAccountIdFor(user, liveMode);
+  if (typeof accountId === "string") return accountId;
+  if (!user.email) throw new Error("User email is required");
+  const account = await stripe.v2.core.accounts.create(
+    connectAccountCreateParams(user.id, user.email, appUrl),
+    { idempotencyKey: `klockownia-connect:${liveMode ? "live" : "test"}:${user.id}:v1` },
+  );
+  accountId = account.id;
+  const { error } = await getSupabaseAdmin().auth.admin.updateUserById(user.id, {
+    app_metadata: {
+      ...user.app_metadata,
+      [connectMetadataKey(liveMode)]: accountId,
+    },
+  });
+  if (error) throw error;
+  return accountId;
+}
+
 export const Route = createFileRoute("/api/connect")({
   server: {
     handlers: {
@@ -98,21 +129,7 @@ export const Route = createFileRoute("/api/connect")({
         }
         try {
           const { stripe, appUrl, liveMode } = stripeClient();
-          let accountId = connectAccountIdFor(user, liveMode);
-          if (typeof accountId !== "string") {
-            const account = await stripe.v2.core.accounts.create(
-              connectAccountCreateParams(user.id, user.email, appUrl),
-              { idempotencyKey: `klockownia-connect:${liveMode ? "live" : "test"}:${user.id}:v1` },
-            );
-            accountId = account.id;
-            const { error } = await getSupabaseAdmin().auth.admin.updateUserById(user.id, {
-              app_metadata: {
-                ...user.app_metadata,
-                [connectMetadataKey(liveMode)]: accountId,
-              },
-            });
-            if (error) throw error;
-          }
+          const accountId = await ensureConnectedAccount(stripe, user, liveMode, appUrl);
           const link = await stripe.v2.core.accountLinks.create({
             account: accountId,
             use_case: {
@@ -131,6 +148,41 @@ export const Route = createFileRoute("/api/connect")({
           return Response.json(
             { error: "Nie udało się rozpocząć weryfikacji Stripe. Spróbuj ponownie później." },
             { status: 503 },
+          );
+        }
+      },
+      PUT: async ({ request }) => {
+        const user = await authenticatedUser(request);
+        if (!user?.email)
+          return Response.json(
+            { error: "Zaloguj się, aby skonfigurować wypłaty." },
+            { status: 401 },
+          );
+        try {
+          await enforceRateLimit(getSupabaseAdmin(), "connect-session", user.id, 20, 300);
+          const { stripe, appUrl, liveMode } = stripeClient();
+          const publishableKey = connectPublishableKey(liveMode);
+          const accountId = await ensureConnectedAccount(stripe, user, liveMode, appUrl);
+          const session = await stripe.accountSessions.create({
+            account: accountId,
+            components: {
+              account_onboarding: { enabled: true },
+            },
+          });
+          return Response.json(
+            { clientSecret: session.client_secret, publishableKey },
+            { headers: { "Cache-Control": "no-store" } },
+          );
+        } catch (cause) {
+          const rateLimited = cause instanceof RateLimitExceededError;
+          console.error("Embedded Stripe Connect onboarding could not be started");
+          return Response.json(
+            {
+              error: rateLimited
+                ? cause.message
+                : "Nie udało się otworzyć formularza Stripe w Klockogramie.",
+            },
+            { status: rateLimited ? 429 : 503 },
           );
         }
       },

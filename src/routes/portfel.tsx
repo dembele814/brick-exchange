@@ -9,6 +9,7 @@ import { useOrders } from "@/data/marketplace";
 import { authenticatedRequest } from "@/lib/authenticated-request";
 import { requireSupabase } from "@/lib/supabase";
 import { usePublicStatus } from "@/data/public-status";
+import { StripeConnectOnboarding } from "@/components/stripe-connect-onboarding";
 
 export const Route = createFileRoute("/portfel")({
   head: () => ({
@@ -44,6 +45,10 @@ function WalletPage() {
   const [connectError, setConnectError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
+  const [embeddedOnboarding, setEmbeddedOnboarding] = useState<{
+    clientSecret: string;
+    publishableKey: string;
+  } | null>(null);
   const [payouts, setPayouts] = useState<
     Record<string, { state: "loading" | "done" | "error"; message?: string }>
   >({});
@@ -80,16 +85,40 @@ function WalletPage() {
     setConnectError(null);
     try {
       const response = await authenticatedRequest(requireSupabase(), "/api/connect", {
-        method: "POST",
+        method: "PUT",
       });
-      const result = (await response.json()) as { onboardingUrl?: string; error?: string };
-      if (!response.ok || !result.onboardingUrl)
-        throw new Error(result.error ?? "Nie udało się otworzyć Stripe.");
-      setOnboardingUrl(result.onboardingUrl);
+      const result = (await response.json()) as {
+        clientSecret?: string;
+        publishableKey?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.clientSecret || !result.publishableKey)
+        throw new Error(result.error ?? "Nie udało się otworzyć formularza Stripe.");
+      setEmbeddedOnboarding({
+        clientSecret: result.clientSecret,
+        publishableKey: result.publishableKey,
+      });
       setConnecting(false);
     } catch (cause) {
-      setConnectError(cause instanceof Error ? cause.message : "Nie udało się otworzyć Stripe.");
-      setConnecting(false);
+      try {
+        const fallbackResponse = await authenticatedRequest(requireSupabase(), "/api/connect", {
+          method: "POST",
+        });
+        const fallback = (await fallbackResponse.json()) as {
+          onboardingUrl?: string;
+          error?: string;
+        };
+        if (!fallbackResponse.ok || !fallback.onboardingUrl) throw cause;
+        setOnboardingUrl(fallback.onboardingUrl);
+      } catch (fallbackCause) {
+        setConnectError(
+          fallbackCause instanceof Error
+            ? fallbackCause.message
+            : "Nie udało się otworzyć Stripe.",
+        );
+      } finally {
+        setConnecting(false);
+      }
     }
   };
 
@@ -223,7 +252,7 @@ function WalletPage() {
                   className="mt-4 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background disabled:opacity-60"
                 >
                   {connecting
-                    ? "Otwieramy Stripe…"
+                    ? "Otwieramy formularz…"
                     : connectStatus === "missing"
                       ? livePayments
                         ? "Rozpocznij weryfikację wypłat"
@@ -247,6 +276,21 @@ function WalletPage() {
                   >
                     Otwórz Stripe w nowej karcie
                   </a>
+                </div>
+              )}
+              {embeddedOnboarding && (
+                <div className="mt-4">
+                  <p className="mb-3 text-sm font-semibold">
+                    Weryfikacja i konto bankowe — bez opuszczania Klockogramu
+                  </p>
+                  <StripeConnectOnboarding
+                    bootstrap={embeddedOnboarding}
+                    onExit={() => {
+                      setEmbeddedOnboarding(null);
+                      setConnectStatus("loading");
+                      window.location.reload();
+                    }}
+                  />
                 </div>
               )}
               {connectStatus === "loading" && (
