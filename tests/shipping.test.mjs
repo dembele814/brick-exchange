@@ -12,8 +12,11 @@ import {
   encryptFurgonetkaToken,
   furgonetkaAuthorizationUrl,
   furgonetkaConfig,
+  furgonetkaOrderCommandError,
   furgonetkaParcel,
   furgonetkaTrackingState,
+  getFurgonetkaOrderCommand,
+  orderFurgonetkaPackage,
   readOAuthState,
   resolveFurgonetkaAccountUserId,
 } from "../src/server/furgonetka.ts";
@@ -138,6 +141,45 @@ test("one marketplace Furgonetka account serves every seller", () => {
   assert.throws(
     () => resolveFurgonetkaAccountUserId([{ user_id: "one" }, { user_id: "two" }]),
     /Wybierz konto wysyłkowe/,
+  );
+});
+
+test("Furgonetka purchase commands are resumable with one stable UUID", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push({ url: String(url), method: init.method ?? "GET", body: init.body });
+    if (init.method === "PUT") return Response.json({ uuid: "stable-command" });
+    return Response.json({
+      uuid: "stable-command",
+      status: "successful",
+      successfully_ordered_packages: ["package-123"],
+      errors: [],
+    });
+  };
+  try {
+    assert.equal(
+      await orderFurgonetkaPackage("token", "package-123", "stable-command"),
+      "stable-command",
+    );
+    const command = await getFurgonetkaOrderCommand("token", "stable-command");
+    assert.equal(command.status, "successful");
+    assert.equal(calls[0].url, "https://api.furgonetka.pl/order-commands/stable-command");
+    assert.equal(calls[0].method, "PUT");
+    assert.deepEqual(JSON.parse(calls[0].body).packages, [{ id: "package-123" }]);
+    assert.equal(calls[1].method, "GET");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Furgonetka order command exposes a useful carrier error", () => {
+  assert.equal(
+    furgonetkaOrderCommandError({
+      status: "error",
+      errors: [{ message: "Brak środków", details: "Doładuj saldo Furgonetki." }],
+    }),
+    "Doładuj saldo Furgonetki.",
   );
 });
 

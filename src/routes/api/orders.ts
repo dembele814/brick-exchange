@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
 import { z } from "zod";
 import { connectAccountIdFor, createDeliveredTransfer } from "@/server/connect";
@@ -8,10 +9,13 @@ import { getInpostLabel, inpostConfig } from "@/server/inpost";
 import { enforceRateLimit, RateLimitExceededError } from "@/server/rate-limit";
 import {
   createFurgonetkaPackage,
+  FurgonetkaApiError,
   furgonetkaParcel,
+  furgonetkaOrderCommandError,
   furgonetkaPlatformAccessToken,
   getFurgonetkaInpostService,
   getFurgonetkaLabel,
+  getFurgonetkaOrderCommand,
   getFurgonetkaPackage,
   getFurgonetkaPoint,
   orderFurgonetkaPackage,
@@ -242,7 +246,7 @@ export const Route = createFileRoute("/api/orders")({
         const { data, error } = await getSupabaseAdmin()
           .from("orders")
           .select(
-            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,shipping_provider,shipping_price_grosz,locker_id,tracking_number,carrier_shipment_id,carrier_status,shipping_label_ready_at,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
+            "id,buyer_id,seller_id,amount_grosz,status,payment_status,shipping_carrier,shipping_provider,shipping_price_grosz,locker_id,tracking_number,carrier_order_command_id,carrier_shipment_id,carrier_status,shipping_label_ready_at,created_at,listings(title,listing_images(storage_path,position)),buyer:profiles!orders_buyer_id_fkey(username),seller:profiles!orders_seller_id_fkey(username)",
           )
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
           .order("created_at", { ascending: false });
@@ -311,26 +315,98 @@ export const Route = createFileRoute("/api/orders")({
               { status: 409 },
             );
           if (order.carrier_shipment_id) {
-            if (action.action === "quote_furgonetka_shipment")
-              return Response.json(
-                { error: "Przesyłka dla tego zamówienia została już utworzona." },
-                { status: 409 },
-              );
             try {
               if (order.shipping_provider !== "furgonetka")
                 return Response.json(
                   { error: "Ta przesyłka została utworzona przez innego operatora." },
                   { status: 409 },
                 );
-              if (!order.carrier_order_command_id)
+              const storedPriceGrosz = Number(order.shipping_price_grosz);
+              if (action.action === "quote_furgonetka_shipment") {
+                if (!order.carrier_order_command_id && storedPriceGrosz > 0)
+                  return Response.json({
+                    priceGrosz: storedPriceGrosz,
+                    currency: "PLN",
+                    resumesDraft: true,
+                  });
                 return Response.json(
-                  {
-                    error:
-                      "Furgonetka zapisała szkic, ale zakup etykiety nie został potwierdzony. Żadna kolejna opłata nie zostanie naliczona automatycznie.",
-                  },
+                  { error: "Przesyłka dla tego zamówienia została już utworzona." },
                   { status: 409 },
                 );
+              }
               const accessToken = await furgonetkaPlatformAccessToken(admin);
+              if (!order.carrier_order_command_id) {
+                if (action.confirmedPriceGrosz !== storedPriceGrosz)
+                  return Response.json(
+                    { error: "Potwierdź zapisaną cenę przesyłki przed dokończeniem zakupu." },
+                    { status: 409 },
+                  );
+                const shipment = await getFurgonetkaPackage(accessToken, order.carrier_shipment_id);
+                const trackingNumber = furgonetkaTracking(shipment);
+                const state = (shipment.state || shipment.status || "waiting").toLowerCase();
+                if (trackingNumber || state !== "waiting") {
+                  const now = new Date().toISOString();
+                  await admin
+                    .from("orders")
+                    .update({
+                      tracking_number: trackingNumber,
+                      carrier_status: state,
+                      carrier_status_updated_at: now,
+                      shipping_label_ready_at: trackingNumber ? now : null,
+                    })
+                    .eq("id", order.id);
+                  return Response.json({ ok: true, labelReady: Boolean(trackingNumber) });
+                }
+                const commandId = randomUUID();
+                const { data: claimedCommand, error: commandClaimError } = await admin
+                  .from("orders")
+                  .update({ carrier_order_command_id: commandId })
+                  .eq("id", order.id)
+                  .eq("carrier_shipment_id", order.carrier_shipment_id)
+                  .is("carrier_order_command_id", null)
+                  .select("id")
+                  .maybeSingle();
+                if (commandClaimError || !claimedCommand)
+                  return Response.json(
+                    { error: "Zakup etykiety jest już wznawiany. Odśwież za chwilę." },
+                    { status: 409 },
+                  );
+                await orderFurgonetkaPackage(accessToken, order.carrier_shipment_id, commandId);
+                return Response.json({ ok: true, labelReady: false });
+              }
+
+              let command;
+              try {
+                command = await getFurgonetkaOrderCommand(
+                  accessToken,
+                  order.carrier_order_command_id,
+                );
+              } catch (cause) {
+                if (!(cause instanceof FurgonetkaApiError) || cause.status !== 404) throw cause;
+                await orderFurgonetkaPackage(
+                  accessToken,
+                  order.carrier_shipment_id,
+                  order.carrier_order_command_id,
+                );
+                return Response.json({ ok: true, labelReady: false });
+              }
+              if (command.status === "error")
+                return Response.json(
+                  { error: furgonetkaOrderCommandError(command) },
+                  { status: 409 },
+                );
+              if (command.status === "queueing" || command.status === "running")
+                return Response.json({ ok: true, labelReady: false });
+              if (
+                command.status === "partial_success" &&
+                !command.successfully_ordered_packages
+                  ?.map(String)
+                  .includes(order.carrier_shipment_id)
+              )
+                return Response.json(
+                  { error: furgonetkaOrderCommandError(command) },
+                  { status: 409 },
+                );
               const shipment = await getFurgonetkaPackage(accessToken, order.carrier_shipment_id);
               const trackingNumber = furgonetkaTracking(shipment);
               const now = new Date().toISOString();
@@ -400,6 +476,7 @@ export const Route = createFileRoute("/api/orders")({
               prepared.accessToken,
               prepared.packageData,
             );
+            const commandId = randomUUID();
             const now = new Date().toISOString();
             const { error: draftSaveError } = await admin
               .from("orders")
@@ -407,6 +484,7 @@ export const Route = createFileRoute("/api/orders")({
                 shipping_provider: "furgonetka",
                 shipping_price_grosz: quote.priceGrosz,
                 carrier_shipment_id: packageId,
+                carrier_order_command_id: commandId,
                 tracking_number: null,
                 carrier_status: "waiting",
                 carrier_status_updated_at: now,
@@ -417,7 +495,7 @@ export const Route = createFileRoute("/api/orders")({
               .eq("id", order.id)
               .is("carrier_shipment_id", null);
             if (draftSaveError) throw draftSaveError;
-            const commandId = await orderFurgonetkaPackage(prepared.accessToken, packageId);
+            await orderFurgonetkaPackage(prepared.accessToken, packageId, commandId);
             const { error: orderSaveError } = await admin
               .from("orders")
               .update({

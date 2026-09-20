@@ -489,6 +489,7 @@ export type MarketplaceOrder = {
   carrierStatus: string | null;
   labelReady: boolean;
   shipmentCreated: boolean;
+  shipmentNeedsPurchase: boolean;
   at: string;
 };
 
@@ -552,6 +553,7 @@ async function loadOrders() {
       carrierStatus: order.carrier_status ?? null,
       labelReady: Boolean(order.shipping_label_ready_at && order.carrier_shipment_id),
       shipmentCreated: Boolean(order.carrier_shipment_id),
+      shipmentNeedsPurchase: Boolean(order.carrier_shipment_id && !order.carrier_order_command_id),
       at: new Intl.DateTimeFormat("pl-PL", { dateStyle: "medium" }).format(
         new Date(order.created_at),
       ),

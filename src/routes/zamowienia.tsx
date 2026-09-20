@@ -233,7 +233,7 @@ function OrdersPage() {
                         onClick={() => {
                           setLabelOrderId(o.id);
                           setFulfillmentError(null);
-                          if (o.shipmentCreated) {
+                          if (o.shipmentCreated && !o.shipmentNeedsPurchase) {
                             void createFurgonetkaOrderShipment(o.id, 1)
                               .then(reload)
                               .catch((cause) =>
@@ -254,7 +254,7 @@ function OrdersPage() {
                               }).format(quote.priceGrosz / 100);
                               if (
                                 !window.confirm(
-                                  `Zamówić etykietę InPost przez Furgonetkę za ${price}? Kwota zostanie pobrana z salda Furgonetki.`,
+                                  `${o.shipmentNeedsPurchase ? "Dokończyć zakup" : "Zamówić"} etykietę InPost przez Furgonetkę za ${price}? Kwota zostanie pobrana z salda Furgonetki.`,
                                 )
                               )
                                 return;
@@ -274,9 +274,11 @@ function OrdersPage() {
                       >
                         {labelOrderId === o.id
                           ? "Sprawdzanie…"
-                          : o.shipmentCreated
-                            ? "Sprawdź gotowość etykiety"
-                            : "Wyceń i zamów etykietę"}
+                          : o.shipmentNeedsPurchase
+                            ? "Dokończ zakup etykiety"
+                            : o.shipmentCreated
+                              ? "Sprawdź gotowość etykiety"
+                              : "Wyceń i zamów etykietę"}
                       </button>
                     ) : (
                       <button

@@ -285,16 +285,27 @@ async function apiRequest<T>(
       errors?: Array<{ message?: string; details?: string }>;
     };
     const first = result.errors?.[0];
-    throw new Error(
+    throw new FurgonetkaApiError(
       first?.details ||
         first?.message ||
         result.details ||
         result.message ||
         "Furgonetka odrzuciła dane przesyłki.",
+      response.status,
     );
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+export class FurgonetkaApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "FurgonetkaApiError";
+    this.status = status;
+  }
 }
 
 export async function getFurgonetkaInpostService(accessToken: string) {
@@ -389,8 +400,11 @@ export async function createFurgonetkaPackage(accessToken: string, packageData: 
   return String(created.package_id);
 }
 
-export async function orderFurgonetkaPackage(accessToken: string, packageId: string) {
-  const commandId = randomUUID();
+export async function orderFurgonetkaPackage(
+  accessToken: string,
+  packageId: string,
+  commandId = randomUUID(),
+) {
   await apiRequest<{ uuid?: string }>(accessToken, `/order-commands/${commandId}`, {
     method: "PUT",
     body: JSON.stringify({
@@ -399,6 +413,25 @@ export async function orderFurgonetkaPackage(accessToken: string, packageId: str
     }),
   });
   return commandId;
+}
+
+export type FurgonetkaOrderCommand = {
+  uuid?: string;
+  status?: "queueing" | "running" | "successful" | "partial_success" | "error";
+  successfully_ordered_packages?: Array<string | number>;
+  errors?: Array<{ message?: string; details?: string; code?: string }>;
+};
+
+export function getFurgonetkaOrderCommand(accessToken: string, commandId: string) {
+  return apiRequest<FurgonetkaOrderCommand>(
+    accessToken,
+    `/order-commands/${encodeURIComponent(commandId)}`,
+  );
+}
+
+export function furgonetkaOrderCommandError(command: FurgonetkaOrderCommand) {
+  const error = command.errors?.[0];
+  return error?.details || error?.message || "Furgonetka nie zrealizowała zakupu etykiety.";
 }
 
 export async function getFurgonetkaPackage(accessToken: string, packageId: string) {
