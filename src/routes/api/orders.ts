@@ -8,8 +8,8 @@ import { getInpostLabel, inpostConfig } from "@/server/inpost";
 import { enforceRateLimit, RateLimitExceededError } from "@/server/rate-limit";
 import {
   createFurgonetkaPackage,
-  furgonetkaAccessToken,
   furgonetkaParcel,
+  furgonetkaPlatformAccessToken,
   getFurgonetkaInpostService,
   getFurgonetkaLabel,
   getFurgonetkaPackage,
@@ -84,7 +84,7 @@ async function furgonetkaPackageForOrder(
     parcel_template: "small" | "medium" | "large";
   },
 ) {
-  const accessToken = await furgonetkaAccessToken(admin, user.id);
+  const accessToken = await furgonetkaPlatformAccessToken(admin);
   const [{ data: profile, error: profileError }, serviceId, point] = await Promise.all([
     admin
       .from("private_profiles")
@@ -206,7 +206,7 @@ export const Route = createFileRoute("/api/orders")({
             return Response.json({ error: "Etykieta nie jest jeszcze gotowa." }, { status: 409 });
           try {
             if (order.shipping_provider === "furgonetka") {
-              const accessToken = await furgonetkaAccessToken(admin, user.id);
+              const accessToken = await furgonetkaPlatformAccessToken(admin);
               const label = await getFurgonetkaLabel(accessToken, order.carrier_shipment_id);
               return new Response(label.body, {
                 status: 200,
@@ -330,7 +330,7 @@ export const Route = createFileRoute("/api/orders")({
                   },
                   { status: 409 },
                 );
-              const accessToken = await furgonetkaAccessToken(admin, user.id);
+              const accessToken = await furgonetkaPlatformAccessToken(admin);
               const shipment = await getFurgonetkaPackage(accessToken, order.carrier_shipment_id);
               const trackingNumber = furgonetkaTracking(shipment);
               const now = new Date().toISOString();

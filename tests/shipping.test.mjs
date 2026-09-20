@@ -15,6 +15,7 @@ import {
   furgonetkaParcel,
   furgonetkaTrackingState,
   readOAuthState,
+  resolveFurgonetkaAccountUserId,
 } from "../src/server/furgonetka.ts";
 import { enforceRateLimit, RateLimitExceededError } from "../src/server/rate-limit.ts";
 import {
@@ -122,6 +123,22 @@ test("Furgonetka tracking states only mark physically handled parcels as shipped
   assert.equal(furgonetkaTrackingState("transit").message, "Przesyłka jest w drodze.");
   assert.match(furgonetkaTrackingState("delivered").message, /potwierdź odbiór/);
   assert.equal(furgonetkaTrackingState("waiting").message, null);
+});
+
+test("one marketplace Furgonetka account serves every seller", () => {
+  assert.equal(resolveFurgonetkaAccountUserId([{ user_id: "platform-user" }]), "platform-user");
+  assert.equal(
+    resolveFurgonetkaAccountUserId(
+      [{ user_id: "old-account" }, { user_id: "new-account" }],
+      "configured-platform-user",
+    ),
+    "configured-platform-user",
+  );
+  assert.throws(() => resolveFurgonetkaAccountUserId([]), /nie jest jeszcze połączone/);
+  assert.throws(
+    () => resolveFurgonetkaAccountUserId([{ user_id: "one" }, { user_id: "two" }]),
+    /Wybierz konto wysyłkowe/,
+  );
 });
 
 test("InPost HMAC verification accepts the official raw-body test vector and rejects changes", () => {

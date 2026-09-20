@@ -6,6 +6,7 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Environment = Record<string, string | undefined>;
 
@@ -151,38 +152,6 @@ export function tokenExpiresAt(expiresIn: number) {
   return new Date(Date.now() + Math.max(60, expiresIn - 300) * 1000).toISOString();
 }
 
-type ShippingAccountRow = {
-  access_token_encrypted: string;
-  refresh_token_encrypted: string;
-  access_token_expires_at: string;
-};
-
-type ShippingAccountAdmin = {
-  from(table: string): {
-    select(columns: string): {
-      eq(
-        column: string,
-        value: string,
-      ): {
-        eq(
-          column: string,
-          value: string,
-        ): {
-          maybeSingle(): Promise<{ data: ShippingAccountRow | null; error: unknown }>;
-        };
-      };
-    };
-    update(values: Record<string, unknown>): {
-      eq(
-        column: string,
-        value: string,
-      ): {
-        eq(column: string, value: string): Promise<{ error: unknown }>;
-      };
-    };
-  };
-};
-
 export type FurgonetkaAddress = {
   name: string;
   company?: string;
@@ -221,7 +190,7 @@ type FurgonetkaPoint = {
 };
 
 export async function furgonetkaAccessToken(
-  admin: ShippingAccountAdmin,
+  admin: SupabaseClient,
   userId: string,
   config = furgonetkaConfig(),
 ) {
@@ -253,6 +222,43 @@ export async function furgonetkaAccessToken(
     .eq("provider", "furgonetka");
   if (update.error) throw new Error("Nie udało się zapisać odświeżonego połączenia Furgonetki.");
   return tokens.accessToken;
+}
+
+export function resolveFurgonetkaAccountUserId(
+  accounts: Array<{ user_id: string }>,
+  configuredUserId?: string,
+) {
+  const configured = configuredUserId?.trim();
+  if (configured) return configured;
+  if (accounts.length === 1) return accounts[0]!.user_id;
+  if (accounts.length === 0)
+    throw new Error("Konto wysyłkowe Klockogramu nie jest jeszcze połączone z Furgonetką.");
+  throw new Error("Wybierz konto wysyłkowe Klockogramu w konfiguracji Furgonetki.");
+}
+
+/**
+ * Labels are bought from the marketplace's single Furgonetka account. Sellers
+ * still provide their own pickup address, but they don't need separate carrier
+ * accounts just to fulfil a paid Klockogram order.
+ */
+export async function furgonetkaPlatformAccessToken(
+  admin: SupabaseClient,
+  config = furgonetkaConfig(),
+  env: Environment = process.env,
+) {
+  const configuredUserId = env["FURGONETKA_ACCOUNT_USER_ID"];
+  if (configuredUserId?.trim())
+    return furgonetkaAccessToken(admin, configuredUserId.trim(), config);
+
+  const accounts = await admin
+    .from("shipping_provider_accounts")
+    .select("user_id")
+    .eq("provider", "furgonetka")
+    .order("connected_at", { ascending: true })
+    .limit(2);
+  if (accounts.error) throw new Error("Nie udało się odczytać konta wysyłkowego Klockogramu.");
+  const userId = resolveFurgonetkaAccountUserId(accounts.data ?? []);
+  return furgonetkaAccessToken(admin, userId, config);
 }
 
 async function apiRequest<T>(

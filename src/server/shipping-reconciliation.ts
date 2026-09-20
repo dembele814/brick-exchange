@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  furgonetkaAccessToken,
+  furgonetkaPlatformAccessToken,
   furgonetkaTrackingState,
   getFurgonetkaPackage,
 } from "./furgonetka.ts";
@@ -39,17 +39,12 @@ export async function reconcileFurgonetkaShipping(
     .limit(batchSize);
   if (error) throw error;
 
-  const tokenBySeller = new Map<string, Promise<string>>();
+  const accessToken = furgonetkaPlatformAccessToken(admin);
   for (const rawOrder of data ?? []) {
     const order = rawOrder as ShippingOrder;
     summary.checked += 1;
     try {
-      let token = tokenBySeller.get(order.seller_id);
-      if (!token) {
-        token = furgonetkaAccessToken(admin, order.seller_id);
-        tokenBySeller.set(order.seller_id, token);
-      }
-      const shipment = await getFurgonetkaPackage(await token, order.carrier_shipment_id);
+      const shipment = await getFurgonetkaPackage(await accessToken, order.carrier_shipment_id);
       const trackingNumber = shipment.tracking_number || shipment.trackingNumber || null;
       const tracking = furgonetkaTrackingState(shipment.state, shipment.status);
       const statusChanged = tracking.state !== (order.carrier_status ?? "ordered").toLowerCase();
