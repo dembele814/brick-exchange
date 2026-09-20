@@ -360,14 +360,94 @@ export const Route = createFileRoute("/api/admin")({
             .from("orders")
             .select("id", { count: "exact", head: true })
             .or(`buyer_id.eq.${input.userId},seller_id.eq.${input.userId}`);
-          if ((relatedOrders.count ?? 0) > 0)
+          if (relatedOrders.error)
             return Response.json(
-              {
-                error:
-                  "Konta z historią transakcji nie można usunąć. Zablokuj je na stałe, aby zachować rozliczenia i reklamacje.",
-              },
-              { status: 409 },
+              { error: "Nie udało się sprawdzić historii konta." },
+              { status: 500 },
             );
+          if ((relatedOrders.count ?? 0) > 0) {
+            const anonymousUsername = `usuniety_${input.userId.replaceAll("-", "").slice(0, 12)}`;
+            const { error: authError } = await db.auth.admin.updateUserById(input.userId, {
+              ban_duration: suspension.permanent.auth,
+              email: `deleted-${input.userId}@users.invalid`,
+              email_confirm: true,
+              user_metadata: { account_deleted: true },
+            });
+            if (authError) {
+              console.error("Admin account anonymization auth failure", authError);
+              return Response.json(
+                { error: "Nie udało się wyłączyć dostępu do konta." },
+                { status: 500 },
+              );
+            }
+            const [profileResult, privateResult, moderationResult, listingsResult] =
+              await Promise.all([
+                db
+                  .from("profiles")
+                  .update({
+                    username: anonymousUsername,
+                    avatar_path: null,
+                    bio: null,
+                    country: "Nie podano",
+                    city: null,
+                    language: "pl",
+                    profile_visible: false,
+                    vacation_mode: true,
+                    show_city: false,
+                    personalised_ads: false,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", input.userId),
+                db
+                  .from("private_profiles")
+                  .update({
+                    full_name: null,
+                    phone: null,
+                    birth_date: null,
+                    gender: null,
+                    shipping_street: null,
+                    shipping_postcode: null,
+                    shipping_city: null,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("user_id", input.userId),
+                db.from("account_moderation").upsert({
+                  user_id: input.userId,
+                  status: "permanent",
+                  suspended_until: null,
+                  reason: "Konto usunięte przez administratora",
+                  updated_by: user.id,
+                  updated_at: new Date().toISOString(),
+                }),
+                db
+                  .from("listings")
+                  .update({ status: "hidden" })
+                  .eq("seller_id", input.userId)
+                  .in("status", ["active", "draft"]),
+              ]);
+            if (
+              profileResult.error ||
+              privateResult.error ||
+              moderationResult.error ||
+              listingsResult.error
+            )
+              return Response.json(
+                {
+                  error:
+                    "Dostęp został wyłączony, ale anonimizacja wymaga dokończenia przez administratora.",
+                },
+                { status: 500 },
+              );
+            await Promise.all([
+              db.from("favorites").delete().eq("user_id", input.userId),
+              db.from("notifications").delete().eq("user_id", input.userId),
+            ]);
+            await recordAudit(user.id, "anonymize_user", "user", input.userId, {
+              previous_username: profile.data.username,
+              preserved_orders: relatedOrders.count,
+            });
+            return Response.json({ ok: true, anonymized: true });
+          }
           const ownedListings = await db
             .from("listings")
             .select("id")

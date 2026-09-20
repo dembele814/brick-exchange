@@ -40,7 +40,7 @@ export function SiteFooter() {
   return (
     <footer className="relative mt-16 overflow-hidden border-t border-border bg-surface">
       <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6">
-        <BrandLogo />
+        <BrandLogo full className="w-40 sm:w-48" />
         <h2 className="mt-6 max-w-xl text-2xl font-bold sm:text-3xl">
           Drugie życie zaczyna się od jednego klocka.
         </h2>

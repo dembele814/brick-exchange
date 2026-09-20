@@ -108,6 +108,14 @@ const tabs = [
   ["dziennik", "Dziennik", ClipboardList],
 ] as const;
 type Tab = (typeof tabs)[number][0];
+type AdminDialog =
+  | {
+      kind: "ban";
+      user: AdminUser;
+      duration: "24h" | "7d" | "30d" | "permanent";
+    }
+  | { kind: "delete"; user: AdminUser }
+  | { kind: "refund"; orderId: string };
 
 const modeLabel = {
   live: "Produkcyjne",
@@ -148,6 +156,9 @@ function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [working, setWorking] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<AdminDialog | null>(null);
+  const [dialogValue, setDialogValue] = useState("");
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const response = await authenticatedRequest(requireSupabase(), "/api/admin", { method: "GET" });
@@ -188,8 +199,10 @@ function AdminPage() {
           : success,
       );
       await load();
+      return true;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Operacja nie powiodła się.");
+      return false;
     } finally {
       setWorking(null);
     }
@@ -205,23 +218,15 @@ function AdminPage() {
   }, [data, query]);
 
   const banUser = (user: AdminUser, duration: "24h" | "7d" | "30d" | "permanent") => {
-    const reason = window.prompt(`Powód blokady konta @${user.username}:`);
-    if (!reason) return;
-    void action(
-      { action: "ban_user", userId: user.id, duration, reason },
-      "Konto zostało zablokowane.",
-    );
+    setDialog({ kind: "ban", user, duration });
+    setDialogValue("");
+    setDialogError(null);
   };
 
   const deleteUser = (user: AdminUser) => {
-    const confirmation = window.prompt(
-      `To trwale usunie konto bez historii transakcji. Wpisz dokładnie ${user.username}, aby potwierdzić:`,
-    );
-    if (!confirmation) return;
-    void action(
-      { action: "delete_user", userId: user.id, confirmation },
-      "Konto zostało usunięte.",
-    );
+    setDialog({ kind: "delete", user });
+    setDialogValue("");
+    setDialogError(null);
   };
 
   return (
@@ -400,7 +405,16 @@ function AdminPage() {
         )}
 
         {data && tab === "zgloszenia" && (
-          <ReportsPanel data={data} working={working} action={action} />
+          <ReportsPanel
+            data={data}
+            working={working}
+            action={action}
+            requestRefund={(orderId) => {
+              setDialog({ kind: "refund", orderId });
+              setDialogValue("");
+              setDialogError(null);
+            }}
+          />
         )}
 
         {data && tab === "zamowienia" && (
@@ -452,6 +466,133 @@ function AdminPage() {
         )}
       </main>
       <SiteFooter />
+      {dialog && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !working) setDialog(null);
+          }}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-dialog-title"
+            className="card-surface w-full max-w-md p-5 sm:p-6"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setDialogError(null);
+              if (dialog.kind === "ban") {
+                const reason = dialogValue.trim();
+                if (reason.length < 3) {
+                  setDialogError("Wpisz powód blokady — co najmniej 3 znaki.");
+                  return;
+                }
+                if (
+                  await action(
+                    {
+                      action: "ban_user",
+                      userId: dialog.user.id,
+                      duration: dialog.duration,
+                      reason,
+                    },
+                    "Konto zostało zablokowane.",
+                  )
+                )
+                  setDialog(null);
+              } else if (dialog.kind === "delete") {
+                if (
+                  dialogValue.trim().toLocaleLowerCase("pl") !==
+                  dialog.user.username.toLocaleLowerCase("pl")
+                ) {
+                  setDialogError(`Wpisz dokładnie ${dialog.user.username}.`);
+                  return;
+                }
+                if (
+                  await action(
+                    {
+                      action: "delete_user",
+                      userId: dialog.user.id,
+                      confirmation: dialogValue.trim(),
+                    },
+                    "Konto zostało usunięte lub zanonimizowane.",
+                  )
+                )
+                  setDialog(null);
+              } else if (
+                await action(
+                  { action: "refund_order", orderId: dialog.orderId },
+                  "Pełny zwrot został zlecony.",
+                )
+              )
+                setDialog(null);
+            }}
+          >
+            <h2 id="admin-dialog-title" className="text-xl font-bold">
+              {dialog.kind === "ban"
+                ? `Zablokuj @${dialog.user.username}`
+                : dialog.kind === "delete"
+                  ? `Usuń @${dialog.user.username}`
+                  : "Potwierdź pełny zwrot"}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {dialog.kind === "ban"
+                ? `Blokada: ${dialog.duration === "permanent" ? "na stałe" : dialog.duration}. Użytkownik utraci dostęp, a jego aktywne oferty zostaną ukryte.`
+                : dialog.kind === "delete"
+                  ? "Konto bez transakcji zostanie usunięte. Jeśli ma historię zakupów lub sprzedaży, dostęp zostanie trwale zablokowany, a dane osobowe zanonimizowane przy zachowaniu rozliczeń."
+                  : "Stripe zwróci kupującemu całą opłaconą kwotę. Tej operacji nie można cofnąć."}
+            </p>
+            {dialog.kind !== "refund" && (
+              <label className="mt-4 block text-sm font-semibold">
+                {dialog.kind === "ban"
+                  ? "Powód blokady"
+                  : `Wpisz nazwę użytkownika: ${dialog.user.username}`}
+                {dialog.kind === "ban" ? (
+                  <textarea
+                    autoFocus
+                    value={dialogValue}
+                    onChange={(event) => setDialogValue(event.target.value)}
+                    maxLength={500}
+                    rows={4}
+                    placeholder="Opisz naruszenie zasad"
+                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-3 font-normal outline-none focus:ring-2 focus:ring-ring/40"
+                  />
+                ) : (
+                  <input
+                    autoFocus
+                    value={dialogValue}
+                    onChange={(event) => setDialogValue(event.target.value)}
+                    autoComplete="off"
+                    className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-3 font-normal outline-none focus:ring-2 focus:ring-ring/40"
+                  />
+                )}
+              </label>
+            )}
+            {dialogError && <p className="mt-3 text-sm text-destructive">{dialogError}</p>}
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={Boolean(working)}
+                onClick={() => setDialog(null)}
+                className="rounded-xl border border-border px-4 py-3 text-sm font-semibold"
+              >
+                Anuluj
+              </button>
+              <button
+                type="submit"
+                disabled={Boolean(working)}
+                className="rounded-xl bg-destructive px-4 py-3 text-sm font-bold text-destructive-foreground disabled:opacity-50"
+              >
+                {working
+                  ? "Zapisywanie…"
+                  : dialog.kind === "refund"
+                    ? "Zwróć pieniądze"
+                    : "Potwierdź"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
@@ -471,7 +612,7 @@ function UsersPanel({
   working: string | null;
   banUser: (user: AdminUser, duration: "24h" | "7d" | "30d" | "permanent") => void;
   deleteUser: (user: AdminUser) => void;
-  action: (body: Record<string, unknown>, success?: string) => Promise<void>;
+  action: (body: Record<string, unknown>, success?: string) => Promise<boolean>;
 }) {
   return (
     <section className="mt-5">
@@ -579,10 +720,12 @@ function ReportsPanel({
   data,
   working,
   action,
+  requestRefund,
 }: {
   data: AdminData;
   working: string | null;
-  action: (body: Record<string, unknown>, success?: string) => Promise<void>;
+  action: (body: Record<string, unknown>, success?: string) => Promise<boolean>;
+  requestRefund: (orderId: string) => void;
 }) {
   return (
     <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -607,10 +750,7 @@ function ReportsPanel({
                 </button>
                 <button
                   disabled={Boolean(working)}
-                  onClick={() =>
-                    window.confirm("Zwrócić pełną płatność kupującemu?") &&
-                    void action({ action: "refund_order", orderId: problem.order_id })
-                  }
+                  onClick={() => requestRefund(problem.order_id)}
                   className="rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-brand-foreground"
                 >
                   Pełny zwrot
