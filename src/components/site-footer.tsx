@@ -38,9 +38,7 @@ export function SiteFooter() {
           };
 
   return (
-    <footer className="relative mt-20 overflow-hidden border-t border-border bg-surface/75">
-      <div className="pointer-events-none absolute -left-32 -top-36 size-80 rounded-full bg-brand/15 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-40 right-0 size-96 rounded-full bg-grape/10 blur-3xl" />
+    <footer className="relative mt-16 overflow-hidden border-t border-border bg-surface">
       <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6">
         <BrandLogo />
         <h2 className="mt-6 max-w-xl text-2xl font-bold sm:text-3xl">

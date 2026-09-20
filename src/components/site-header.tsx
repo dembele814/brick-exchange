@@ -17,7 +17,7 @@ export function SiteHeader() {
   const { data: publicStatus } = usePublicStatus();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-2xl">
+    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-lg">
       <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center gap-3 px-4 sm:px-6">
         <Link
           to="/"
@@ -34,7 +34,7 @@ export function SiteHeader() {
         </Link>
 
         <form
-          className="ml-3 hidden max-w-xl flex-1 items-center gap-2 rounded-2xl border border-border bg-card/70 px-4 py-2.5 text-sm shadow-card transition-colors focus-within:border-brand/60 focus-within:ring-2 focus-within:ring-ring/25 md:flex"
+          className="ml-3 hidden max-w-xl flex-1 items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm transition-colors focus-within:border-brand/60 focus-within:ring-2 focus-within:ring-ring/25 md:flex"
           onSubmit={(event) => {
             event.preventDefault();
             navigate({ to: "/", search: { q: query.trim() || undefined } });

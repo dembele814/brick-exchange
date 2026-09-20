@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, BadgeCheck, Search, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -78,50 +78,31 @@ function Index() {
       <main>
         <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-9">
           <h1 className="sr-only">Oferty zestawów i klocków LEGO</h1>
-          <div className="relative mb-9 overflow-hidden rounded-[2rem] border border-brand/20 bg-card/65 px-6 py-10 shadow-lift backdrop-blur-xl sm:px-12 sm:py-14 lg:min-h-[31rem] lg:px-16 lg:py-16">
-            <div className="absolute -right-28 -top-36 size-[30rem] rounded-full bg-brand/25 blur-[90px]" />
-            <div className="absolute -bottom-56 right-[22%] size-[30rem] rounded-full bg-grape/25 blur-[100px]" />
-            <div className="absolute right-8 top-1/2 hidden h-72 w-[34%] -translate-y-1/2 rotate-6 lg:block">
-              <div className="absolute inset-0 rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-brand/30 via-grape/15 to-transparent shadow-lift" />
-              <div className="absolute left-8 top-8 size-28 -rotate-6 rounded-[2rem] border border-brand/30 bg-background/75 p-5 shadow-lift backdrop-blur-xl">
-                <div className="grid size-full grid-cols-2 gap-2">
-                  <i className="rounded-lg bg-brand" />
-                  <i className="rounded-lg bg-grape" />
-                  <i className="rounded-lg bg-grape" />
-                  <i className="rounded-lg bg-brand" />
-                </div>
-              </div>
-              <div className="absolute bottom-8 right-7 w-52 -rotate-6 rounded-2xl border border-white/10 bg-background/80 p-4 shadow-lift backdrop-blur-xl">
-                <p className="text-xs text-muted-foreground">Społeczność kolekcjonerów</p>
-                <p className="mt-1 text-2xl font-bold brand-gradient-text">Kup. Sprzedaj. Buduj.</p>
-              </div>
-            </div>
-            <div className="relative max-w-2xl lg:max-w-[58%]">
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand-soft/70 px-3 py-1.5 text-xs font-bold tracking-[0.12em] text-foreground">
+          <div className="relative mb-8 overflow-hidden rounded-2xl border border-border bg-card px-6 py-8 shadow-card sm:px-10 sm:py-9">
+            <div className="absolute right-0 top-0 h-full w-1.5 bg-brand" />
+            <div className="relative max-w-4xl">
+              <span className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.12em] text-brand">
                 <Sparkles className="size-3.5 text-brand" /> MARKETPLACE DLA FANÓW KLOCKÓW
               </span>
-              <h2 className="mt-6 font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl">
+              <h2 className="mt-5 font-display text-4xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">
                 Kolekcje mają <span className="brand-gradient-text">drugie życie.</span>
               </h2>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
                 Odkrywaj zestawy, minifigurki i części od społeczności, która zna ich prawdziwą
                 wartość.
               </p>
               <Link
                 to="/sprzedaj"
-                className="button-gradient mt-7 inline-flex items-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all"
+                className="button-gradient mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition-colors"
               >
                 Wystaw swoją ofertę <ArrowRight className="size-4" />
               </Link>
-              <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+              <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <ShieldCheck className="size-4 text-brand" /> Bezpieczne płatności
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <BadgeCheck className="size-4 text-brand" /> Profile sprzedających
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Zap className="size-4 text-brand" /> Szybkie wystawianie
                 </span>
               </div>
             </div>
@@ -219,7 +200,7 @@ function Index() {
           )}
 
           {promoted.length > 0 && (
-            <section className="mt-6 rounded-[2rem] border border-brand/25 bg-gradient-to-br from-brand/15 via-grape-soft/40 to-sky-soft/30 p-4 shadow-card sm:p-6">
+            <section className="mt-6 rounded-2xl border border-brand/25 bg-card p-4 shadow-card sm:p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
                 <span className="grid size-8 place-items-center rounded-full bg-card shadow-card">
                   <Sparkles className="size-4 text-brand" aria-hidden />

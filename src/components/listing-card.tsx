@@ -14,11 +14,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const isOwnListing = Boolean(userId && listing.seller.id === userId);
 
   return (
-    <article className="group relative transition-transform duration-300 hover:-translate-y-1.5">
+    <article className="group relative">
       <Link
         to="/oferta/$id"
         params={{ id: listing.id }}
-        className="block overflow-hidden rounded-3xl border border-border bg-card shadow-card transition-all hover:border-brand/40 hover:shadow-lift"
+        className="block overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-colors hover:border-brand/40"
       >
         <div className="relative aspect-square overflow-hidden bg-surface before:absolute before:inset-x-0 before:bottom-0 before:z-10 before:h-1/3 before:bg-gradient-to-t before:from-primary/15 before:to-transparent">
           <img

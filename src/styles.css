@@ -44,22 +44,22 @@
   --color-mint-soft: var(--mint-soft);
   --color-grape: var(--grape);
   --color-grape-soft: var(--grape-soft);
-  --shadow-card: 0 18px 55px -28px oklch(0.02 0.03 290 / 78%), inset 0 1px 0 oklch(1 0 0 / 5%);
-  --shadow-lift: 0 28px 80px -32px oklch(0.68 0.24 330 / 28%), 0 16px 40px -24px oklch(0 0 0 / 80%);
+  --shadow-card: 0 10px 28px -20px oklch(0 0 0 / 72%);
+  --shadow-lift: 0 18px 46px -28px oklch(0 0 0 / 85%);
 }
 
 :root {
   color-scheme: dark;
-  --radius: 1rem;
-  --background: oklch(0.125 0.025 295);
+  --radius: 0.75rem;
+  --background: oklch(0.125 0.015 295);
   --foreground: oklch(0.965 0.01 300);
-  --card: oklch(0.19 0.032 295 / 84%);
+  --card: oklch(0.18 0.022 295 / 94%);
   --card-foreground: oklch(0.965 0.01 300);
   --popover: oklch(0.18 0.033 295 / 98%);
   --popover-foreground: oklch(0.965 0.01 300);
   --primary: oklch(0.69 0.24 334);
   --primary-foreground: oklch(0.99 0.005 300);
-  --secondary: oklch(0.235 0.04 295);
+  --secondary: oklch(0.225 0.025 295);
   --secondary-foreground: oklch(0.93 0.012 300);
   --muted: oklch(0.225 0.03 295);
   --muted-foreground: oklch(0.72 0.025 300);
@@ -67,13 +67,13 @@
   --accent-foreground: oklch(0.98 0.01 300);
   --destructive: oklch(0.63 0.22 25);
   --destructive-foreground: oklch(0.99 0.005 300);
-  --border: oklch(0.42 0.055 305 / 36%);
-  --input: oklch(0.42 0.055 305 / 42%);
+  --border: oklch(0.42 0.035 305 / 32%);
+  --input: oklch(0.42 0.035 305 / 38%);
   --ring: oklch(0.72 0.22 330);
-  --surface: oklch(0.155 0.03 295);
+  --surface: oklch(0.15 0.018 295);
   --brand: oklch(0.7 0.24 334);
   --brand-foreground: oklch(0.99 0.005 300);
-  --brand-soft: oklch(0.29 0.095 325 / 78%);
+  --brand-soft: oklch(0.27 0.07 325 / 72%);
   --sun: oklch(0.76 0.18 345);
   --sun-foreground: oklch(0.99 0.005 300);
   --sky: oklch(0.67 0.19 270);
@@ -92,11 +92,11 @@
   body {
     background-color: var(--color-background);
     min-width: 320px;
-    background-image:
-      radial-gradient(circle at 8% -5%, oklch(0.61 0.25 330 / 24%), transparent 30rem),
-      radial-gradient(circle at 96% 20%, oklch(0.52 0.22 285 / 22%), transparent 34rem),
-      radial-gradient(circle at 54% 110%, oklch(0.57 0.25 345 / 14%), transparent 36rem),
-      linear-gradient(145deg, oklch(0.12 0.025 295), oklch(0.145 0.035 285));
+    background-image: radial-gradient(
+      circle at 85% 0%,
+      oklch(0.55 0.2 330 / 11%),
+      transparent 34rem
+    );
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -106,18 +106,6 @@
   :is(button, a, input, select, textarea):focus-visible {
     outline: 3px solid color-mix(in oklch, var(--color-ring) 72%, white);
     outline-offset: 2px;
-  }
-
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    opacity: 0.22;
-    background-image: radial-gradient(circle, oklch(0.86 0.08 320 / 34%) 1px, transparent 1.5px);
-    background-size: 28px 28px;
-    mask-image: linear-gradient(to bottom, black, transparent 76%);
   }
 
   h1,
@@ -130,7 +118,7 @@
 
 @utility card-surface {
   background-color: var(--color-card);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(10px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
@@ -143,29 +131,26 @@
     display: inline-grid;
     place-items: center;
     flex: none;
-    border-radius: 0.9rem;
-    background: linear-gradient(145deg, oklch(0.32 0.12 320 / 80%), oklch(0.2 0.06 285 / 80%));
+    border-radius: 0.7rem;
+    background: oklch(0.22 0.04 305);
     border: 1px solid oklch(0.78 0.2 330 / 30%);
-    box-shadow:
-      0 10px 32px -12px oklch(0.72 0.25 330 / 75%),
-      inset 0 1px 0 oklch(1 0 0 / 12%);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 10%);
   }
 
   .brand-gradient-text {
     color: transparent;
-    background-image: linear-gradient(100deg, #ff79c9 0%, #e879f9 44%, #a78bfa 100%);
+    background-image: linear-gradient(100deg, #ff79c9, #d98af4);
     background-clip: text;
     -webkit-background-clip: text;
   }
 
   .button-gradient {
     color: white;
-    background-image: linear-gradient(105deg, oklch(0.65 0.27 340), oklch(0.62 0.25 305));
-    box-shadow: 0 14px 34px -16px oklch(0.69 0.28 330 / 90%);
+    background-color: var(--color-brand);
+    box-shadow: none;
   }
 
   .button-gradient:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
+    filter: brightness(1.08);
   }
 }
