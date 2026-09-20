@@ -200,6 +200,7 @@ before(async () => {
     "20260916_payment_reconciliation.sql",
     "20260920_admin_moderation.sql",
     "20260920_checkout_retry.sql",
+    "20260920_required_username.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -264,6 +265,21 @@ test("account moderation permits active and expired suspensions but blocks curre
   assert.equal(permanent.rows[0].allowed, false);
 });
 
+test("registration never invents a username and availability ignores letter case", async () => {
+  const oauthUser = "77777777-7777-4777-8777-777777777777";
+  await db.query("insert into auth.users(id) values($1)", [oauthUser]);
+  const missingProfile = await db.query(
+    "select count(*)::int as count from public.profiles where id=$1",
+    [oauthUser],
+  );
+  assert.equal(missingProfile.rows[0].count, 0);
+
+  const occupied = await db.query("select public.username_available('SELLER_TEST') as available");
+  const free = await db.query("select public.username_available('nowy_kolekcjoner') as available");
+  assert.equal(occupied.rows[0].available, false);
+  assert.equal(free.rows[0].available, true);
+});
+
 test("an accepted offer becomes the immutable checkout amount", async () => {
   const conversation = await db.query(
     "insert into public.conversations(listing_id,buyer_id) values($1,$2) returning id",
@@ -319,7 +335,10 @@ test("an accepted seller counteroffer can be purchased only by its buyer", async
 beforeEach(async () => {
   await db.exec(`drop trigger if exists fail_notification on public.notifications;
     truncate auth.users cascade;
-    insert into auth.users(id) values ('${seller}'), ('${buyer}'), ('${otherBuyer}');
+    insert into auth.users(id,raw_user_meta_data) values
+      ('${seller}', '{"username":"seller_test"}'),
+      ('${buyer}', '{"username":"buyer_test"}'),
+      ('${otherBuyer}', '{"username":"other_buyer_test"}');
     insert into public.listings(id, seller_id, title, category, theme, condition, price_grosz, status)
     values ('${listing}', '${seller}', 'LEGO test set', 'sets', 'City', 'new', 12345, 'draft');
     update public.listings set seller_is_private=true, status='active' where id='${listing}';`);

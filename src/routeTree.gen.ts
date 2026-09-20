@@ -17,6 +17,7 @@ import { Route as PortfelRouteImport } from './routes/portfel'
 import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as RegulaminRouteImport } from './routes/regulamin'
+import { Route as RejestracjaGoogleRouteImport } from './routes/rejestracja-google'
 import { Route as ResetHaslaRouteImport } from './routes/reset-hasla'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
 import { Route as UlubioneRouteImport } from './routes/ulubione'
@@ -80,6 +81,11 @@ const ProfilRoute = ProfilRouteImport.update({
 const RegulaminRoute = RegulaminRouteImport.update({
   id: '/regulamin',
   path: '/regulamin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RejestracjaGoogleRoute = RejestracjaGoogleRouteImport.update({
+  id: '/rejestracja-google',
+  path: '/rejestracja-google',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetHaslaRoute = ResetHaslaRouteImport.update({
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
   '/regulamin': typeof RegulaminRoute
+  '/rejestracja-google': typeof RejestracjaGoogleRoute
   '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
   '/regulamin': typeof RegulaminRoute
+  '/rejestracja-google': typeof RejestracjaGoogleRoute
   '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
   '/regulamin': typeof RegulaminRoute
+  '/rejestracja-google': typeof RejestracjaGoogleRoute
   '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
   '/ulubione': typeof UlubioneRoute
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/powiadomienia'
     | '/profil'
     | '/regulamin'
+    | '/rejestracja-google'
     | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/powiadomienia'
     | '/profil'
     | '/regulamin'
+    | '/rejestracja-google'
     | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
@@ -385,6 +396,7 @@ export interface FileRouteTypes {
     | '/powiadomienia'
     | '/profil'
     | '/regulamin'
+    | '/rejestracja-google'
     | '/reset-hasla'
     | '/sprzedaj'
     | '/ulubione'
@@ -420,6 +432,7 @@ export interface RootRouteChildren {
   PowiadomieniaRoute: typeof PowiadomieniaRoute
   ProfilRoute: typeof ProfilRoute
   RegulaminRoute: typeof RegulaminRoute
+  RejestracjaGoogleRoute: typeof RejestracjaGoogleRoute
   ResetHaslaRoute: typeof ResetHaslaRoute
   SprzedajRoute: typeof SprzedajRoute
   UlubioneRoute: typeof UlubioneRoute
@@ -502,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/regulamin'
       fullPath: '/regulamin'
       preLoaderRoute: typeof RegulaminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rejestracja-google': {
+      id: '/rejestracja-google'
+      path: '/rejestracja-google'
+      fullPath: '/rejestracja-google'
+      preLoaderRoute: typeof RejestracjaGoogleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-hasla': {
@@ -684,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   PowiadomieniaRoute: PowiadomieniaRoute,
   ProfilRoute: ProfilRoute,
   RegulaminRoute: RegulaminRoute,
+  RejestracjaGoogleRoute: RejestracjaGoogleRoute,
   ResetHaslaRoute: ResetHaslaRoute,
   SprzedajRoute: SprzedajRoute,
   UlubioneRoute: UlubioneRoute,

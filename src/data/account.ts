@@ -313,9 +313,28 @@ function normaliseRegistrationProfile(input: RegistrationProfile): RegistrationP
   return result;
 }
 
+function usernameTakenError() {
+  return new Error("Ten nick jest już zajęty. Wybierz inny nick, którego nikt jeszcze nie używa.");
+}
+
+export async function isUsernameAvailable(name: string) {
+  const username = name.trim();
+  if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username)) return false;
+  const { data, error } = await requireSupabase().rpc("username_available", {
+    candidate: username,
+  });
+  if (error) throw error;
+  return data === true;
+}
+
+async function requireAvailableUsername(name: string) {
+  if (!(await isUsernameAvailable(name))) throw usernameTakenError();
+}
+
 export async function loginWithGoogle(registrationProfile?: RegistrationProfile) {
   if (registrationProfile) {
     const profile = normaliseRegistrationProfile(registrationProfile);
+    await requireAvailableUsername(profile.name);
     sessionStorage.setItem(
       pendingRegistrationKey,
       JSON.stringify({ ...profile, createdAt: Date.now() }),
@@ -324,7 +343,7 @@ export async function loginWithGoogle(registrationProfile?: RegistrationProfile)
   const { data, error } = await requireSupabase().auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/profil`,
+      redirectTo: `${window.location.origin}/rejestracja-google`,
       scopes: "https://www.googleapis.com/auth/userinfo.email",
       queryParams: { prompt: "select_account" },
     },
@@ -348,6 +367,7 @@ export async function linkGoogleAccount() {
 
 export async function register(input: RegistrationProfile & { email: string; password: string }) {
   const profile = normaliseRegistrationProfile(input);
+  await requireAvailableUsername(profile.name);
   const { data, error } = await requireSupabase().auth.signUp({
     email: input.email.trim().toLowerCase(),
     password: input.password,
@@ -361,8 +381,73 @@ export async function register(input: RegistrationProfile & { email: string; pas
       },
     },
   });
-  if (error) throw error;
+  if (error) {
+    if (/username_taken|duplicate|already exists|database error/i.test(error.message))
+      throw usernameTakenError();
+    throw error;
+  }
   return data;
+}
+
+export function getPendingGoogleRegistration(): RegistrationProfile | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(pendingRegistrationKey);
+  if (!raw) return null;
+  try {
+    return normaliseRegistrationProfile(JSON.parse(raw) as RegistrationProfile);
+  } catch {
+    sessionStorage.removeItem(pendingRegistrationKey);
+    return null;
+  }
+}
+
+export async function currentAccountHasProfile() {
+  const client = requireSupabase();
+  const { data: auth, error: authError } = await client.auth.getUser();
+  if (authError || !auth.user) return false;
+  const { data, error } = await client
+    .from("profiles")
+    .select("id")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function completeGoogleRegistration(input: RegistrationProfile) {
+  const profile = normaliseRegistrationProfile(input);
+  const client = requireSupabase();
+  const { data: auth, error: authError } = await client.auth.getUser();
+  if (authError || !auth.user) throw new Error("Zaloguj się ponownie przez Google.");
+
+  const { data: existing, error: existingError } = await client
+    .from("profiles")
+    .select("id")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (existing) {
+    sessionStorage.removeItem(pendingRegistrationKey);
+    await refreshAccount();
+    return { existing: true };
+  }
+
+  await requireAvailableUsername(profile.name);
+  const { error } = await client.from("profiles").insert({
+    id: auth.user.id,
+    username: profile.name,
+    country: profile.country,
+    city: profile.city,
+    language: profile.language,
+    bio: profile.bio || null,
+  });
+  if (error) {
+    if (error.code === "23505") throw usernameTakenError();
+    throw error;
+  }
+  sessionStorage.removeItem(pendingRegistrationKey);
+  await refreshAccount();
+  return { existing: false };
 }
 
 export function isFavorite(id: string) {
@@ -438,53 +523,19 @@ async function syncSession(session: Session, revision: number) {
         supabase.from("reviews").select("rating").eq("seller_id", user.id),
       ]);
     if (revision !== sessionRevision) return;
-    let resolvedProfile = profile;
-    const pendingRaw = sessionStorage.getItem(pendingRegistrationKey);
-    if (pendingRaw) {
-      try {
-        const pending = JSON.parse(pendingRaw) as RegistrationProfile & { createdAt?: number };
-        const isRecentRegistration =
-          Date.now() - new Date(user.created_at).getTime() < 15 * 60 * 1000 &&
-          Date.now() - Number(pending.createdAt ?? 0) < 30 * 60 * 1000;
-        if (isRecentRegistration) {
-          const registration = normaliseRegistrationProfile(pending);
-          const { error: registrationError } = await supabase
-            .from("profiles")
-            .update({
-              username: registration.name,
-              country: registration.country,
-              city: registration.city,
-              language: registration.language,
-              bio: registration.bio || null,
-            })
-            .eq("id", user.id);
-          if (!registrationError)
-            resolvedProfile = {
-              ...profile,
-              username: registration.name,
-              country: registration.country,
-              city: registration.city,
-              language: registration.language,
-              bio: registration.bio,
-            };
-        }
-      } finally {
-        sessionStorage.removeItem(pendingRegistrationKey);
-      }
-    }
     const reviewValues = (receivedReviews ?? []).map((review) => review.rating);
     state.profile = {
       ...state.profile,
-      name: resolvedProfile?.username ?? "",
-      avatar: resolvedProfile?.avatar_path ?? state.profile.avatar,
-      bio: resolvedProfile?.bio ?? "",
-      country: resolvedProfile?.country ?? "",
-      city: resolvedProfile?.city ?? "",
-      language: resolvedProfile?.language === "pl" ? "Polski" : (resolvedProfile?.language ?? ""),
-      profileVisible: resolvedProfile?.profile_visible ?? state.profile.profileVisible,
-      vacationMode: resolvedProfile?.vacation_mode ?? state.profile.vacationMode,
-      showCity: resolvedProfile?.show_city ?? state.profile.showCity,
-      personalisedAds: resolvedProfile?.personalised_ads ?? state.profile.personalisedAds,
+      name: profile?.username ?? "",
+      avatar: profile?.avatar_path ?? state.profile.avatar,
+      bio: profile?.bio ?? "",
+      country: profile?.country ?? "",
+      city: profile?.city ?? "",
+      language: profile?.language === "pl" ? "Polski" : (profile?.language ?? ""),
+      profileVisible: profile?.profile_visible ?? state.profile.profileVisible,
+      vacationMode: profile?.vacation_mode ?? state.profile.vacationMode,
+      showCity: profile?.show_city ?? state.profile.showCity,
+      personalisedAds: profile?.personalised_ads ?? state.profile.personalisedAds,
       email: user.email ?? state.profile.email,
       rating: reviewValues.length
         ? Math.round(
@@ -520,6 +571,15 @@ async function syncSession(session: Session, revision: number) {
     state.favorites = [];
   }
   emit();
+}
+
+export async function refreshAccount() {
+  const client = requireSupabase();
+  const { data, error } = await client.auth.getSession();
+  if (error) throw error;
+  if (!data.session) return;
+  const revision = ++sessionRevision;
+  await syncSession(data.session, revision);
 }
 
 if (typeof window !== "undefined" && supabase) {

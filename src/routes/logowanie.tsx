@@ -1,9 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Globe2, Languages, Lock, Mail, MapPin, MessageSquare, User } from "lucide-react";
+import {
+  CheckCircle2,
+  Globe2,
+  Languages,
+  LoaderCircle,
+  Lock,
+  Mail,
+  MapPin,
+  MessageSquare,
+  User,
+  XCircle,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { login, loginWithGoogle, register, sendPasswordResetForEmail } from "@/data/account";
+import {
+  isUsernameAvailable,
+  login,
+  loginWithGoogle,
+  register,
+  sendPasswordResetForEmail,
+} from "@/data/account";
 import { cn } from "@/lib/utils";
 
 const countries = [
@@ -54,6 +71,25 @@ function AuthPage() {
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [nameAvailability, setNameAvailability] = useState<"idle" | "checking" | "free" | "taken">(
+    "idle",
+  );
+
+  async function checkName() {
+    if (mode !== "register" || !/^[a-zA-Z0-9_.-]{3,40}$/.test(name.trim())) {
+      setNameAvailability("idle");
+      return false;
+    }
+    setNameAvailability("checking");
+    try {
+      const free = await isUsernameAvailable(name);
+      setNameAvailability(free ? "free" : "taken");
+      return free;
+    } catch {
+      setNameAvailability("idle");
+      return false;
+    }
+  }
 
   const field =
     "mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus-within:ring-2 focus-within:ring-ring/40";
@@ -103,14 +139,33 @@ function AuthPage() {
                   maxLength={40}
                   pattern="[a-zA-Z0-9_.-]+"
                   value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    setNameAvailability("idle");
+                  }}
+                  onBlur={() => void checkName()}
                   placeholder="Wpisz swój nick"
                   className="w-full bg-transparent outline-none"
                 />
+                {nameAvailability === "checking" && (
+                  <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+                )}
+                {nameAvailability === "free" && <CheckCircle2 className="size-4 text-mint" />}
+                {nameAvailability === "taken" && <XCircle className="size-4 text-destructive" />}
               </span>
               <span className="mt-1 block text-xs text-muted-foreground">
                 3–40 znaków: litery, cyfry, kropka, myślnik lub podkreślenie.
               </span>
+              {nameAvailability === "free" && (
+                <span className="mt-1 block text-xs font-semibold text-mint">
+                  Ten nick jest wolny.
+                </span>
+              )}
+              {nameAvailability === "taken" && (
+                <span className="mt-1 block text-xs font-semibold text-destructive">
+                  Ten nick jest już używany. Wybierz inny.
+                </span>
+              )}
             </label>
             <label className="block text-sm font-medium">
               Kraj
@@ -191,9 +246,13 @@ function AuthPage() {
             }
             setSubmitting(true);
             setError(null);
-            void loginWithGoogle(
-              mode === "register" ? { name, country, city, language, bio } : undefined,
-            )
+            void (async () => {
+              if (mode === "register" && !(await checkName()))
+                throw new Error("Ten nick jest już zajęty. Wybierz inny nick.");
+              return loginWithGoogle(
+                mode === "register" ? { name, country, city, language, bio } : undefined,
+              );
+            })()
               .catch((cause) =>
                 setError(
                   cause instanceof Error ? cause.message : "Nie udało się połączyć z Google.",
@@ -226,6 +285,10 @@ function AuthPage() {
             }
             setSubmitting(true);
             try {
+              if (mode === "register" && !(await checkName())) {
+                setError("Ten nick jest już zajęty. Wybierz inny nick.");
+                return;
+              }
               const result =
                 mode === "register"
                   ? await register({ name, country, city, language, bio, email, password })
@@ -330,7 +393,10 @@ function AuthPage() {
 
           <button
             type="submit"
-            disabled={submitting || (mode === "register" && !acceptedTerms)}
+            disabled={
+              submitting ||
+              (mode === "register" && (!acceptedTerms || nameAvailability === "taken"))
+            }
             className="w-full rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
             {submitting ? "Trwa przetwarzanie…" : mode === "login" ? "Zaloguj się" : "Załóż konto"}
