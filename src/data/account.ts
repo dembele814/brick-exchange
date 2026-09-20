@@ -113,7 +113,17 @@ let state: State = {
   isAdmin: false,
   favorites: [],
 };
-const serverSnapshot = state;
+// Keep the server snapshot immutable. Supabase can resolve a browser session
+// before React hydrates; sharing the same object would then make the server
+// snapshot change underneath the already-rendered HTML.
+const serverSnapshot: State = {
+  ...state,
+  profile: { ...state.profile },
+  myListings: [],
+  orders: [],
+  wallet: { balance: 0, transactions: [] },
+  favorites: [],
+};
 
 const listeners = new Set<() => void>();
 const emit = () => {
