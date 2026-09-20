@@ -367,12 +367,7 @@ export const Route = createFileRoute("/api/admin")({
             );
           if ((relatedOrders.count ?? 0) > 0) {
             const anonymousUsername = `usuniety_${input.userId.replaceAll("-", "").slice(0, 12)}`;
-            const { error: authError } = await db.auth.admin.updateUserById(input.userId, {
-              ban_duration: suspension.permanent.auth,
-              email: `deleted-${input.userId}@users.invalid`,
-              email_confirm: true,
-              user_metadata: { account_deleted: true },
-            });
+            const { error: authError } = await db.auth.admin.deleteUser(input.userId, true);
             if (authError) {
               console.error("Admin account anonymization auth failure", authError);
               return Response.json(
