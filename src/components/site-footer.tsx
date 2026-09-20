@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { usePublicStatus } from "@/data/public-status";
+import { BrandLogo } from "@/components/brand-logo";
 
 const tiles = [
   {
@@ -37,18 +38,25 @@ export function SiteFooter() {
           };
 
   return (
-    <footer className="mt-14 border-t border-border bg-surface">
-      <div className="mx-auto max-w-6xl px-4 py-12">
-        <h2 className="text-xl font-bold">Drugie życie każdego zestawu</h2>
-        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+    <footer className="relative mt-20 overflow-hidden border-t border-border bg-surface/75">
+      <div className="pointer-events-none absolute -left-32 -top-36 size-80 rounded-full bg-brand/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 right-0 size-96 rounded-full bg-grape/10 blur-3xl" />
+      <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6">
+        <BrandLogo />
+        <h2 className="mt-6 max-w-xl text-2xl font-bold sm:text-3xl">
+          Drugie życie zaczyna się od jednego klocka.
+        </h2>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
           Kupuj kompletne zestawy, pojedyncze minifigurki i klocki na wagę — od kolekcjonerów,
           którzy dokładnie opisują stan każdego elementu.
         </p>
 
-        <dl className="mt-8 grid gap-4 sm:grid-cols-3">
+        <dl className="mt-9 grid gap-4 sm:grid-cols-3">
           {[paymentTile, ...tiles].map(({ icon: Icon, t, d }) => (
-            <div key={t} className="card-surface p-4">
-              <Icon className="size-5 text-brand" aria-hidden />
+            <div key={t} className="card-surface group p-5 transition-colors hover:border-brand/40">
+              <span className="grid size-10 place-items-center rounded-xl bg-brand-soft">
+                <Icon className="size-5 text-brand" aria-hidden />
+              </span>
               <dt className="mt-3 text-sm font-semibold">{t}</dt>
               <dd className="mt-1 text-sm text-muted-foreground">{d}</dd>
             </div>

@@ -37,7 +37,7 @@ export function UserMenu() {
         aria-label="Konto"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="grid size-9 place-items-center overflow-hidden rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+        className="grid size-9 place-items-center overflow-hidden rounded-xl border border-border bg-card text-muted-foreground shadow-card transition-all hover:border-brand/40 hover:text-foreground"
       >
         {loggedIn ? (
           <img

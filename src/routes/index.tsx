@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Search, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, Search, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -10,7 +10,9 @@ import { supabase } from "@/lib/supabase";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>) => ({ q: typeof search["q"] === "string" ? search["q"] : undefined }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search["q"] === "string" ? search["q"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Klockogram — marketplace zestawów i klocków LEGO" },
@@ -45,7 +47,10 @@ function Index() {
     const normalizedQuery = query.trim().toLocaleLowerCase("pl");
     const filtered = source.filter((listing) => {
       const hasTheme = theme === "Wszystkie" || listing.theme === theme;
-      const haystack = `${listing.title} ${listing.setNumber} ${listing.theme} ${listing.seller.name}`.toLocaleLowerCase("pl");
+      const haystack =
+        `${listing.title} ${listing.setNumber} ${listing.theme} ${listing.seller.name}`.toLocaleLowerCase(
+          "pl",
+        );
       return hasTheme && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
     const sorted = [...filtered];
@@ -71,67 +76,122 @@ function Index() {
       <SiteHeader />
 
       <main>
-        <section className="mx-auto max-w-6xl px-4 pb-12 pt-5">
+        <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-9">
           <h1 className="sr-only">Oferty zestawów i klocków LEGO</h1>
-          <div className="relative mb-8 overflow-hidden rounded-[2rem] bg-primary px-6 py-9 text-primary-foreground shadow-lift sm:px-10 sm:py-12">
-            <div className="absolute -right-12 -top-20 size-72 rounded-full bg-sun/80 blur-3xl" />
-            <div className="absolute -bottom-20 right-44 size-56 rounded-full bg-brand/70 blur-3xl" />
-            <div className="relative max-w-xl">
-              <span className="inline-flex items-center gap-2 rounded-full bg-card/15 px-3 py-1.5 text-xs font-bold tracking-wide">
-                <Sparkles className="size-3.5" /> DLA TYCH, KTÓRZY WIDZĄ WIĘCEJ
+          <div className="relative mb-9 overflow-hidden rounded-[2rem] border border-brand/20 bg-card/65 px-6 py-10 shadow-lift backdrop-blur-xl sm:px-12 sm:py-14 lg:min-h-[31rem] lg:px-16 lg:py-16">
+            <div className="absolute -right-28 -top-36 size-[30rem] rounded-full bg-brand/25 blur-[90px]" />
+            <div className="absolute -bottom-56 right-[22%] size-[30rem] rounded-full bg-grape/25 blur-[100px]" />
+            <div className="absolute right-8 top-1/2 hidden h-72 w-[34%] -translate-y-1/2 rotate-6 lg:block">
+              <div className="absolute inset-0 rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-brand/30 via-grape/15 to-transparent shadow-lift" />
+              <div className="absolute left-8 top-8 size-28 -rotate-6 rounded-[2rem] border border-brand/30 bg-background/75 p-5 shadow-lift backdrop-blur-xl">
+                <div className="grid size-full grid-cols-2 gap-2">
+                  <i className="rounded-lg bg-brand" />
+                  <i className="rounded-lg bg-grape" />
+                  <i className="rounded-lg bg-grape" />
+                  <i className="rounded-lg bg-brand" />
+                </div>
+              </div>
+              <div className="absolute bottom-8 right-7 w-52 -rotate-6 rounded-2xl border border-white/10 bg-background/80 p-4 shadow-lift backdrop-blur-xl">
+                <p className="text-xs text-muted-foreground">Społeczność kolekcjonerów</p>
+                <p className="mt-1 text-2xl font-bold brand-gradient-text">Kup. Sprzedaj. Buduj.</p>
+              </div>
+            </div>
+            <div className="relative max-w-2xl lg:max-w-[58%]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand-soft/70 px-3 py-1.5 text-xs font-bold tracking-[0.12em] text-foreground">
+                <Sparkles className="size-3.5 text-brand" /> MARKETPLACE DLA FANÓW KLOCKÓW
               </span>
-              <h2 className="mt-5 font-display text-4xl font-bold leading-[0.96] sm:text-6xl">
-                Daj klockom kolejne życie.
+              <h2 className="mt-6 font-display text-5xl font-bold leading-[0.92] tracking-[-0.065em] sm:text-7xl">
+                Kolekcje mają <span className="brand-gradient-text">drugie życie.</span>
               </h2>
-              <p className="mt-5 max-w-md text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
-                Zestawy z historią, części z potencjałem i kolekcjonerzy, którym można zaufać.
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+                Odkrywaj zestawy, minifigurki i części od społeczności, która zna ich prawdziwą
+                wartość.
               </p>
-              <Link to="/sprzedaj" className="mt-6 inline-flex items-center gap-2 rounded-full bg-card px-5 py-3 text-sm font-bold text-foreground transition-transform hover:-translate-y-0.5">
+              <Link
+                to="/sprzedaj"
+                className="button-gradient mt-7 inline-flex items-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all"
+              >
                 Wystaw swoją ofertę <ArrowRight className="size-4" />
               </Link>
+              <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <ShieldCheck className="size-4 text-brand" /> Bezpieczne płatności
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <BadgeCheck className="size-4 text-brand" /> Profile sprzedających
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap className="size-4 text-brand" /> Szybkie wystawianie
+                </span>
+              </div>
             </div>
           </div>
 
           <label className="card-surface mb-4 flex items-center gap-3 px-4 py-3 sm:hidden">
             <Search className="size-4 text-muted-foreground" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj zestawu, numeru lub serii" className="w-full bg-transparent text-sm outline-none" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Szukaj zestawu, numeru lub serii"
+              className="w-full bg-transparent text-sm outline-none"
+            />
           </label>
 
-          <section className="card-surface p-4 sm:p-5" aria-labelledby="popular-series-heading">
+          <section className="card-surface p-5 sm:p-6" aria-labelledby="popular-series-heading">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Polecane</p>
-                <h2 id="popular-series-heading" className="mt-1 text-lg font-semibold">Najpopularniejsze serie LEGO</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+                  Odkrywaj
+                </p>
+                <h2 id="popular-series-heading" className="mt-1 text-xl font-bold">
+                  Najpopularniejsze serie
+                </h2>
               </div>
               <select
                 aria-label="Wszystkie serie LEGO"
                 value={theme}
                 onChange={(event) => setTheme(event.target.value)}
-                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-ring/40"
+                className="rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-foreground outline-none focus:ring-2 focus:ring-ring/40"
               >
                 <option value="Wszystkie">Wszystkie serie</option>
-                {legoSeries.map((series) => <option key={series} value={series}>{series}</option>)}
+                {legoSeries.map((series) => (
+                  <option key={series} value={series}>
+                    {series}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {popularSeries.map(([series, count]) => (
-                <button key={series} type="button" onClick={() => setTheme(series)} aria-pressed={theme === series} className={theme === series ? "rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-brand-foreground" : "rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-brand-soft"}>
+                <button
+                  key={series}
+                  type="button"
+                  onClick={() => setTheme(series)}
+                  aria-pressed={theme === series}
+                  className={
+                    theme === series
+                      ? "button-gradient rounded-xl px-3.5 py-2 text-sm font-semibold"
+                      : "rounded-xl border border-border bg-secondary/60 px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:border-brand/35 hover:bg-brand-soft"
+                  }
+                >
                   {series} <span className="text-xs opacity-70">{count}</span>
                 </button>
               ))}
             </div>
           </section>
 
-          <div className="mt-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {loading ? "Szukamy ofert…" : `${visible.length} ofert${visible.length === 1 ? "a" : "y"}`}
+          <div className="mt-7 flex items-center justify-between">
+            <h2 className="text-xl font-bold">
+              {loading
+                ? "Szukamy ofert…"
+                : `${visible.length} ofert${visible.length === 1 ? "a" : "y"}`}
             </h2>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               Sortuj
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as (typeof sorts)[number])}
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-foreground outline-none focus:ring-2 focus:ring-ring/40"
+                className="rounded-xl border border-border bg-card px-3 py-2 text-foreground outline-none focus:ring-2 focus:ring-ring/40"
               >
                 {sorts.map((s) => (
                   <option key={s} value={s}>
@@ -143,16 +203,23 @@ function Index() {
           </div>
 
           {error && (
-            <div role="alert" className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3">
+            <div
+              role="alert"
+              className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3"
+            >
               <p className="text-sm text-foreground">Nie udało się pobrać aktualnych ofert.</p>
-              <button type="button" onClick={() => void reload()} className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold transition-colors hover:bg-secondary">
+              <button
+                type="button"
+                onClick={() => void reload()}
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold transition-colors hover:bg-secondary"
+              >
                 Spróbuj ponownie
               </button>
             </div>
           )}
 
           {promoted.length > 0 && (
-            <section className="mt-6 rounded-3xl border border-border bg-gradient-to-br from-sun/25 via-grape-soft to-sky-soft p-4 sm:p-6">
+            <section className="mt-6 rounded-[2rem] border border-brand/25 bg-gradient-to-br from-brand/15 via-grape-soft/40 to-sky-soft/30 p-4 shadow-card sm:p-6">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
                 <span className="grid size-8 place-items-center rounded-full bg-card shadow-card">
                   <Sparkles className="size-4 text-brand" aria-hidden />
@@ -167,7 +234,6 @@ function Index() {
             </section>
           )}
 
-
           <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {regular.map((l) => (
               <ListingCard key={l.id} listing={l} />
@@ -177,8 +243,19 @@ function Index() {
             <div className="card-surface mt-6 p-10 text-center">
               <Search className="mx-auto size-7 text-brand" />
               <h2 className="mt-3 text-lg font-semibold">Nie znaleźliśmy takich klocków</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Spróbuj innej nazwy, numeru zestawu albo wyczyść filtr serii.</p>
-              <button type="button" onClick={() => { setQuery(""); setTheme("Wszystkie"); }} className="mt-5 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary">Wyczyść filtry</button>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Spróbuj innej nazwy, numeru zestawu albo wyczyść filtr serii.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setTheme("Wszystkie");
+                }}
+                className="mt-5 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold hover:bg-secondary"
+              >
+                Wyczyść filtry
+              </button>
             </div>
           )}
         </section>

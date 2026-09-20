@@ -4,14 +4,14 @@
   "description": "Marketplace używanych zestawów, minifigurek i klocków LEGO.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#120f1c",
+  "theme_color": "#120f1c",
   "lang": "pl",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "any",
-      "type": "image/x-icon"
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
     }
   ]
 }
