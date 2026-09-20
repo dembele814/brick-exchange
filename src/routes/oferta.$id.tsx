@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { startConversation, useAcceptedOfferPrice } from "@/data/messages";
+import { startConversation, useAcceptedOffer } from "@/data/messages";
 import { toggleFavorite, useAccount } from "@/data/account";
 import { reportListing, startCheckout, useListing, usePublicListings } from "@/data/marketplace";
 import { useAuthGate } from "@/hooks/use-auth-gate";
@@ -56,7 +56,7 @@ function OfferPage() {
   const navigate = useNavigate();
   const { guard } = useAuthGate();
   const { favorites, profile, userId } = useAccount();
-  const acceptedOfferPrice = useAcceptedOfferPrice(offer, id);
+  const acceptedOffer = useAcceptedOffer(id, offer);
   const { data: publicStatus } = usePublicStatus();
   const livePayments = publicStatus?.stripeMode === "live";
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -119,7 +119,7 @@ function OfferPage() {
     ["Instrukcja", listing.instructions],
     ["Oryginalne pudełko", listing.box],
   ];
-  const checkoutPrice = acceptedOfferPrice ?? listing.price;
+  const checkoutPrice = acceptedOffer?.price ?? listing.price;
   const checkoutPriceGrosz = Math.round(checkoutPrice * 100);
   const checkoutTotal =
     (checkoutPriceGrosz + 100 + Math.round((checkoutPriceGrosz * 5) / 100)) / 100;
@@ -206,7 +206,7 @@ function OfferPage() {
                 </span>
               )}
             </p>
-            {acceptedOfferPrice !== null && (
+            {acceptedOffer !== null && (
               <p className="mt-2 rounded-xl border border-mint/30 bg-mint-soft px-3 py-2 text-sm font-semibold">
                 Sprzedawca zaakceptował tę cenę w rozmowie.
               </p>
@@ -329,7 +329,7 @@ function OfferPage() {
                   setCheckoutError(null);
                   void startCheckout({
                     listingId: listing.id,
-                    ...(acceptedOfferPrice !== null && offer ? { acceptedOfferId: offer } : {}),
+                    ...(acceptedOffer ? { acceptedOfferId: acceptedOffer.id } : {}),
                     carrier,
                     lockerId: carrier === "inpost" ? selectedLocker!.id : lockerQuery,
                     receiver: {

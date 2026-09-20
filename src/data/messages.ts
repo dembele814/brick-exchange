@@ -258,11 +258,13 @@ export async function respondToPriceOffer(messageId: string, accept: boolean) {
   notify();
 }
 
-export function useAcceptedOfferPrice(offerId: string | undefined, listingId: string) {
-  const [price, setPrice] = useState<number | null>(null);
+export type AcceptedPriceOffer = { id: string; price: number };
+
+export function useAcceptedOffer(listingId: string, preferredOfferId?: string) {
+  const [offer, setOffer] = useState<AcceptedPriceOffer | null>(null);
   useEffect(() => {
-    if (!offerId || !supabase) {
-      setPrice(null);
+    if (!supabase) {
+      setOffer(null);
       return;
     }
     let disposed = false;
@@ -270,34 +272,35 @@ export function useAcceptedOfferPrice(offerId: string | undefined, listingId: st
       const client = requireSupabase();
       const { data: auth } = await client.auth.getUser();
       if (!auth.user) return null;
-      const { data, error } = await client
-        .from("messages")
-        .select(
-          "offer_amount_grosz,offer_status,sender_id,conversations!inner(listing_id,buyer_id)",
-        )
-        .eq("id", offerId)
-        .eq("message_type", "price_offer")
-        .maybeSingle();
-      if (error || !data) return null;
-      const conversation = Array.isArray(data.conversations)
-        ? data.conversations[0]
-        : data.conversations;
-      if (
-        data.offer_status !== "accepted" ||
-        data.sender_id !== auth.user.id ||
-        conversation?.buyer_id !== auth.user.id ||
-        conversation?.listing_id !== listingId
-      )
-        return null;
-      return data.offer_amount_grosz / 100;
+
+      const findOffer = async (offerId?: string) => {
+        let query = client
+          .from("messages")
+          .select("id,offer_amount_grosz,created_at,conversations!inner(listing_id,buyer_id)")
+          .eq("message_type", "price_offer")
+          .eq("offer_status", "accepted")
+          .eq("conversations.listing_id", listingId)
+          .eq("conversations.buyer_id", auth.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (offerId) query = query.eq("id", offerId);
+        const { data, error } = await query.maybeSingle();
+        if (error || !data?.offer_amount_grosz) return null;
+        return { id: data.id, price: data.offer_amount_grosz / 100 };
+      };
+
+      // A link from the chat may identify an older accepted offer. Without that
+      // link (for example after returning through the homepage), use the newest
+      // accepted offer for this buyer and listing.
+      return (preferredOfferId && (await findOffer(preferredOfferId))) || (await findOffer());
     })().then((value) => {
-      if (!disposed) setPrice(value);
+      if (!disposed) setOffer(value);
     });
     return () => {
       disposed = true;
     };
-  }, [offerId, listingId]);
-  return price;
+  }, [listingId, preferredOfferId]);
+  return offer;
 }
 
 export async function startConversation(listingId: string) {
