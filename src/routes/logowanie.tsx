@@ -16,6 +16,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import {
   isUsernameAvailable,
+  currentAccountHasProfile,
   login,
   loginWithGoogle,
   register,
@@ -297,6 +298,10 @@ function AuthPage() {
                 setError(
                   "Konto utworzone. Sprawdź e-mail i kliknij link potwierdzający, aby się zalogować.",
                 );
+                return;
+              }
+              if (!(await currentAccountHasProfile())) {
+                navigate({ to: "/rejestracja-google" });
                 return;
               }
               navigate({ to: "/profil" });

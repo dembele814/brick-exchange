@@ -306,6 +306,8 @@ function normaliseRegistrationProfile(input: RegistrationProfile): RegistrationP
     throw new Error(
       "Nick musi mieć 3–40 znaków i może zawierać litery, cyfry, kropkę, myślnik lub podkreślenie.",
     );
+  if (/^user_[a-f0-9]{8}$/i.test(result.name))
+    throw new Error("Wybierz własny nick. Nazwy w formacie user_… są niedozwolone.");
   if (!result.country) throw new Error("Wybierz kraj.");
   if (!result.city) throw new Error("Wpisz swoje miasto.");
   if (!result.language) throw new Error("Wybierz język.");
@@ -320,6 +322,7 @@ function usernameTakenError() {
 export async function isUsernameAvailable(name: string) {
   const username = name.trim();
   if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username)) return false;
+  if (/^user_[a-f0-9]{8}$/i.test(username)) return false;
   const { data, error } = await requireSupabase().rpc("username_available", {
     candidate: username,
   });
@@ -407,11 +410,11 @@ export async function currentAccountHasProfile() {
   if (authError || !auth.user) return false;
   const { data, error } = await client
     .from("profiles")
-    .select("id")
+    .select("username")
     .eq("id", auth.user.id)
     .maybeSingle();
   if (error) throw error;
-  return Boolean(data);
+  return Boolean(data && !/^user_[a-f0-9]{8}$/i.test(data.username));
 }
 
 export async function completeGoogleRegistration(input: RegistrationProfile) {
@@ -422,25 +425,27 @@ export async function completeGoogleRegistration(input: RegistrationProfile) {
 
   const { data: existing, error: existingError } = await client
     .from("profiles")
-    .select("id")
+    .select("username")
     .eq("id", auth.user.id)
     .maybeSingle();
   if (existingError) throw existingError;
-  if (existing) {
+  if (existing && !/^user_[a-f0-9]{8}$/i.test(existing.username)) {
     sessionStorage.removeItem(pendingRegistrationKey);
     await refreshAccount();
     return { existing: true };
   }
 
   await requireAvailableUsername(profile.name);
-  const { error } = await client.from("profiles").insert({
-    id: auth.user.id,
+  const payload = {
     username: profile.name,
     country: profile.country,
     city: profile.city,
     language: profile.language,
     bio: profile.bio || null,
-  });
+  };
+  const { error } = existing
+    ? await client.from("profiles").update(payload).eq("id", auth.user.id)
+    : await client.from("profiles").insert({ id: auth.user.id, ...payload });
   if (error) {
     if (error.code === "23505") throw usernameTakenError();
     throw error;

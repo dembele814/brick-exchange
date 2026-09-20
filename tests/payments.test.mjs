@@ -201,6 +201,7 @@ before(async () => {
     "20260920_admin_moderation.sql",
     "20260920_checkout_retry.sql",
     "20260920_required_username.sql",
+    "20260920_block_generated_usernames.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -276,8 +277,12 @@ test("registration never invents a username and availability ignores letter case
 
   const occupied = await db.query("select public.username_available('SELLER_TEST') as available");
   const free = await db.query("select public.username_available('nowy_kolekcjoner') as available");
+  const generated = await db.query(
+    "select public.username_available('user_1234abcd') as available",
+  );
   assert.equal(occupied.rows[0].available, false);
   assert.equal(free.rows[0].available, true);
+  assert.equal(generated.rows[0].available, false);
 });
 
 test("an accepted offer becomes the immutable checkout amount", async () => {
