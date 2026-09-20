@@ -9,9 +9,9 @@
   "lang": "pl",
   "icons": [
     {
-      "src": "/klockogram-logo.jpg",
-      "sizes": "1254x1254",
-      "type": "image/jpeg",
+      "src": "/klockogram-mark.png",
+      "sizes": "1536x1536",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

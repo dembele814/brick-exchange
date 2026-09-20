@@ -539,7 +539,7 @@ function AdminPage() {
               {dialog.kind === "ban"
                 ? `Blokada: ${dialog.duration === "permanent" ? "na stałe" : dialog.duration}. Użytkownik utraci dostęp, a jego aktywne oferty zostaną ukryte.`
                 : dialog.kind === "delete"
-                  ? "Konto bez transakcji zostanie usunięte. Jeśli ma historię zakupów lub sprzedaży, dostęp zostanie trwale zablokowany, a dane osobowe zanonimizowane przy zachowaniu rozliczeń."
+                  ? "Konto bez transakcji zostanie usunięte. Jeśli ma historię zakupów lub sprzedaży, dostęp zostanie trwale zablokowany, a dane osobowe zanonimizowane przy zachowaniu rozliczeń. Dotychczasowy adres e-mail będzie można ponownie zarejestrować."
                   : "Stripe zwróci kupującemu całą opłaconą kwotę. Tej operacji nie można cofnąć."}
             </p>
             {dialog.kind !== "refund" && (
