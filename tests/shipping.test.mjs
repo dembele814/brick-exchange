@@ -55,8 +55,8 @@ test("InPost point search corrects BI01H and supports nearest-point coordinates"
           display_name: "InPost Paczkomat BIA01H",
           status: "Operating",
           location: { latitude: 53.13114, longitude: 23.19712 },
-          address: { line1: "Sybiraków 4", line2: "15-204 Białystok" },
-          address_details: { city: "Białystok" },
+          address: { line1: "Kwiatowa 4", line2: "00-001 Warszawa" },
+          address_details: { city: "Warszawa" },
           location_description: "W lokalu, obok apteki",
           opening_hours: "24/7",
           distance: requested.length === 1 ? null : 125,
@@ -68,7 +68,7 @@ test("InPost point search corrects BI01H and supports nearest-point coordinates"
     const byCode = await searchInpostPoints({ query: "BI01H" });
     assert.match(requested[0], /query=BIA01H/);
     assert.equal(byCode[0].id, "BIA01H");
-    assert.equal(byCode[0].address, "Sybiraków 4, 15-204 Białystok");
+    assert.equal(byCode[0].address, "Kwiatowa 4, 00-001 Warszawa");
     assert.equal(byCode[0].distanceMeters, null);
 
     const nearby = await searchInpostPoints({

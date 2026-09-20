@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
-import avatarMe from "@/assets/avatar-me.jpg";
-import { listings, type Condition } from "./listings";
+import avatarPlaceholder from "@/assets/avatar-placeholder.svg";
+import type { Condition } from "./listings";
 import { requireSupabase, supabase } from "@/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
@@ -48,7 +48,7 @@ export type Profile = {
   reviews: number;
   joined: string;
   realName: string;
-  gender: "Kobieta" | "Mężczyzna" | "Nie podaję";
+  gender: "" | "Kobieta" | "Mężczyzna" | "Nie podaję";
   birthDate: string;
   email: string;
   phone: string;
@@ -75,137 +75,37 @@ type State = {
   favorites: string[];
 };
 
-const pick = (i: number) => listings[i % listings.length]!;
-
 let state: State = {
   profile: {
-    name: "klockowy_maks",
-    avatar: avatarMe,
-    bio: "Zbieram klasyczne zestawy Castle i Space od 15 lat. Wszystko myte, sprawdzone i pakowane z głową. Chętnie wymienię się częściami.",
-    country: "Polska",
-    city: "Wrocław",
-    language: "Polski",
-    rating: 4.6,
-    reviews: 128,
-    joined: "marzec 2021",
-    realName: "Maksymilian Nowak",
-    gender: "Mężczyzna",
-    birthDate: "1994-06-12",
-    email: "maks@example.com",
-    phone: "+48 600 100 200",
+    name: "",
+    avatar: avatarPlaceholder,
+    bio: "",
+    country: "",
+    city: "",
+    language: "",
+    rating: 0,
+    reviews: 0,
+    joined: "",
+    realName: "",
+    gender: "",
+    birthDate: "",
+    email: "",
+    phone: "",
     shippingStreet: "",
     shippingPostcode: "",
     shippingCity: "",
     vacationMode: false,
-    googleLinked: true,
+    googleLinked: false,
     facebookLinked: false,
     showCity: true,
     personalisedAds: false,
     profileVisible: true,
   },
-  myListings: [
-    ...[0, 2, 4].map((i, n) => {
-      const l = pick(i);
-      return {
-        id: `my-a${n}`,
-        title: l.title,
-        theme: l.theme,
-        price: l.price,
-        condition: l.condition,
-        image: l.image,
-        status: "active" as ListingStatus,
-        promoted: n === 0,
-        views: 320 - n * 74,
-      };
-    }),
-    {
-      id: "my-h0",
-      title: "Pociąg towarowy – zestaw z torami",
-      theme: "Trains (Pociągi)",
-      price: 410,
-      condition: "Bardzo dobry",
-      image: pick(1).image,
-      status: "hidden",
-      promoted: false,
-      views: 96,
-    },
-    {
-      id: "my-d0",
-      title: "Minifigurki – seria 21 (szkic)",
-      theme: "Minifigures (Minifigurki)",
-      price: 0,
-      condition: "—",
-      image: pick(3).image,
-      status: "draft",
-      promoted: false,
-      views: 0,
-    },
-    {
-      id: "my-d1",
-      title: "Klocki luzem 2 kg (szkic)",
-      theme: "Klocki luzem",
-      price: 0,
-      condition: "—",
-      image: pick(5).image,
-      status: "draft",
-      promoted: false,
-      views: 0,
-    },
-  ],
-  orders: [
-    {
-      id: "o1",
-      kind: "bought",
-      title: pick(1).title,
-      image: pick(1).image,
-      price: 319,
-      total: 336.95,
-      counterparty: "Bricks&Co",
-      status: "Wysłane",
-      at: "5 sierpnia 2026",
-    },
-    {
-      id: "o2",
-      kind: "bought",
-      title: pick(4).title,
-      image: pick(4).image,
-      price: 129,
-      total: 136.45,
-      counterparty: "MinifigLab",
-      status: "Zakończone",
-      at: "18 lipca 2026",
-    },
-    {
-      id: "o3",
-      kind: "sold",
-      title: pick(2).title,
-      image: pick(2).image,
-      price: 540,
-      total: 540,
-      counterparty: "Kamil R.",
-      status: "W realizacji",
-      at: "9 sierpnia 2026",
-    },
-    {
-      id: "o4",
-      kind: "sold",
-      title: pick(5).title,
-      image: pick(5).image,
-      price: 45,
-      total: 45,
-      counterparty: "Ewa T.",
-      status: "Zakończone",
-      at: "2 lipca 2026",
-    },
-  ],
+  myListings: [],
+  orders: [],
   wallet: {
-    balance: 268.4,
-    transactions: [
-      { id: "t1", label: "Sprzedaż: Klocki luzem – mix 500 g", amount: 45, at: "2 lipca 2026" },
-      { id: "t2", label: "Wpłata kartą", amount: 300, at: "12 lipca 2026" },
-      { id: "t3", label: "Zakup: Zestaw 5 minifigurek", amount: -136.45, at: "18 lipca 2026" },
-      { id: "t4", label: "Podbicie oferty", amount: -9.99, at: "1 sierpnia 2026" },
-    ],
+    balance: 0,
+    transactions: [],
   },
   loggedIn: false,
   authLoading: Boolean(supabase),
@@ -270,7 +170,7 @@ export async function saveProfile() {
     full_name: profile.realName || null,
     phone: profile.phone || null,
     birth_date: profile.birthDate || null,
-    gender: profile.gender,
+    gender: profile.gender || null,
     shipping_street: profile.shippingStreet || null,
     shipping_postcode: profile.shippingPostcode || null,
     shipping_city: profile.shippingCity || null,
@@ -374,7 +274,43 @@ export async function login(email: string, password: string) {
   return data;
 }
 
-export async function loginWithGoogle() {
+export type RegistrationProfile = {
+  name: string;
+  country: string;
+  city: string;
+  language: string;
+  bio: string;
+};
+
+const pendingRegistrationKey = "klockogram.pending-registration-profile";
+
+function normaliseRegistrationProfile(input: RegistrationProfile): RegistrationProfile {
+  const result = {
+    name: input.name.trim(),
+    country: input.country.trim(),
+    city: input.city.trim(),
+    language: input.language.trim(),
+    bio: input.bio.trim(),
+  };
+  if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(result.name))
+    throw new Error(
+      "Nick musi mieć 3–40 znaków i może zawierać litery, cyfry, kropkę, myślnik lub podkreślenie.",
+    );
+  if (!result.country) throw new Error("Wybierz kraj.");
+  if (!result.city) throw new Error("Wpisz swoje miasto.");
+  if (!result.language) throw new Error("Wybierz język.");
+  if (result.bio.length > 500) throw new Error("Opis może mieć maksymalnie 500 znaków.");
+  return result;
+}
+
+export async function loginWithGoogle(registrationProfile?: RegistrationProfile) {
+  if (registrationProfile) {
+    const profile = normaliseRegistrationProfile(registrationProfile);
+    sessionStorage.setItem(
+      pendingRegistrationKey,
+      JSON.stringify({ ...profile, createdAt: Date.now() }),
+    );
+  }
   const { data, error } = await requireSupabase().auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -400,11 +336,20 @@ export async function linkGoogleAccount() {
   return data;
 }
 
-export async function register(input: { name: string; email: string; password: string }) {
+export async function register(input: RegistrationProfile & { email: string; password: string }) {
+  const profile = normaliseRegistrationProfile(input);
   const { data, error } = await requireSupabase().auth.signUp({
-    email: input.email,
+    email: input.email.trim().toLowerCase(),
     password: input.password,
-    options: { data: { username: input.name } },
+    options: {
+      data: {
+        username: profile.name,
+        country: profile.country,
+        city: profile.city,
+        language: profile.language,
+        bio: profile.bio,
+      },
+    },
   });
   if (error) throw error;
   return data;
@@ -483,19 +428,53 @@ async function syncSession(session: Session, revision: number) {
         supabase.from("reviews").select("rating").eq("seller_id", user.id),
       ]);
     if (revision !== sessionRevision) return;
+    let resolvedProfile = profile;
+    const pendingRaw = sessionStorage.getItem(pendingRegistrationKey);
+    if (pendingRaw) {
+      try {
+        const pending = JSON.parse(pendingRaw) as RegistrationProfile & { createdAt?: number };
+        const isRecentRegistration =
+          Date.now() - new Date(user.created_at).getTime() < 15 * 60 * 1000 &&
+          Date.now() - Number(pending.createdAt ?? 0) < 30 * 60 * 1000;
+        if (isRecentRegistration) {
+          const registration = normaliseRegistrationProfile(pending);
+          const { error: registrationError } = await supabase
+            .from("profiles")
+            .update({
+              username: registration.name,
+              country: registration.country,
+              city: registration.city,
+              language: registration.language,
+              bio: registration.bio || null,
+            })
+            .eq("id", user.id);
+          if (!registrationError)
+            resolvedProfile = {
+              ...profile,
+              username: registration.name,
+              country: registration.country,
+              city: registration.city,
+              language: registration.language,
+              bio: registration.bio,
+            };
+        }
+      } finally {
+        sessionStorage.removeItem(pendingRegistrationKey);
+      }
+    }
     const reviewValues = (receivedReviews ?? []).map((review) => review.rating);
     state.profile = {
       ...state.profile,
-      name: profile?.username ?? state.profile.name,
-      avatar: profile?.avatar_path ?? state.profile.avatar,
-      bio: profile?.bio ?? state.profile.bio,
-      country: profile?.country ?? state.profile.country,
-      city: profile?.city ?? state.profile.city,
-      language: profile?.language ?? state.profile.language,
-      profileVisible: profile?.profile_visible ?? state.profile.profileVisible,
-      vacationMode: profile?.vacation_mode ?? state.profile.vacationMode,
-      showCity: profile?.show_city ?? state.profile.showCity,
-      personalisedAds: profile?.personalised_ads ?? state.profile.personalisedAds,
+      name: resolvedProfile?.username ?? "",
+      avatar: resolvedProfile?.avatar_path ?? state.profile.avatar,
+      bio: resolvedProfile?.bio ?? "",
+      country: resolvedProfile?.country ?? "",
+      city: resolvedProfile?.city ?? "",
+      language: resolvedProfile?.language === "pl" ? "Polski" : (resolvedProfile?.language ?? ""),
+      profileVisible: resolvedProfile?.profile_visible ?? state.profile.profileVisible,
+      vacationMode: resolvedProfile?.vacation_mode ?? state.profile.vacationMode,
+      showCity: resolvedProfile?.show_city ?? state.profile.showCity,
+      personalisedAds: resolvedProfile?.personalised_ads ?? state.profile.personalisedAds,
       email: user.email ?? state.profile.email,
       rating: reviewValues.length
         ? Math.round(
@@ -508,18 +487,18 @@ async function syncSession(session: Session, revision: number) {
             new Date(profile.created_at),
           )
         : state.profile.joined,
-      realName: privateProfile?.full_name ?? state.profile.realName,
-      phone: privateProfile?.phone ?? state.profile.phone,
+      realName: privateProfile?.full_name ?? "",
+      phone: privateProfile?.phone ?? "",
       shippingStreet: privateProfile?.shipping_street ?? "",
       shippingPostcode: privateProfile?.shipping_postcode ?? "",
       shippingCity: privateProfile?.shipping_city ?? "",
-      birthDate: privateProfile?.birth_date ?? state.profile.birthDate,
+      birthDate: privateProfile?.birth_date ?? "",
       gender:
         privateProfile?.gender === "Kobieta" ||
         privateProfile?.gender === "Mężczyzna" ||
         privateProfile?.gender === "Nie podaję"
           ? privateProfile.gender
-          : state.profile.gender,
+          : "",
     };
     const { data: favorites } = await supabase
       .from("favorites")

@@ -33,8 +33,17 @@ export const Route = createFileRoute("/ustawienia")({
   component: SettingsPage,
 });
 
-const countries = ["Polska", "Niemcy", "Czechy", "Wielka Brytania", "Holandia", "Inny"];
-const languages = ["Polski", "English", "Deutsch"];
+const countries = [
+  "Polska",
+  "Niemcy",
+  "Czechy",
+  "Słowacja",
+  "Litwa",
+  "Wielka Brytania",
+  "Holandia",
+  "Inny",
+];
+const languages = ["Polski", "English", "Deutsch", "Čeština", "Slovenčina", "Lietuvių"];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -222,6 +231,9 @@ function SettingsPage() {
                 value={profile.country}
                 onChange={(e) => set("country", e.target.value)}
               >
+                <option value="" disabled>
+                  Wybierz kraj
+                </option>
                 {countries.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
@@ -233,6 +245,7 @@ function SettingsPage() {
                 maxLength={60}
                 value={profile.city}
                 onChange={(e) => set("city", e.target.value)}
+                placeholder="Wpisz swoje miasto"
               />
             </Field>
           </div>
@@ -243,6 +256,9 @@ function SettingsPage() {
               value={profile.language}
               onChange={(e) => set("language", e.target.value)}
             >
+              <option value="" disabled>
+                Wybierz język
+              </option>
               {languages.map((l) => (
                 <option key={l}>{l}</option>
               ))}
@@ -255,6 +271,7 @@ function SettingsPage() {
               maxLength={500}
               value={profile.bio}
               onChange={(e) => set("bio", e.target.value)}
+              placeholder="Np. napisz, jakie zestawy lubisz albo jak przygotowujesz przesyłki."
             />
           </Field>
         </section>
@@ -334,6 +351,7 @@ function SettingsPage() {
                 className={inputClass}
                 value={profile.realName}
                 onChange={(e) => set("realName", e.target.value)}
+                placeholder="Wpisz imię i nazwisko"
               />
             </Field>
             <Field label="Data urodzenia">
@@ -350,6 +368,9 @@ function SettingsPage() {
                 value={profile.gender}
                 onChange={(e) => set("gender", e.target.value as typeof profile.gender)}
               >
+                <option value="" disabled>
+                  Wybierz płeć
+                </option>
                 <option>Kobieta</option>
                 <option>Mężczyzna</option>
                 <option>Nie podaję</option>
@@ -369,6 +390,7 @@ function SettingsPage() {
                 className={inputClass}
                 value={profile.phone}
                 onChange={(e) => set("phone", e.target.value)}
+                placeholder="Wpisz numer telefonu"
               />
             </Field>
           </div>
@@ -433,7 +455,7 @@ function SettingsPage() {
                 maxLength={120}
                 value={profile.shippingStreet}
                 onChange={(e) => set("shippingStreet", e.target.value)}
-                placeholder="np. Sybiraków 20/19"
+                placeholder="np. Kwiatowa 12/3"
               />
             </Field>
             <Field label="Kod pocztowy">
@@ -442,7 +464,7 @@ function SettingsPage() {
                 maxLength={10}
                 value={profile.shippingPostcode}
                 onChange={(e) => set("shippingPostcode", e.target.value)}
-                placeholder="15-204"
+                placeholder="00-001"
               />
             </Field>
             <Field label="Miasto nadawcy">
@@ -451,7 +473,7 @@ function SettingsPage() {
                 maxLength={80}
                 value={profile.shippingCity}
                 onChange={(e) => set("shippingCity", e.target.value)}
-                placeholder="Białystok"
+                placeholder="Warszawa"
               />
             </Field>
           </div>

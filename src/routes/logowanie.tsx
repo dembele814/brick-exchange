@@ -1,10 +1,22 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Mail, User } from "lucide-react";
+import { Globe2, Languages, Lock, Mail, MapPin, MessageSquare, User } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { login, loginWithGoogle, register, sendPasswordResetForEmail } from "@/data/account";
 import { cn } from "@/lib/utils";
+
+const countries = [
+  "Polska",
+  "Niemcy",
+  "Czechy",
+  "Słowacja",
+  "Litwa",
+  "Wielka Brytania",
+  "Holandia",
+  "Inny",
+];
+const languages = ["Polski", "English", "Deutsch", "Čeština", "Slovenčina", "Lietuvių"];
 
 export const Route = createFileRoute("/logowanie")({
   head: () => ({
@@ -31,6 +43,10 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [language, setLanguage] = useState("");
+  const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +90,97 @@ function AuthPage() {
           ))}
         </div>
 
+        {mode === "register" && (
+          <section className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-4">
+            <p className="text-sm font-semibold">Ustaw swój profil</p>
+            <label className="block text-sm font-medium">
+              Nick
+              <span className={field}>
+                <User className="size-4 text-muted-foreground" aria-hidden />
+                <input
+                  required
+                  minLength={3}
+                  maxLength={40}
+                  pattern="[a-zA-Z0-9_.-]+"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Wpisz swój nick"
+                  className="w-full bg-transparent outline-none"
+                />
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                3–40 znaków: litery, cyfry, kropka, myślnik lub podkreślenie.
+              </span>
+            </label>
+            <label className="block text-sm font-medium">
+              Kraj
+              <span className={field}>
+                <Globe2 className="size-4 text-muted-foreground" aria-hidden />
+                <select
+                  required
+                  value={country}
+                  onChange={(event) => setCountry(event.target.value)}
+                  className="w-full bg-transparent outline-none"
+                >
+                  <option value="" disabled>
+                    Wybierz kraj
+                  </option>
+                  {countries.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </span>
+            </label>
+            <label className="block text-sm font-medium">
+              Miasto
+              <span className={field}>
+                <MapPin className="size-4 text-muted-foreground" aria-hidden />
+                <input
+                  required
+                  maxLength={80}
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                  placeholder="Wpisz swoje miasto"
+                  className="w-full bg-transparent outline-none"
+                />
+              </span>
+            </label>
+            <label className="block text-sm font-medium">
+              Język
+              <span className={field}>
+                <Languages className="size-4 text-muted-foreground" aria-hidden />
+                <select
+                  required
+                  value={language}
+                  onChange={(event) => setLanguage(event.target.value)}
+                  className="w-full bg-transparent outline-none"
+                >
+                  <option value="" disabled>
+                    Wybierz język
+                  </option>
+                  {languages.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </span>
+            </label>
+            <label className="block text-sm font-medium">
+              Kilka słów o sobie{" "}
+              <span className="font-normal text-muted-foreground">(opcjonalnie)</span>
+              <span className={`${field} items-start`}>
+                <MessageSquare className="mt-0.5 size-4 text-muted-foreground" aria-hidden />
+                <textarea
+                  maxLength={500}
+                  value={bio}
+                  onChange={(event) => setBio(event.target.value)}
+                  placeholder="Np. napisz, jakie zestawy lubisz albo jak przygotowujesz przesyłki."
+                  className="min-h-20 w-full resize-y bg-transparent outline-none"
+                />
+              </span>
+            </label>
+          </section>
+        )}
+
         <button
           type="button"
           disabled={submitting}
@@ -84,7 +191,9 @@ function AuthPage() {
             }
             setSubmitting(true);
             setError(null);
-            void loginWithGoogle()
+            void loginWithGoogle(
+              mode === "register" ? { name, country, city, language, bio } : undefined,
+            )
               .catch((cause) =>
                 setError(
                   cause instanceof Error ? cause.message : "Nie udało się połączyć z Google.",
@@ -119,7 +228,7 @@ function AuthPage() {
             try {
               const result =
                 mode === "register"
-                  ? await register({ name, email, password })
+                  ? await register({ name, country, city, language, bio, email, password })
                   : await login(email, password);
               if (mode === "register" && !result.session) {
                 setError(
@@ -135,22 +244,6 @@ function AuthPage() {
             }
           }}
         >
-          {mode === "register" && (
-            <label className="block text-sm font-medium">
-              Nazwa użytkownika
-              <span className={field}>
-                <User className="size-4 text-muted-foreground" aria-hidden />
-                <input
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="np. klockowy_maks"
-                  className="w-full bg-transparent outline-none"
-                />
-              </span>
-            </label>
-          )}
-
           <label className="block text-sm font-medium">
             E-mail
             <span className={field}>

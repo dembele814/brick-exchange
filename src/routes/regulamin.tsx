@@ -15,13 +15,13 @@ const Contact = () => <a href="mailto:feelip.awf@gmail.com">feelip.awf@gmail.com
 
 function Terms() {
   return (
-    <LegalPage title="Regulamin Klockogramu" updated="19 września 2026">
+    <LegalPage title="Regulamin Klockogramu" updated="20 września 2026">
       <section>
         <h2>1. Operator i usługa</h2>
         <p>
-          Operatorem Klockogramu jest Paweł Wójcik, prowadzący działalność nierejestrowaną pod
-          adresem ul. Sybiraków 20/19, 15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />
-          .
+          Operatorem Klockogramu jest Paweł Wójcik, prowadzący działalność nierejestrowaną. NIP nie
+          został nadany. Kontakt: <Contact />. Adres korespondencyjny jest przekazywany osobom
+          uprawnionym na uzasadnione żądanie.
         </p>
         <p>
           Klockogram udostępnia serwis do publikowania ofert LEGO, rozmów, płatności i obsługi

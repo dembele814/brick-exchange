@@ -15,13 +15,13 @@ const Contact = () => <a href="mailto:feelip.awf@gmail.com">feelip.awf@gmail.com
 
 function PrivacyPolicy() {
   return (
-    <LegalPage title="Polityka prywatności Klockogramu" updated="19 września 2026">
+    <LegalPage title="Polityka prywatności Klockogramu" updated="20 września 2026">
       <section>
         <h2>1. Administrator</h2>
         <p>
-          Administratorem danych jest Paweł Wójcik, działalność nierejestrowana, ul. Sybiraków 20/19,
-          15-204 Białystok. NIP nie został nadany. Kontakt: <Contact />. Nie wyznaczono inspektora
-          ochrony danych.
+          Administratorem danych jest Paweł Wójcik, prowadzący działalność nierejestrowaną. NIP nie
+          został nadany. Kontakt: <Contact />. Adres korespondencyjny jest przekazywany osobom
+          uprawnionym na uzasadnione żądanie. Nie wyznaczono inspektora ochrony danych.
         </p>
       </section>
       <section>
