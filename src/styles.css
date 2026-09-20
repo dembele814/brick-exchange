@@ -89,9 +89,15 @@
     border-color: var(--color-border);
   }
 
+  html {
+    overflow-x: hidden;
+    text-size-adjust: 100%;
+  }
+
   body {
     background-color: var(--color-background);
     min-width: 320px;
+    overflow-x: hidden;
     background-image: radial-gradient(
       circle at 85% 0%,
       oklch(0.55 0.2 330 / 11%),
@@ -101,6 +107,17 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  :is(input, select, textarea, button) {
+    min-width: 0;
   }
 
   :is(button, a, input, select, textarea):focus-visible {

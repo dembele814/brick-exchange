@@ -198,6 +198,8 @@ before(async () => {
     "20260914_production_shipping.sql",
     "20260915_api_rate_limits.sql",
     "20260916_payment_reconciliation.sql",
+    "20260920_admin_moderation.sql",
+    "20260920_checkout_retry.sql",
   ]) {
     // PGlite already supplies gen_random_uuid; Supabase supplies pgcrypto remotely.
     const sql = (
@@ -229,6 +231,37 @@ test("database rate limit allows the configured burst and rejects the next reque
     results.push(result.rows[0].allowed);
   }
   assert.deepEqual(results, [true, true, false]);
+});
+
+test("account moderation permits active and expired suspensions but blocks current bans", async () => {
+  const active = await db.query("select public.account_can_act($1) as allowed", [buyer]);
+  assert.equal(active.rows[0].allowed, true);
+
+  await db.query(
+    `insert into public.account_moderation(user_id,status,suspended_until,reason)
+     values($1,'suspended',now() + interval '1 day','Nadużycie')`,
+    [buyer],
+  );
+  const suspended = await db.query("select public.account_can_act($1) as allowed", [buyer]);
+  assert.equal(suspended.rows[0].allowed, false);
+
+  await db.query(
+    `update public.account_moderation
+     set suspended_until=now() - interval '1 minute'
+     where user_id=$1`,
+    [buyer],
+  );
+  const expired = await db.query("select public.account_can_act($1) as allowed", [buyer]);
+  assert.equal(expired.rows[0].allowed, true);
+
+  await db.query(
+    `update public.account_moderation
+     set status='permanent', suspended_until=null
+     where user_id=$1`,
+    [buyer],
+  );
+  const permanent = await db.query("select public.account_can_act($1) as allowed", [buyer]);
+  assert.equal(permanent.rows[0].allowed, false);
 });
 
 test("an accepted offer becomes the immutable checkout amount", async () => {
@@ -438,14 +471,14 @@ test("Stripe mode requires matching keys, HTTPS, and an explicit live opt-in", (
   }
 });
 
-test("reservation is exclusive and immutable across buyer retries", async () => {
+test("reservation is exclusive and safely reusable across buyer retries", async () => {
   const order = await reserve();
   await db.query("update listings set title='Changed title', price_grosz=999 where id=$1", [
     listing,
   ]);
   assert.deepEqual(await reserve(), order);
   await assert.rejects(reserve(otherBuyer));
-  await assert.rejects(reserve(buyer, { ...input.receiver, phone: "987654321" }));
+  assert.deepEqual(await reserve(buyer, { ...input.receiver, phone: "987654321" }), order);
   assert.equal(await count("orders"), 1);
   const params = sessionParameters(order);
   assert.equal(params.line_items[0].price_data.unit_amount, 13062);

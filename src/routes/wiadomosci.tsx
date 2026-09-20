@@ -112,12 +112,12 @@ function Inbox() {
         </p>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
-          <ul className="space-y-2">
+          <ul className="flex gap-2 overflow-x-auto pb-2 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
             {conversations.map((conv) => {
               const last = conv.messages[conv.messages.length - 1];
               const isActive = conv.id === activeId;
               return (
-                <li key={conv.id}>
+                <li key={conv.id} className="w-[82vw] shrink-0 sm:w-[360px] lg:w-auto">
                   <button
                     type="button"
                     onClick={() => select(conv.id)}
@@ -187,6 +187,73 @@ function Inbox() {
                     </Link>
                   </div>
                 </header>
+
+                {active.canMakeOffer && (
+                  <section className="border-b border-brand/25 bg-brand-soft/55 p-3 sm:p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
+                          <BadgeDollarSign className="size-5" aria-hidden />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-bold">Chcesz negocjować cenę?</p>
+                          <p className="text-xs text-muted-foreground">
+                            Cena oferty: {active.listingPrice.toFixed(2)} zł
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOfferOpen((open) => !open)}
+                        className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-bold text-brand-foreground sm:w-auto"
+                      >
+                        {offerOpen ? "Zamknij" : "Zaproponuj cenę"}
+                      </button>
+                    </div>
+                    {offerOpen && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                        <label className="sr-only" htmlFor="offer-amount">
+                          Proponowana cena
+                        </label>
+                        <input
+                          id="offer-amount"
+                          type="number"
+                          min="1"
+                          max={Math.max(1, active.listingPrice - 0.01)}
+                          step="0.01"
+                          value={offerAmount}
+                          onChange={(event) => setOfferAmount(event.target.value)}
+                          placeholder="Wpisz swoją cenę w zł"
+                          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none focus:ring-2 focus:ring-ring/40"
+                        />
+                        <button
+                          type="button"
+                          disabled={sending || !offerAmount}
+                          onClick={() => {
+                            setSending(true);
+                            setSendError(null);
+                            void sendPriceOffer(active.id, Number(offerAmount))
+                              .then(() => {
+                                setOfferAmount("");
+                                setOfferOpen(false);
+                              })
+                              .catch((error) =>
+                                setSendError(
+                                  error instanceof Error
+                                    ? error.message
+                                    : "Nie udało się wysłać propozycji.",
+                                ),
+                              )
+                              .finally(() => setSending(false));
+                          }}
+                          className="rounded-xl bg-brand px-5 py-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
+                        >
+                          Wyślij propozycję
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                )}
 
                 <ul className="flex-1 space-y-3 overflow-y-auto p-4">
                   {active.messages.length === 0 && (
@@ -315,49 +382,6 @@ function Inbox() {
                   }}
                   className="border-t border-border p-3"
                 >
-                  {offerOpen && active.canMakeOffer && (
-                    <div className="mb-3 rounded-xl border border-brand/25 bg-brand-soft p-3">
-                      <p className="text-xs font-semibold">
-                        Zaproponuj cenę poniżej {active.listingPrice.toFixed(2)} zł
-                      </p>
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          type="number"
-                          min="1"
-                          max={Math.max(1, active.listingPrice - 0.01)}
-                          step="0.01"
-                          value={offerAmount}
-                          onChange={(event) => setOfferAmount(event.target.value)}
-                          placeholder="Kwota w zł"
-                          className="min-w-0 flex-1 rounded-full border border-border bg-card px-4 py-2 text-sm"
-                        />
-                        <button
-                          type="button"
-                          disabled={sending}
-                          onClick={() => {
-                            setSending(true);
-                            setSendError(null);
-                            void sendPriceOffer(active.id, Number(offerAmount))
-                              .then(() => {
-                                setOfferAmount("");
-                                setOfferOpen(false);
-                              })
-                              .catch((error) =>
-                                setSendError(
-                                  error instanceof Error
-                                    ? error.message
-                                    : "Nie udało się wysłać propozycji.",
-                                ),
-                              )
-                              .finally(() => setSending(false));
-                          }}
-                          className="rounded-full bg-brand px-4 py-2 text-xs font-semibold text-brand-foreground disabled:opacity-60"
-                        >
-                          Wyślij propozycję
-                        </button>
-                      </div>
-                    </div>
-                  )}
                   <div className="flex items-center gap-2">
                     <input
                       ref={imageInputRef}
@@ -390,16 +414,6 @@ function Inbox() {
                     >
                       <ImagePlus className="size-4" aria-hidden />
                     </button>
-                    {active.canMakeOffer && (
-                      <button
-                        type="button"
-                        onClick={() => setOfferOpen((open) => !open)}
-                        aria-label="Zaproponuj cenę"
-                        className="rounded-full border border-border p-2.5 text-muted-foreground hover:text-brand"
-                      >
-                        <BadgeDollarSign className="size-4" aria-hidden />
-                      </button>
-                    )}
                     <label className="sr-only" htmlFor="msg">
                       Treść wiadomości
                     </label>
