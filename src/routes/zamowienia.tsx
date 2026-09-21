@@ -236,8 +236,12 @@ function OrdersPage() {
                           setFulfillmentError(null);
                           if (o.shipmentCreated && !o.shipmentNeedsPurchase) {
                             void checkFurgonetkaOrderShipment(o.id)
-                              .then(({ labelReady }) => {
-                                if (!labelReady)
+                              .then(({ labelReady, needsPurchase }) => {
+                                if (needsPurchase)
+                                  setFulfillmentError(
+                                    "Poprzednia operacja Furgonetki wygasła. Kliknij „Dokończ zakup etykiety” i ponownie potwierdź cenę.",
+                                  );
+                                else if (!labelReady)
                                   setFulfillmentError(
                                     "Furgonetka nadal przygotowuje etykietę. Odczekaj chwilę i sprawdź ponownie.",
                                   );

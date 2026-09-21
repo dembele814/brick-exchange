@@ -734,9 +734,16 @@ export async function checkFurgonetkaOrderShipment(orderId: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ orderId, action: "check_furgonetka_shipment" }),
   });
-  const result = (await response.json()) as { error?: string; labelReady?: boolean };
+  const result = (await response.json()) as {
+    error?: string;
+    labelReady?: boolean;
+    needsPurchase?: boolean;
+  };
   if (!response.ok) throw new Error(result.error ?? "Nie udało się sprawdzić etykiety InPost.");
-  return { labelReady: Boolean(result.labelReady) };
+  return {
+    labelReady: Boolean(result.labelReady),
+    needsPurchase: Boolean(result.needsPurchase),
+  };
 }
 
 export async function downloadInpostLabel(orderId: string) {

@@ -397,14 +397,19 @@ export const Route = createFileRoute("/api/orders")({
                   order.carrier_order_command_id,
                 );
               } catch (cause) {
-                if (cause instanceof FurgonetkaApiError && cause.status === 404)
-                  return Response.json(
-                    {
-                      error:
-                        "Furgonetka nie znalazła operacji zakupu tej etykiety. Dokończ zakup ponownie po potwierdzeniu ceny.",
-                    },
-                    { status: 409 },
-                  );
+                if (cause instanceof FurgonetkaApiError && cause.status === 404) {
+                  const { error: resetError } = await admin
+                    .from("orders")
+                    .update({
+                      carrier_order_command_id: null,
+                      carrier_status: "waiting",
+                      carrier_status_updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", order.id)
+                    .eq("carrier_order_command_id", order.carrier_order_command_id);
+                  if (resetError) throw resetError;
+                  return Response.json({ ok: true, labelReady: false, needsPurchase: true });
+                }
                 throw cause;
               }
               if (command.status === "error")
