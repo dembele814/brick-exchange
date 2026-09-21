@@ -16,6 +16,7 @@ import {
   furgonetkaParcel,
   furgonetkaTrackingState,
   getFurgonetkaOrderCommand,
+  isFurgonetkaLabelReady,
   orderFurgonetkaPackage,
   readOAuthState,
   resolveFurgonetkaAccountUserId,
@@ -181,6 +182,23 @@ test("Furgonetka order command exposes a useful carrier error", () => {
     }),
     "Doładuj saldo Furgonetki.",
   );
+});
+
+test("Furgonetka label readiness distinguishes an unfinished 204 from a PDF", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(null, { status: 204 });
+    assert.equal(await isFurgonetkaLabelReady("token", "package-123"), false);
+
+    globalThis.fetch = async () =>
+      new Response(new Uint8Array([37, 80, 68, 70]), {
+        status: 200,
+        headers: { "Content-Type": "application/pdf" },
+      });
+    assert.equal(await isFurgonetkaLabelReady("token", "package-123"), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("InPost HMAC verification accepts the official raw-body test vector and rejects changes", () => {

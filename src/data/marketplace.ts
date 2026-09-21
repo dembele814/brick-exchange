@@ -27,6 +27,22 @@ type ListingRow = {
     | null;
 };
 
+type ListingImageRow = { storage_path: string; position: number };
+type ManagedListingRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  set_number: string | null;
+  pieces: number | null;
+  production_year: number | null;
+  theme: string;
+  price_grosz: number;
+  condition: string;
+  status: "active" | "hidden" | "draft";
+  promoted_until: string | null;
+  listing_images?: ListingImageRow[];
+};
+
 function toListing(row: ListingRow): Listing {
   const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
   const images = [...(row.listing_images ?? [])]
@@ -204,9 +220,14 @@ export function useFavoriteListings() {
         .eq("listings.status", "active");
       if (queryError) throw queryError;
       setItems(
-        (data ?? []).flatMap((row: any) =>
-          row.listings ? [toListing(row.listings as ListingRow)] : [],
-        ),
+        (
+          (data ?? []) as unknown as Array<{
+            listings: ListingRow | ListingRow[] | null;
+          }>
+        ).flatMap((row) => {
+          const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings;
+          return listing ? [toListing(listing)] : [];
+        }),
       );
     })()
       .catch((cause) =>
@@ -261,10 +282,8 @@ async function loadMyListings() {
     .eq("seller_id", auth.user.id)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((listing: any) => {
-    const picture = [...(listing.listing_images ?? [])].sort(
-      (a: any, b: any) => a.position - b.position,
-    )[0];
+  return ((data ?? []) as ManagedListingRow[]).map((listing) => {
+    const picture = [...(listing.listing_images ?? [])].sort((a, b) => a.position - b.position)[0];
     return {
       id: listing.id,
       title: listing.title,
@@ -493,6 +512,25 @@ export type MarketplaceOrder = {
   at: string;
 };
 
+type MarketplaceOrderRow = {
+  id: string;
+  buyer_id: string;
+  amount_grosz: number;
+  status: string;
+  payment_status: string;
+  shipping_carrier: string;
+  locker_id: string;
+  tracking_number: string | null;
+  carrier_status: string | null;
+  shipping_label_ready_at: string | null;
+  carrier_shipment_id: string | null;
+  carrier_order_command_id: string | null;
+  created_at: string;
+  listings?: { title?: string; listing_images?: ListingImageRow[] } | null;
+  seller?: { username?: string } | null;
+  buyer?: { username?: string } | null;
+};
+
 const orderStatusLabels: Record<string, MarketplaceOrder["status"]> = {
   pending_payment: "W oczekiwaniu na płatność",
   paid: "Opłacone",
@@ -507,15 +545,13 @@ async function loadOrders() {
   const { data: auth } = await client.auth.getUser();
   if (!auth.user) return [] as MarketplaceOrder[];
   const response = await authenticatedRequest(client, "/api/orders", { method: "GET" });
-  const result = (await response.json()) as any[] | { error?: string };
+  const result = (await response.json()) as MarketplaceOrderRow[] | { error?: string };
   if (!response.ok || !Array.isArray(result))
     throw new Error(Array.isArray(result) ? "Nie udało się pobrać zamówień." : result.error);
   const data = result;
-  return (data ?? []).map((order: any) => {
+  return data.map((order) => {
     const listing = order.listings;
-    const picture = [...(listing?.listing_images ?? [])].sort(
-      (a: any, b: any) => a.position - b.position,
-    )[0];
+    const picture = [...(listing?.listing_images ?? [])].sort((a, b) => a.position - b.position)[0];
     const kind = order.buyer_id === auth.user!.id ? "bought" : "sold";
     const carrierCode = ["inpost", "orlen", "dpd", "dhl"].includes(order.shipping_carrier)
       ? order.shipping_carrier
@@ -607,7 +643,14 @@ async function loadOrderEvents(orderIds: string[]) {
     .in("order_id", orderIds)
     .order("created_at", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((event: any) => ({
+  return (
+    (data ?? []) as Array<{
+      id: number;
+      order_id: string;
+      event_type: string;
+      created_at: string;
+    }>
+  ).map((event) => ({
     id: event.id,
     orderId: event.order_id,
     type: event.event_type,
@@ -625,7 +668,7 @@ export function useOrderEvents(orderIds: string[]) {
   const key = orderIds.join(",");
   useEffect(() => {
     if (!supabase) return;
-    void loadOrderEvents(orderIds)
+    void loadOrderEvents(key ? key.split(",") : [])
       .then(setItems)
       .catch((cause) =>
         setError(
@@ -682,6 +725,18 @@ export async function createFurgonetkaOrderShipment(orderId: string, confirmedPr
   });
   const result = (await response.json()) as { error?: string };
   if (!response.ok) throw new Error(result.error ?? "Nie udało się zamówić etykiety InPost.");
+}
+
+export async function checkFurgonetkaOrderShipment(orderId: string) {
+  const client = requireSupabase();
+  const response = await authenticatedRequest(client, "/api/orders", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, action: "check_furgonetka_shipment" }),
+  });
+  const result = (await response.json()) as { error?: string; labelReady?: boolean };
+  if (!response.ok) throw new Error(result.error ?? "Nie udało się sprawdzić etykiety InPost.");
+  return { labelReady: Boolean(result.labelReady) };
 }
 
 export async function downloadInpostLabel(orderId: string) {

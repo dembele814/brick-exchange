@@ -13,6 +13,22 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+const siteUrl = "https://klockogram.pl";
+const websiteStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Klockogram",
+  alternateName: ["Klockogram.pl", "Klockogram marketplace"],
+  url: `${siteUrl}/`,
+  description: "Polski marketplace używanych zestawów, minifigurek i klocków LEGO.",
+  inLanguage: "pl-PL",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${siteUrl}/?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -90,12 +106,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Kupuj i sprzedawaj używane zestawy, minifigurki i klocki LEGO.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: `${siteUrl}/` },
       { property: "og:site_name", content: "Klockogram" },
       { property: "og:locale", content: "pl_PL" },
       { property: "og:image", content: "/klockogram-mark.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: "/klockogram-mark.png" },
       { name: "theme-color", content: "#120f1c" },
+      {
+        name: "keywords",
+        content: "Klockogram, używane LEGO, marketplace LEGO, kup klocki, sprzedaj klocki",
+      },
     ],
     links: [
       {
@@ -111,6 +132,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/klockogram-mark.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/klockogram-mark.png" },
       { rel: "manifest", href: "/site.webmanifest" },
+      { rel: "canonical", href: `${siteUrl}/` },
     ],
   }),
 
@@ -125,6 +147,10 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pl">
       <head>
         <HeadContent />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
+        />
       </head>
       <body>
         {children}

@@ -488,6 +488,19 @@ export async function getFurgonetkaLabel(accessToken: string, packageId: string)
       },
     },
   );
-  if (!response.ok) throw new Error("Etykieta nie jest jeszcze gotowa.");
+  if (response.status === 204)
+    throw new FurgonetkaApiError("Etykieta nie jest jeszcze gotowa.", 204);
+  if (!response.ok) throw new FurgonetkaApiError("Nie udało się pobrać etykiety.", response.status);
   return response;
+}
+
+export async function isFurgonetkaLabelReady(accessToken: string, packageId: string) {
+  try {
+    const response = await getFurgonetkaLabel(accessToken, packageId);
+    await response.body?.cancel();
+    return true;
+  } catch (cause) {
+    if (cause instanceof FurgonetkaApiError && cause.status === 204) return false;
+    throw cause;
+  }
 }

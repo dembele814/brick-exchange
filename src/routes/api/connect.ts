@@ -27,7 +27,7 @@ function stripeClient() {
 }
 
 function connectPublishableKey(liveMode: boolean) {
-  const key = process.env.STRIPE_PUBLISHABLE_KEY?.trim();
+  const key = process.env["STRIPE_PUBLISHABLE_KEY"]?.trim();
   const expectedPrefix = liveMode ? "pk_live_" : "pk_test_";
   if (!key?.startsWith(expectedPrefix)) throw new Error("Stripe publishable key mode mismatch");
   return key;

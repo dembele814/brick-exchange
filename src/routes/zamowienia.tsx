@@ -9,6 +9,7 @@ import { useAccount } from "@/data/account";
 import { usePublicStatus } from "@/data/public-status";
 import {
   cancelOrderBeforeShipment,
+  checkFurgonetkaOrderShipment,
   confirmOrderDelivered,
   createFurgonetkaOrderShipment,
   downloadInpostLabel,
@@ -234,8 +235,14 @@ function OrdersPage() {
                           setLabelOrderId(o.id);
                           setFulfillmentError(null);
                           if (o.shipmentCreated && !o.shipmentNeedsPurchase) {
-                            void createFurgonetkaOrderShipment(o.id, 1)
-                              .then(reload)
+                            void checkFurgonetkaOrderShipment(o.id)
+                              .then(({ labelReady }) => {
+                                if (!labelReady)
+                                  setFulfillmentError(
+                                    "Furgonetka nadal przygotowuje etykietę. Odczekaj chwilę i sprawdź ponownie.",
+                                  );
+                                reload();
+                              })
                               .catch((cause) =>
                                 setFulfillmentError(
                                   cause instanceof Error

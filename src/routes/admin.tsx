@@ -13,6 +13,7 @@ import {
   Trash2,
   UserCheck,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -289,13 +290,15 @@ function AdminPage() {
         {data && tab === "pulpit" && (
           <div className="mt-5 space-y-5">
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-              {[
-                ["Użytkownicy", data.stats.users, Users],
-                ["Wszystkie oferty", data.stats.listings, ShoppingBag],
-                ["Aktywne oferty", data.stats.activeListings, UserCheck],
-                ["Zamówienia", data.stats.orders, Package],
-                ["Zgłoszenia", data.stats.openReports, AlertTriangle],
-              ].map(([label, value, Icon]) => (
+              {(
+                [
+                  ["Użytkownicy", data.stats.users, Users],
+                  ["Wszystkie oferty", data.stats.listings, ShoppingBag],
+                  ["Aktywne oferty", data.stats.activeListings, UserCheck],
+                  ["Zamówienia", data.stats.orders, Package],
+                  ["Zgłoszenia", data.stats.openReports, AlertTriangle],
+                ] satisfies Array<[string, number, LucideIcon]>
+              ).map(([label, value, Icon]) => (
                 <div key={String(label)} className="card-surface p-4">
                   <Icon className="size-5 text-brand" />
                   <p className="mt-3 text-2xl font-bold">{value}</p>

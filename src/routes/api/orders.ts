@@ -18,6 +18,7 @@ import {
   getFurgonetkaOrderCommand,
   getFurgonetkaPackage,
   getFurgonetkaPoint,
+  isFurgonetkaLabelReady,
   orderFurgonetkaPackage,
   quoteFurgonetkaPackage,
   validateFurgonetkaPackage,
@@ -60,6 +61,10 @@ const quoteShipmentInput = z.object({
   orderId: z.string().uuid(),
   action: z.literal("quote_furgonetka_shipment"),
 });
+const checkShipmentInput = z.object({
+  orderId: z.string().uuid(),
+  action: z.literal("check_furgonetka_shipment"),
+});
 const orderActionInput = z.discriminatedUnion("action", [
   fulfillmentInput,
   deliveryInput,
@@ -68,6 +73,7 @@ const orderActionInput = z.discriminatedUnion("action", [
   resolveProblemInput,
   conversationInput,
   quoteShipmentInput,
+  checkShipmentInput,
   createShipmentInput,
 ]);
 
@@ -297,7 +303,8 @@ export const Route = createFileRoute("/api/orders")({
           return Response.json({ error: "Nie znaleziono zamówienia." }, { status: 404 });
         if (
           action.action === "quote_furgonetka_shipment" ||
-          action.action === "create_furgonetka_shipment"
+          action.action === "create_furgonetka_shipment" ||
+          action.action === "check_furgonetka_shipment"
         ) {
           if (order.seller_id !== user.id)
             return Response.json(
@@ -336,6 +343,14 @@ export const Route = createFileRoute("/api/orders")({
               }
               const accessToken = await furgonetkaPlatformAccessToken(admin);
               if (!order.carrier_order_command_id) {
+                if (action.action === "check_furgonetka_shipment")
+                  return Response.json(
+                    {
+                      error:
+                        "Zakup etykiety nie został jeszcze rozpoczęty. Wybierz „Dokończ zakup etykiety” i potwierdź cenę.",
+                    },
+                    { status: 409 },
+                  );
                 if (action.confirmedPriceGrosz !== storedPriceGrosz)
                   return Response.json(
                     { error: "Potwierdź zapisaną cenę przesyłki przed dokończeniem zakupu." },
@@ -382,13 +397,15 @@ export const Route = createFileRoute("/api/orders")({
                   order.carrier_order_command_id,
                 );
               } catch (cause) {
-                if (!(cause instanceof FurgonetkaApiError) || cause.status !== 404) throw cause;
-                await orderFurgonetkaPackage(
-                  accessToken,
-                  order.carrier_shipment_id,
-                  order.carrier_order_command_id,
-                );
-                return Response.json({ ok: true, labelReady: false });
+                if (cause instanceof FurgonetkaApiError && cause.status === 404)
+                  return Response.json(
+                    {
+                      error:
+                        "Furgonetka nie znalazła operacji zakupu tej etykiety. Dokończ zakup ponownie po potwierdzeniu ceny.",
+                    },
+                    { status: 409 },
+                  );
+                throw cause;
               }
               if (command.status === "error")
                 return Response.json(
@@ -409,6 +426,10 @@ export const Route = createFileRoute("/api/orders")({
                 );
               const shipment = await getFurgonetkaPackage(accessToken, order.carrier_shipment_id);
               const trackingNumber = furgonetkaTracking(shipment);
+              const labelReady = await isFurgonetkaLabelReady(
+                accessToken,
+                order.carrier_shipment_id,
+              );
               const now = new Date().toISOString();
               await admin
                 .from("orders")
@@ -416,17 +437,28 @@ export const Route = createFileRoute("/api/orders")({
                   tracking_number: trackingNumber,
                   carrier_status: shipment.state || shipment.status || "ordered",
                   carrier_status_updated_at: now,
-                  shipping_label_ready_at: trackingNumber ? now : null,
+                  shipping_label_ready_at: labelReady ? now : null,
                 })
                 .eq("id", order.id);
-              return Response.json({ ok: true, labelReady: Boolean(trackingNumber) });
-            } catch {
-              return Response.json(
-                { error: "Furgonetka jeszcze przygotowuje etykietę. Spróbuj za chwilę." },
-                { status: 503 },
-              );
+              return Response.json({ ok: true, labelReady });
+            } catch (cause) {
+              const message =
+                cause instanceof FurgonetkaApiError
+                  ? cause.status === 401 || cause.status === 403
+                    ? "Połączenie Klockogramu z Furgonetką wygasło. Administrator musi połączyć konto ponownie."
+                    : cause.message
+                  : cause instanceof Error
+                    ? cause.message
+                    : "Nie udało się sprawdzić stanu etykiety.";
+              return Response.json({ error: message }, { status: 503 });
             }
           }
+
+          if (action.action === "check_furgonetka_shipment")
+            return Response.json(
+              { error: "Przesyłka nie została jeszcze utworzona." },
+              { status: 409 },
+            );
 
           let prepared: Awaited<ReturnType<typeof furgonetkaPackageForOrder>>;
           let quote: Awaited<ReturnType<typeof quoteFurgonetkaPackage>>;
