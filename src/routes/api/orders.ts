@@ -397,7 +397,14 @@ export const Route = createFileRoute("/api/orders")({
                   order.carrier_order_command_id,
                 );
               } catch (cause) {
-                if (cause instanceof FurgonetkaApiError && cause.status === 404) {
+                const missingOrderCommand =
+                  cause instanceof FurgonetkaApiError &&
+                  (cause.status === 404 ||
+                    cause.message
+                      .trim()
+                      .toLocaleLowerCase("pl-PL")
+                      .includes("operacja nie istnieje"));
+                if (missingOrderCommand) {
                   const { error: resetError } = await admin
                     .from("orders")
                     .update({
