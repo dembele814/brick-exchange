@@ -5,6 +5,7 @@ import { emailConfig } from "@/server/email";
 import { furgonetkaConfig } from "@/server/furgonetka";
 import { inpostConfig } from "@/server/inpost";
 import { paymentConfig, refundPayment } from "@/server/payments";
+import { reconcileFurgonetkaShipping } from "@/server/shipping-reconciliation";
 import { getSupabaseAdmin, hasSupabaseAdminConfig } from "@/server/supabase-admin";
 import { reconcileStripeMoney } from "@/server/reconciliation";
 
@@ -30,6 +31,7 @@ const adminAction = z.discriminatedUnion("action", [
   }),
   z.object({ action: z.literal("refund_order"), orderId: z.string().uuid() }),
   z.object({ action: z.literal("reconcile_money") }),
+  z.object({ action: z.literal("reconcile_shipping") }),
 ]);
 
 const suspension = {
@@ -508,6 +510,19 @@ export const Route = createFileRoute("/api/admin")({
           } catch {
             return Response.json(
               { error: "Nie udało się uzgodnić operacji Stripe." },
+              { status: 503 },
+            );
+          }
+        }
+
+        if (input.action === "reconcile_shipping") {
+          try {
+            const summary = await reconcileFurgonetkaShipping(db);
+            await recordAudit(user.id, "reconcile_shipping", "system", null, summary);
+            return Response.json({ ok: true, shippingSummary: summary });
+          } catch {
+            return Response.json(
+              { error: "Nie udało się zsynchronizować przesyłek z Furgonetką." },
               { status: 503 },
             );
           }

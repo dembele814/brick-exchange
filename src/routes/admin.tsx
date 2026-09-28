@@ -192,12 +192,19 @@ function AdminPage() {
           transfersCompleted: number;
           failures: number;
         };
+        shippingSummary?: {
+          checked: number;
+          updated: number;
+          failures: number;
+        };
       };
       if (!response.ok) throw new Error(result.error ?? "Operacja nie powiodła się.");
       setNotice(
         result.summary
           ? `Płatności: ${result.summary.pendingPaymentsChecked}, zwroty: ${result.summary.refundsCompleted}, wypłaty: ${result.summary.transfersCompleted}, błędy: ${result.summary.failures}.`
-          : success,
+          : result.shippingSummary
+            ? `Przesyłki sprawdzone: ${result.shippingSummary.checked}, zaktualizowane: ${result.shippingSummary.updated}, błędy: ${result.shippingSummary.failures}.`
+            : success,
       );
       await load();
       return true;
@@ -314,14 +321,24 @@ function AdminPage() {
                     Status integracji bez ujawniania kluczy i haseł.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  disabled={Boolean(working)}
-                  onClick={() => void action({ action: "reconcile_money" })}
-                  className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground disabled:opacity-60"
-                >
-                  Sprawdź płatności
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={Boolean(working)}
+                    onClick={() => void action({ action: "reconcile_shipping" })}
+                    className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                  >
+                    Synchronizuj przesyłki
+                  </button>
+                  <button
+                    type="button"
+                    disabled={Boolean(working)}
+                    onClick={() => void action({ action: "reconcile_money" })}
+                    className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground disabled:opacity-60"
+                  >
+                    Sprawdź płatności
+                  </button>
+                </div>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
