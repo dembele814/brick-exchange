@@ -72,19 +72,19 @@ function Index() {
   const regular = useMemo(() => visible.filter((l) => !l.promoted), [visible]);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen min-w-0 overflow-x-hidden">
       <SiteHeader />
 
       <main>
-        <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-9">
+        <section className="mx-auto w-full min-w-0 max-w-7xl px-3 pb-12 pt-4 sm:px-6 sm:pt-9">
           <h1 className="sr-only">Oferty zestawów i klocków LEGO</h1>
-          <div className="relative mb-8 overflow-hidden rounded-2xl border border-border bg-card px-6 py-8 shadow-card sm:px-10 sm:py-9">
+          <div className="relative mb-6 min-w-0 overflow-hidden rounded-2xl border border-border bg-card px-5 py-7 shadow-card sm:mb-8 sm:px-10 sm:py-9">
             <div className="absolute right-0 top-0 h-full w-1.5 bg-brand" />
             <div className="relative max-w-4xl">
-              <span className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.12em] text-brand">
+              <span className="inline-flex items-center gap-2 text-[0.68rem] font-bold tracking-[0.1em] text-brand sm:text-xs sm:tracking-[0.12em]">
                 <Sparkles className="size-3.5 text-brand" /> MARKETPLACE DLA FANÓW KLOCKÓW
               </span>
-              <h2 className="mt-5 font-display text-4xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl">
+              <h2 className="mt-4 break-words font-display text-3xl font-bold leading-tight tracking-[-0.04em] sm:mt-5 sm:text-5xl">
                 Kolekcje mają <span className="brand-gradient-text">drugie życie.</span>
               </h2>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
@@ -161,7 +161,7 @@ function Index() {
             </div>
           </section>
 
-          <div className="mt-7 flex items-center justify-between">
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold">
               {loading
                 ? "Szukamy ofert…"

@@ -96,9 +96,9 @@ function AuthPage() {
     "mt-1.5 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus-within:ring-2 focus-within:ring-ring/40";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen min-w-0 overflow-x-hidden">
       <SiteHeader />
-      <main className="mx-auto max-w-md px-4 py-12">
+      <main className="mx-auto w-full min-w-0 max-w-md px-4 py-8 sm:py-12">
         <h1 className="font-display text-3xl font-bold">
           {mode === "login" ? "Zaloguj się" : "Załóż konto"}
         </h1>
