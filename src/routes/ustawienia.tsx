@@ -1,20 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Mail } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { updateProfile, useAccount } from "@/data/account";
+import { AccountGate } from "@/components/account-gate";
+import {
+  linkGoogleAccount,
+  saveProfile,
+  sendPasswordReset,
+  updateProfile,
+  uploadAvatar,
+  useAccount,
+} from "@/data/account";
+import { supabase } from "@/lib/supabase";
+import { authenticatedRequest } from "@/lib/authenticated-request";
 
 export const Route = createFileRoute("/ustawienia")({
   head: () => ({
     meta: [
-      { title: "Ustawienia konta — Klockownia" },
+      { title: "Ustawienia konta — Klockogram" },
       {
         name: "description",
         content:
           "Zmień dane profilu, nazwę użytkownika, zdjęcie, hasło, tryb wakacyjny i ustawienia prywatności.",
       },
-      { property: "og:title", content: "Ustawienia konta — Klockownia" },
+      { property: "og:title", content: "Ustawienia konta — Klockogram" },
       { property: "og:description", content: "Profil, konto, powiązania i prywatność." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -23,8 +33,17 @@ export const Route = createFileRoute("/ustawienia")({
   component: SettingsPage,
 });
 
-const countries = ["Polska", "Niemcy", "Czechy", "Wielka Brytania", "Holandia", "Inny"];
-const languages = ["Polski", "English", "Deutsch"];
+const countries = [
+  "Polska",
+  "Niemcy",
+  "Czechy",
+  "Słowacja",
+  "Litwa",
+  "Wielka Brytania",
+  "Holandia",
+  "Inny",
+];
+const languages = ["Polski", "English", "Deutsch", "Čeština", "Slovenčina", "Lietuvių"];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -80,13 +99,84 @@ function Toggle({
 }
 
 function SettingsPage() {
-  const { profile } = useAccount();
+  const { profile, loggedIn } = useAccount();
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [accountNotice, setAccountNotice] = useState<string | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [shippingConnected, setShippingConnected] = useState<boolean | null>(null);
+  const [shippingConnecting, setShippingConnecting] = useState(false);
+  const [shippingAuthUrl, setShippingAuthUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const shippingResult = new URLSearchParams(window.location.search).get("shipping");
+    if (shippingResult === "connected") setAccountNotice("Konto Furgonetki zostało połączone.");
+    if (shippingResult === "error")
+      setSaveError("Nie udało się połączyć Furgonetki. Spróbuj ponownie.");
+    if (
+      window.location.hash.includes("type=recovery") ||
+      new URLSearchParams(window.location.search).get("type") === "recovery"
+    )
+      setRecoveryMode(true);
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn || !supabase) return;
+    void authenticatedRequest(supabase, "/api/furgonetka/status", { method: "GET" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error();
+        const result = (await response.json()) as { connected?: boolean };
+        setShippingConnected(Boolean(result.connected));
+      })
+      .catch(() => setShippingConnected(false));
+  }, [loggedIn]);
 
   const set = <K extends keyof typeof profile>(key: K, value: (typeof profile)[K]) => {
     updateProfile({ [key]: value } as never);
     setSaved(false);
   };
+
+  const prepareFurgonetkaConnection = async (openImmediately: boolean) => {
+    if (!supabase) return;
+    setShippingConnecting(true);
+    setSaveError(null);
+    try {
+      const response = await authenticatedRequest(supabase, "/api/furgonetka/connect", {
+        method: "POST",
+      });
+      const result = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !result.url)
+        throw new Error(result.error ?? "Nie udało się rozpocząć połączenia.");
+      if (openImmediately) {
+        window.location.assign(result.url);
+        return;
+      }
+      setShippingAuthUrl(result.url);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Nie udało się połączyć Furgonetki.");
+    } finally {
+      if (!openImmediately) setShippingConnecting(false);
+    }
+  };
+
+  if (!loggedIn)
+    return (
+      <div className="min-h-screen">
+        <SiteHeader />
+        <main className="mx-auto max-w-3xl px-4 py-12">
+          <AccountGate feature="ustawienia konta" />
+        </main>
+        <SiteFooter />
+      </div>
+    );
 
   return (
     <div className="min-h-screen">
@@ -113,7 +203,13 @@ function SettingsPage() {
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) set("avatar", URL.createObjectURL(file));
+                  if (!file) return;
+                  setSaveError(null);
+                  void uploadAvatar(file).catch((error) =>
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się zapisać zdjęcia.",
+                    ),
+                  );
                 }}
               />
             </label>
@@ -135,6 +231,9 @@ function SettingsPage() {
                 value={profile.country}
                 onChange={(e) => set("country", e.target.value)}
               >
+                <option value="" disabled>
+                  Wybierz kraj
+                </option>
                 {countries.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
@@ -146,6 +245,7 @@ function SettingsPage() {
                 maxLength={60}
                 value={profile.city}
                 onChange={(e) => set("city", e.target.value)}
+                placeholder="Wpisz swoje miasto"
               />
             </Field>
           </div>
@@ -156,6 +256,9 @@ function SettingsPage() {
               value={profile.language}
               onChange={(e) => set("language", e.target.value)}
             >
+              <option value="" disabled>
+                Wybierz język
+              </option>
               {languages.map((l) => (
                 <option key={l}>{l}</option>
               ))}
@@ -168,6 +271,7 @@ function SettingsPage() {
               maxLength={500}
               value={profile.bio}
               onChange={(e) => set("bio", e.target.value)}
+              placeholder="Np. napisz, jakie zestawy lubisz albo jak przygotowujesz przesyłki."
             />
           </Field>
         </section>
@@ -175,12 +279,79 @@ function SettingsPage() {
         <section className="card-surface mt-6 space-y-4 p-5">
           <h2 className="text-lg font-semibold">Ustawienia konta</h2>
 
+          {recoveryMode && (
+            <form
+              className="rounded-2xl border border-brand/30 bg-brand-soft/45 p-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setSaveError(null);
+                if (newPassword.length < 8) {
+                  setSaveError("Nowe hasło musi mieć co najmniej 8 znaków.");
+                  return;
+                }
+                if (newPassword !== repeatPassword) {
+                  setSaveError("Hasła nie są takie same.");
+                  return;
+                }
+                if (!supabase) return;
+                setPasswordSaving(true);
+                void supabase.auth
+                  .updateUser({ password: newPassword })
+                  .then(({ error }) => {
+                    if (error) throw error;
+                    setRecoveryMode(false);
+                    setNewPassword("");
+                    setRepeatPassword("");
+                    setAccountNotice("Hasło zostało zmienione.");
+                  })
+                  .catch((error) =>
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się zmienić hasła.",
+                    ),
+                  )
+                  .finally(() => setPasswordSaving(false));
+              }}
+            >
+              <p className="text-sm font-semibold">Ustaw nowe hasło</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Otworzyłeś bezpieczny link odzyskiwania hasła.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input
+                  required
+                  type="password"
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="Nowe hasło (min. 8 znaków)"
+                  className={inputClass}
+                />
+                <input
+                  required
+                  type="password"
+                  minLength={8}
+                  value={repeatPassword}
+                  onChange={(event) => setRepeatPassword(event.target.value)}
+                  placeholder="Powtórz nowe hasło"
+                  className={inputClass}
+                />
+              </div>
+              <button
+                disabled={passwordSaving}
+                className="mt-3 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60"
+              >
+                {passwordSaving ? "Zapisuję…" : "Zapisz nowe hasło"}
+              </button>
+            </form>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Imię i nazwisko">
               <input
                 className={inputClass}
                 value={profile.realName}
                 onChange={(e) => set("realName", e.target.value)}
+                placeholder="Wpisz imię i nazwisko"
               />
             </Field>
             <Field label="Data urodzenia">
@@ -197,6 +368,9 @@ function SettingsPage() {
                 value={profile.gender}
                 onChange={(e) => set("gender", e.target.value as typeof profile.gender)}
               >
+                <option value="" disabled>
+                  Wybierz płeć
+                </option>
                 <option>Kobieta</option>
                 <option>Mężczyzna</option>
                 <option>Nie podaję</option>
@@ -216,6 +390,7 @@ function SettingsPage() {
                 className={inputClass}
                 value={profile.phone}
                 onChange={(e) => set("phone", e.target.value)}
+                placeholder="Wpisz numer telefonu"
               />
             </Field>
           </div>
@@ -223,7 +398,7 @@ function SettingsPage() {
           <div className="divide-y divide-border border-t border-border">
             <Toggle
               label="Tryb wakacyjny"
-              hint="Wszystkie Twoje ogłoszenia zostaną tymczasowo ukryte."
+              hint="Po zapisaniu aktywne ogłoszenia zostaną ukryte. Po powrocie opublikujesz wybrane ręcznie w profilu."
               checked={profile.vacationMode}
               onChange={(v) => set("vacationMode", v)}
             />
@@ -232,25 +407,138 @@ function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => {
+                setSaveError(null);
+                setAccountNotice(null);
+                void sendPasswordReset()
+                  .then(() => setAccountNotice("Wysłaliśmy link do zmiany hasła na adres konta."))
+                  .catch((error) =>
+                    setSaveError(
+                      error instanceof Error ? error.message : "Nie udało się wysłać wiadomości.",
+                    ),
+                  );
+              }}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
             >
               Zmień hasło
             </button>
             <button
               type="button"
-              onClick={() => set("googleLinked", !profile.googleLinked)}
+              onClick={() => {
+                setSaveError(null);
+                setAccountNotice(null);
+                void linkGoogleAccount().catch((error) =>
+                  setSaveError(
+                    error instanceof Error ? error.message : "Nie udało się połączyć konta Google.",
+                  ),
+                );
+              }}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
             >
-              {profile.googleLinked ? "Odłącz Google" : "Połącz z Google"}
-            </button>
-            <button
-              type="button"
-              onClick={() => set("facebookLinked", !profile.facebookLinked)}
-              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-secondary"
-            >
-              {profile.facebookLinked ? "Odłącz Facebooka" : "Połącz z Facebookiem"}
+              Połącz konto Google
             </button>
           </div>
+        </section>
+
+        <section className="card-surface mt-6 space-y-4 p-5">
+          <div>
+            <h2 className="text-lg font-semibold">Wysyłka przez Furgonetkę</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Połącz prywatne konto, aby tworzyć etykiety InPost i śledzić paczki z poziomu
+              Klockogramu.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Ulica i numer nadawcy">
+              <input
+                className={inputClass}
+                maxLength={120}
+                value={profile.shippingStreet}
+                onChange={(e) => set("shippingStreet", e.target.value)}
+                placeholder="np. Kwiatowa 12/3"
+              />
+            </Field>
+            <Field label="Kod pocztowy">
+              <input
+                className={inputClass}
+                maxLength={10}
+                value={profile.shippingPostcode}
+                onChange={(e) => set("shippingPostcode", e.target.value)}
+                placeholder="00-001"
+              />
+            </Field>
+            <Field label="Miasto nadawcy">
+              <input
+                className={inputClass}
+                maxLength={80}
+                value={profile.shippingCity}
+                onChange={(e) => set("shippingCity", e.target.value)}
+                placeholder="Warszawa"
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={shippingConnecting || shippingConnected === null}
+              onClick={() => void prepareFurgonetkaConnection(true)}
+              className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground disabled:opacity-60"
+            >
+              {shippingConnecting
+                ? "Łączenie…"
+                : shippingConnected
+                  ? "Połącz konto ponownie"
+                  : "Połącz konto Furgonetki"}
+            </button>
+            <span
+              className={
+                shippingConnected
+                  ? "text-sm font-medium text-mint"
+                  : "text-sm text-muted-foreground"
+              }
+            >
+              {shippingConnected === null
+                ? "Sprawdzanie…"
+                : shippingConnected
+                  ? "Konto połączone"
+                  : "Konto niepołączone"}
+            </span>
+            {!shippingConnected && (
+              <button
+                type="button"
+                disabled={shippingConnecting || shippingConnected === null}
+                onClick={() => void prepareFurgonetkaConnection(false)}
+                className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+              >
+                Pokaż link do Edge
+              </button>
+            )}
+          </div>
+          {shippingAuthUrl && !shippingConnected && (
+            <div className="rounded-xl border border-border bg-secondary/40 p-3">
+              <p className="text-sm font-medium">Otwórz ten link w Edge w ciągu 10 minut:</p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  aria-label="Link autoryzacji Furgonetki"
+                  readOnly
+                  value={shippingAuthUrl}
+                  className={`${inputClass} min-w-0`}
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(shippingAuthUrl).then(() => {
+                      setAccountNotice("Link do Furgonetki został skopiowany.");
+                    });
+                  }}
+                  className="rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground"
+                >
+                  Kopiuj
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="card-surface mt-6 p-5">
@@ -279,18 +567,31 @@ function SettingsPage() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => setSaved(true)}
+            onClick={() => {
+              setSaveError(null);
+              void saveProfile()
+                .then((result) => {
+                  setSaved(true);
+                  if (result.emailChangeRequested)
+                    setAccountNotice("Potwierdź zmianę adresu przez link wysłany na e-mail.");
+                })
+                .catch((error) =>
+                  setSaveError(error instanceof Error ? error.message : "Nie udało się zapisać."),
+                );
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
           >
             <Check className="size-4" aria-hidden /> Zapisz zmiany
           </button>
           {saved && <span className="text-sm text-muted-foreground">Zapisano.</span>}
-          <button
-            type="button"
-            className="ml-auto inline-flex items-center gap-2 rounded-full border border-destructive/40 px-4 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+          {accountNotice && <span className="text-sm text-brand">{accountNotice}</span>}
+          {saveError && <span className="text-sm text-destructive">{saveError}</span>}
+          <a
+            href={`mailto:feelip.awf@gmail.com?subject=${encodeURIComponent("Prośba o usunięcie konta Klockogram")}&body=${encodeURIComponent(`Proszę o usunięcie konta przypisanego do adresu: ${profile.email}`)}`}
+            className="ml-auto inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
-            <Trash2 className="size-4" aria-hidden /> Usuń konto
-          </button>
+            <Mail className="size-4" aria-hidden /> Poproś o usunięcie konta
+          </a>
         </div>
       </main>
       <SiteFooter />
