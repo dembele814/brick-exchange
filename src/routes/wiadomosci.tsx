@@ -459,9 +459,13 @@ function Inbox() {
                                 : "Sprzedane!"}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          {active.isBuyer
-                            ? `Zapłacono ${active.order.amount.toFixed(2)} zł. Sprzedający przygotowuje przesyłkę.`
-                            : `Kupujący zapłacił ${active.order.amount.toFixed(2)} zł. Przygotuj paczkę do wysyłki.`}
+                          {active.order.status === "cancelled"
+                            ? "Ta transakcja nie jest już aktywna. Nie przygotowuj przesyłki."
+                            : active.order.status === "refunded"
+                              ? `Zwrócono ${active.order.amount.toFixed(2)} zł kupującemu.`
+                              : active.isBuyer
+                                ? `Zapłacono ${active.order.amount.toFixed(2)} zł. Sprzedający przygotowuje przesyłkę.`
+                                : `Kupujący zapłacił ${active.order.amount.toFixed(2)} zł. Przygotuj paczkę do wysyłki.`}
                         </p>
                         {!active.isBuyer &&
                           active.order.status !== "cancelled" &&
