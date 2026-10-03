@@ -21,10 +21,8 @@ export type Listing = {
   instructions: boolean;
   box: boolean;
   image: string;
-  /** Additional listing photographs; the first image remains the card cover. */
-  images?: string[];
   city: string;
-  seller: { id?: string; name: string; rating: number; sales: number; away?: boolean };
+  seller: { name: string; rating: number; sales: number };
   description: string;
   promoted?: boolean;
 };
@@ -255,8 +253,7 @@ export const listings: Listing[] = [
     image: castle,
     city: "Lublin",
     seller: { name: "Iwona P.", rating: 4.8, sales: 74 },
-    description:
-      "Komplet, lekkie ślady użytkowania na kilku płytkach. Bez pudełka, instrukcja jest.",
+    description: "Komplet, lekkie ślady użytkowania na kilku płytkach. Bez pudełka, instrukcja jest.",
   },
   {
     id: "9",

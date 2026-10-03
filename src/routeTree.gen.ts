@@ -10,47 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LogowanieRouteImport } from './routes/logowanie'
-import { Route as PolitykaPrywatnosciRouteImport } from './routes/polityka-prywatnosci'
 import { Route as PortfelRouteImport } from './routes/portfel'
-import { Route as PowiadomieniaRouteImport } from './routes/powiadomienia'
 import { Route as ProfilRouteImport } from './routes/profil'
-import { Route as RegulaminRouteImport } from './routes/regulamin'
-import { Route as RejestracjaGoogleRouteImport } from './routes/rejestracja-google'
-import { Route as ResetHaslaRouteImport } from './routes/reset-hasla'
 import { Route as SprzedajRouteImport } from './routes/sprzedaj'
-import { Route as UlubioneRouteImport } from './routes/ulubione'
 import { Route as UstawieniaRouteImport } from './routes/ustawienia'
 import { Route as WiadomosciRouteImport } from './routes/wiadomosci'
 import { Route as ZamowieniaRouteImport } from './routes/zamowienia'
-import { Route as ApiAdminRouteImport } from './routes/api/admin'
-import { Route as ApiCheckoutRouteImport } from './routes/api/checkout'
-import { Route as ApiConnectRouteImport } from './routes/api/connect'
-import { Route as ApiOrdersRouteImport } from './routes/api/orders'
-import { Route as ApiReportsRouteImport } from './routes/api/reports'
-import { Route as ApiReviewsRouteImport } from './routes/api/reviews'
-import { Route as ApiStatusRouteImport } from './routes/api/status'
 import { Route as OfertaIdRouteImport } from './routes/oferta.$id'
 import { Route as UzytkownikNameRouteImport } from './routes/uzytkownik.$name'
-import { Route as ApiCronEmailsRouteImport } from './routes/api/cron/emails'
-import { Route as ApiCronReconcileRouteImport } from './routes/api/cron/reconcile'
-import { Route as ApiCronShippingRouteImport } from './routes/api/cron/shipping'
-import { Route as ApiFurgonetkaCallbackRouteImport } from './routes/api/furgonetka/callback'
-import { Route as ApiFurgonetkaConnectRouteImport } from './routes/api/furgonetka/connect'
-import { Route as ApiFurgonetkaStatusRouteImport } from './routes/api/furgonetka/status'
-import { Route as ApiInpostPointsRouteImport } from './routes/api/inpost/points'
-import { Route as ApiWebhooksInpostRouteImport } from './routes/api/webhooks/inpost'
-import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogowanieRoute = LogowanieRouteImport.update({
@@ -58,19 +30,9 @@ const LogowanieRoute = LogowanieRouteImport.update({
   path: '/logowanie',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PolitykaPrywatnosciRoute = PolitykaPrywatnosciRouteImport.update({
-  id: '/polityka-prywatnosci',
-  path: '/polityka-prywatnosci',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PortfelRoute = PortfelRouteImport.update({
   id: '/portfel',
   path: '/portfel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PowiadomieniaRoute = PowiadomieniaRouteImport.update({
-  id: '/powiadomienia',
-  path: '/powiadomienia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfilRoute = ProfilRouteImport.update({
@@ -78,29 +40,9 @@ const ProfilRoute = ProfilRouteImport.update({
   path: '/profil',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegulaminRoute = RegulaminRouteImport.update({
-  id: '/regulamin',
-  path: '/regulamin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RejestracjaGoogleRoute = RejestracjaGoogleRouteImport.update({
-  id: '/rejestracja-google',
-  path: '/rejestracja-google',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetHaslaRoute = ResetHaslaRouteImport.update({
-  id: '/reset-hasla',
-  path: '/reset-hasla',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SprzedajRoute = SprzedajRouteImport.update({
   id: '/sprzedaj',
   path: '/sprzedaj',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UlubioneRoute = UlubioneRouteImport.update({
-  id: '/ulubione',
-  path: '/ulubione',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UstawieniaRoute = UstawieniaRouteImport.update({
@@ -118,41 +60,6 @@ const ZamowieniaRoute = ZamowieniaRouteImport.update({
   path: '/zamowienia',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminRoute = ApiAdminRouteImport.update({
-  id: '/api/admin',
-  path: '/api/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
-  id: '/api/checkout',
-  path: '/api/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiConnectRoute = ApiConnectRouteImport.update({
-  id: '/api/connect',
-  path: '/api/connect',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiOrdersRoute = ApiOrdersRouteImport.update({
-  id: '/api/orders',
-  path: '/api/orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiReportsRoute = ApiReportsRouteImport.update({
-  id: '/api/reports',
-  path: '/api/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiReviewsRoute = ApiReviewsRouteImport.update({
-  id: '/api/reviews',
-  path: '/api/reviews',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiStatusRoute = ApiStatusRouteImport.update({
-  id: '/api/status',
-  path: '/api/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OfertaIdRoute = OfertaIdRouteImport.update({
   id: '/oferta/$id',
   path: '/oferta/$id',
@@ -163,300 +70,94 @@ const UzytkownikNameRoute = UzytkownikNameRouteImport.update({
   path: '/uzytkownik/$name',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiCronEmailsRoute = ApiCronEmailsRouteImport.update({
-  id: '/api/cron/emails',
-  path: '/api/cron/emails',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronReconcileRoute = ApiCronReconcileRouteImport.update({
-  id: '/api/cron/reconcile',
-  path: '/api/cron/reconcile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronShippingRoute = ApiCronShippingRouteImport.update({
-  id: '/api/cron/shipping',
-  path: '/api/cron/shipping',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFurgonetkaCallbackRoute = ApiFurgonetkaCallbackRouteImport.update({
-  id: '/api/furgonetka/callback',
-  path: '/api/furgonetka/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFurgonetkaConnectRoute = ApiFurgonetkaConnectRouteImport.update({
-  id: '/api/furgonetka/connect',
-  path: '/api/furgonetka/connect',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFurgonetkaStatusRoute = ApiFurgonetkaStatusRouteImport.update({
-  id: '/api/furgonetka/status',
-  path: '/api/furgonetka/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInpostPointsRoute = ApiInpostPointsRouteImport.update({
-  id: '/api/inpost/points',
-  path: '/api/inpost/points',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWebhooksInpostRoute = ApiWebhooksInpostRouteImport.update({
-  id: '/api/webhooks/inpost',
-  path: '/api/webhooks/inpost',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
-  id: '/api/webhooks/stripe',
-  path: '/api/webhooks/stripe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
-  '/polityka-prywatnosci': typeof PolitykaPrywatnosciRoute
   '/portfel': typeof PortfelRoute
-  '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
-  '/regulamin': typeof RegulaminRoute
-  '/rejestracja-google': typeof RejestracjaGoogleRoute
-  '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
-  '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
-  '/api/admin': typeof ApiAdminRoute
-  '/api/checkout': typeof ApiCheckoutRoute
-  '/api/connect': typeof ApiConnectRoute
-  '/api/orders': typeof ApiOrdersRoute
-  '/api/reports': typeof ApiReportsRoute
-  '/api/reviews': typeof ApiReviewsRoute
-  '/api/status': typeof ApiStatusRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
-  '/api/cron/emails': typeof ApiCronEmailsRoute
-  '/api/cron/reconcile': typeof ApiCronReconcileRoute
-  '/api/cron/shipping': typeof ApiCronShippingRoute
-  '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
-  '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
-  '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
-  '/api/inpost/points': typeof ApiInpostPointsRoute
-  '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
-  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
-  '/polityka-prywatnosci': typeof PolitykaPrywatnosciRoute
   '/portfel': typeof PortfelRoute
-  '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
-  '/regulamin': typeof RegulaminRoute
-  '/rejestracja-google': typeof RejestracjaGoogleRoute
-  '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
-  '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
-  '/api/admin': typeof ApiAdminRoute
-  '/api/checkout': typeof ApiCheckoutRoute
-  '/api/connect': typeof ApiConnectRoute
-  '/api/orders': typeof ApiOrdersRoute
-  '/api/reports': typeof ApiReportsRoute
-  '/api/reviews': typeof ApiReviewsRoute
-  '/api/status': typeof ApiStatusRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
-  '/api/cron/emails': typeof ApiCronEmailsRoute
-  '/api/cron/reconcile': typeof ApiCronReconcileRoute
-  '/api/cron/shipping': typeof ApiCronShippingRoute
-  '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
-  '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
-  '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
-  '/api/inpost/points': typeof ApiInpostPointsRoute
-  '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
-  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/logowanie': typeof LogowanieRoute
-  '/polityka-prywatnosci': typeof PolitykaPrywatnosciRoute
   '/portfel': typeof PortfelRoute
-  '/powiadomienia': typeof PowiadomieniaRoute
   '/profil': typeof ProfilRoute
-  '/regulamin': typeof RegulaminRoute
-  '/rejestracja-google': typeof RejestracjaGoogleRoute
-  '/reset-hasla': typeof ResetHaslaRoute
   '/sprzedaj': typeof SprzedajRoute
-  '/ulubione': typeof UlubioneRoute
   '/ustawienia': typeof UstawieniaRoute
   '/wiadomosci': typeof WiadomosciRoute
   '/zamowienia': typeof ZamowieniaRoute
-  '/api/admin': typeof ApiAdminRoute
-  '/api/checkout': typeof ApiCheckoutRoute
-  '/api/connect': typeof ApiConnectRoute
-  '/api/orders': typeof ApiOrdersRoute
-  '/api/reports': typeof ApiReportsRoute
-  '/api/reviews': typeof ApiReviewsRoute
-  '/api/status': typeof ApiStatusRoute
   '/oferta/$id': typeof OfertaIdRoute
   '/uzytkownik/$name': typeof UzytkownikNameRoute
-  '/api/cron/emails': typeof ApiCronEmailsRoute
-  '/api/cron/reconcile': typeof ApiCronReconcileRoute
-  '/api/cron/shipping': typeof ApiCronShippingRoute
-  '/api/furgonetka/callback': typeof ApiFurgonetkaCallbackRoute
-  '/api/furgonetka/connect': typeof ApiFurgonetkaConnectRoute
-  '/api/furgonetka/status': typeof ApiFurgonetkaStatusRoute
-  '/api/inpost/points': typeof ApiInpostPointsRoute
-  '/api/webhooks/inpost': typeof ApiWebhooksInpostRoute
-  '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/logowanie'
-    | '/polityka-prywatnosci'
     | '/portfel'
-    | '/powiadomienia'
     | '/profil'
-    | '/regulamin'
-    | '/rejestracja-google'
-    | '/reset-hasla'
     | '/sprzedaj'
-    | '/ulubione'
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
-    | '/api/admin'
-    | '/api/checkout'
-    | '/api/connect'
-    | '/api/orders'
-    | '/api/reports'
-    | '/api/reviews'
-    | '/api/status'
     | '/oferta/$id'
     | '/uzytkownik/$name'
-    | '/api/cron/emails'
-    | '/api/cron/reconcile'
-    | '/api/cron/shipping'
-    | '/api/furgonetka/callback'
-    | '/api/furgonetka/connect'
-    | '/api/furgonetka/status'
-    | '/api/inpost/points'
-    | '/api/webhooks/inpost'
-    | '/api/webhooks/stripe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/logowanie'
-    | '/polityka-prywatnosci'
     | '/portfel'
-    | '/powiadomienia'
     | '/profil'
-    | '/regulamin'
-    | '/rejestracja-google'
-    | '/reset-hasla'
     | '/sprzedaj'
-    | '/ulubione'
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
-    | '/api/admin'
-    | '/api/checkout'
-    | '/api/connect'
-    | '/api/orders'
-    | '/api/reports'
-    | '/api/reviews'
-    | '/api/status'
     | '/oferta/$id'
     | '/uzytkownik/$name'
-    | '/api/cron/emails'
-    | '/api/cron/reconcile'
-    | '/api/cron/shipping'
-    | '/api/furgonetka/callback'
-    | '/api/furgonetka/connect'
-    | '/api/furgonetka/status'
-    | '/api/inpost/points'
-    | '/api/webhooks/inpost'
-    | '/api/webhooks/stripe'
   id:
     | '__root__'
     | '/'
-    | '/admin'
     | '/logowanie'
-    | '/polityka-prywatnosci'
     | '/portfel'
-    | '/powiadomienia'
     | '/profil'
-    | '/regulamin'
-    | '/rejestracja-google'
-    | '/reset-hasla'
     | '/sprzedaj'
-    | '/ulubione'
     | '/ustawienia'
     | '/wiadomosci'
     | '/zamowienia'
-    | '/api/admin'
-    | '/api/checkout'
-    | '/api/connect'
-    | '/api/orders'
-    | '/api/reports'
-    | '/api/reviews'
-    | '/api/status'
     | '/oferta/$id'
     | '/uzytkownik/$name'
-    | '/api/cron/emails'
-    | '/api/cron/reconcile'
-    | '/api/cron/shipping'
-    | '/api/furgonetka/callback'
-    | '/api/furgonetka/connect'
-    | '/api/furgonetka/status'
-    | '/api/inpost/points'
-    | '/api/webhooks/inpost'
-    | '/api/webhooks/stripe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
   LogowanieRoute: typeof LogowanieRoute
-  PolitykaPrywatnosciRoute: typeof PolitykaPrywatnosciRoute
   PortfelRoute: typeof PortfelRoute
-  PowiadomieniaRoute: typeof PowiadomieniaRoute
   ProfilRoute: typeof ProfilRoute
-  RegulaminRoute: typeof RegulaminRoute
-  RejestracjaGoogleRoute: typeof RejestracjaGoogleRoute
-  ResetHaslaRoute: typeof ResetHaslaRoute
   SprzedajRoute: typeof SprzedajRoute
-  UlubioneRoute: typeof UlubioneRoute
   UstawieniaRoute: typeof UstawieniaRoute
   WiadomosciRoute: typeof WiadomosciRoute
   ZamowieniaRoute: typeof ZamowieniaRoute
-  ApiAdminRoute: typeof ApiAdminRoute
-  ApiCheckoutRoute: typeof ApiCheckoutRoute
-  ApiConnectRoute: typeof ApiConnectRoute
-  ApiOrdersRoute: typeof ApiOrdersRoute
-  ApiReportsRoute: typeof ApiReportsRoute
-  ApiReviewsRoute: typeof ApiReviewsRoute
-  ApiStatusRoute: typeof ApiStatusRoute
   OfertaIdRoute: typeof OfertaIdRoute
   UzytkownikNameRoute: typeof UzytkownikNameRoute
-  ApiCronEmailsRoute: typeof ApiCronEmailsRoute
-  ApiCronReconcileRoute: typeof ApiCronReconcileRoute
-  ApiCronShippingRoute: typeof ApiCronShippingRoute
-  ApiFurgonetkaCallbackRoute: typeof ApiFurgonetkaCallbackRoute
-  ApiFurgonetkaConnectRoute: typeof ApiFurgonetkaConnectRoute
-  ApiFurgonetkaStatusRoute: typeof ApiFurgonetkaStatusRoute
-  ApiInpostPointsRoute: typeof ApiInpostPointsRoute
-  ApiWebhooksInpostRoute: typeof ApiWebhooksInpostRoute
-  ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -468,25 +169,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/logowanie': {
       id: '/logowanie'
       path: '/logowanie'
       fullPath: '/logowanie'
       preLoaderRoute: typeof LogowanieRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/polityka-prywatnosci': {
-      id: '/polityka-prywatnosci'
-      path: '/polityka-prywatnosci'
-      fullPath: '/polityka-prywatnosci'
-      preLoaderRoute: typeof PolitykaPrywatnosciRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfel': {
@@ -496,13 +183,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortfelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/powiadomienia': {
-      id: '/powiadomienia'
-      path: '/powiadomienia'
-      fullPath: '/powiadomienia'
-      preLoaderRoute: typeof PowiadomieniaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/profil': {
       id: '/profil'
       path: '/profil'
@@ -510,39 +190,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfilRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/regulamin': {
-      id: '/regulamin'
-      path: '/regulamin'
-      fullPath: '/regulamin'
-      preLoaderRoute: typeof RegulaminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rejestracja-google': {
-      id: '/rejestracja-google'
-      path: '/rejestracja-google'
-      fullPath: '/rejestracja-google'
-      preLoaderRoute: typeof RejestracjaGoogleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-hasla': {
-      id: '/reset-hasla'
-      path: '/reset-hasla'
-      fullPath: '/reset-hasla'
-      preLoaderRoute: typeof ResetHaslaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sprzedaj': {
       id: '/sprzedaj'
       path: '/sprzedaj'
       fullPath: '/sprzedaj'
       preLoaderRoute: typeof SprzedajRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ulubione': {
-      id: '/ulubione'
-      path: '/ulubione'
-      fullPath: '/ulubione'
-      preLoaderRoute: typeof UlubioneRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ustawienia': {
@@ -566,55 +218,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZamowieniaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin': {
-      id: '/api/admin'
-      path: '/api/admin'
-      fullPath: '/api/admin'
-      preLoaderRoute: typeof ApiAdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/checkout': {
-      id: '/api/checkout'
-      path: '/api/checkout'
-      fullPath: '/api/checkout'
-      preLoaderRoute: typeof ApiCheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/connect': {
-      id: '/api/connect'
-      path: '/api/connect'
-      fullPath: '/api/connect'
-      preLoaderRoute: typeof ApiConnectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/orders': {
-      id: '/api/orders'
-      path: '/api/orders'
-      fullPath: '/api/orders'
-      preLoaderRoute: typeof ApiOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/reports': {
-      id: '/api/reports'
-      path: '/api/reports'
-      fullPath: '/api/reports'
-      preLoaderRoute: typeof ApiReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/reviews': {
-      id: '/api/reviews'
-      path: '/api/reviews'
-      fullPath: '/api/reviews'
-      preLoaderRoute: typeof ApiReviewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/status': {
-      id: '/api/status'
-      path: '/api/status'
-      fullPath: '/api/status'
-      preLoaderRoute: typeof ApiStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/oferta/$id': {
       id: '/oferta/$id'
       path: '/oferta/$id'
@@ -629,106 +232,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UzytkownikNameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/cron/emails': {
-      id: '/api/cron/emails'
-      path: '/api/cron/emails'
-      fullPath: '/api/cron/emails'
-      preLoaderRoute: typeof ApiCronEmailsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/reconcile': {
-      id: '/api/cron/reconcile'
-      path: '/api/cron/reconcile'
-      fullPath: '/api/cron/reconcile'
-      preLoaderRoute: typeof ApiCronReconcileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/shipping': {
-      id: '/api/cron/shipping'
-      path: '/api/cron/shipping'
-      fullPath: '/api/cron/shipping'
-      preLoaderRoute: typeof ApiCronShippingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/furgonetka/callback': {
-      id: '/api/furgonetka/callback'
-      path: '/api/furgonetka/callback'
-      fullPath: '/api/furgonetka/callback'
-      preLoaderRoute: typeof ApiFurgonetkaCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/furgonetka/connect': {
-      id: '/api/furgonetka/connect'
-      path: '/api/furgonetka/connect'
-      fullPath: '/api/furgonetka/connect'
-      preLoaderRoute: typeof ApiFurgonetkaConnectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/furgonetka/status': {
-      id: '/api/furgonetka/status'
-      path: '/api/furgonetka/status'
-      fullPath: '/api/furgonetka/status'
-      preLoaderRoute: typeof ApiFurgonetkaStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/inpost/points': {
-      id: '/api/inpost/points'
-      path: '/api/inpost/points'
-      fullPath: '/api/inpost/points'
-      preLoaderRoute: typeof ApiInpostPointsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/webhooks/inpost': {
-      id: '/api/webhooks/inpost'
-      path: '/api/webhooks/inpost'
-      fullPath: '/api/webhooks/inpost'
-      preLoaderRoute: typeof ApiWebhooksInpostRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/webhooks/stripe': {
-      id: '/api/webhooks/stripe'
-      path: '/api/webhooks/stripe'
-      fullPath: '/api/webhooks/stripe'
-      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
   LogowanieRoute: LogowanieRoute,
-  PolitykaPrywatnosciRoute: PolitykaPrywatnosciRoute,
   PortfelRoute: PortfelRoute,
-  PowiadomieniaRoute: PowiadomieniaRoute,
   ProfilRoute: ProfilRoute,
-  RegulaminRoute: RegulaminRoute,
-  RejestracjaGoogleRoute: RejestracjaGoogleRoute,
-  ResetHaslaRoute: ResetHaslaRoute,
   SprzedajRoute: SprzedajRoute,
-  UlubioneRoute: UlubioneRoute,
   UstawieniaRoute: UstawieniaRoute,
   WiadomosciRoute: WiadomosciRoute,
   ZamowieniaRoute: ZamowieniaRoute,
-  ApiAdminRoute: ApiAdminRoute,
-  ApiCheckoutRoute: ApiCheckoutRoute,
-  ApiConnectRoute: ApiConnectRoute,
-  ApiOrdersRoute: ApiOrdersRoute,
-  ApiReportsRoute: ApiReportsRoute,
-  ApiReviewsRoute: ApiReviewsRoute,
-  ApiStatusRoute: ApiStatusRoute,
   OfertaIdRoute: OfertaIdRoute,
   UzytkownikNameRoute: UzytkownikNameRoute,
-  ApiCronEmailsRoute: ApiCronEmailsRoute,
-  ApiCronReconcileRoute: ApiCronReconcileRoute,
-  ApiCronShippingRoute: ApiCronShippingRoute,
-  ApiFurgonetkaCallbackRoute: ApiFurgonetkaCallbackRoute,
-  ApiFurgonetkaConnectRoute: ApiFurgonetkaConnectRoute,
-  ApiFurgonetkaStatusRoute: ApiFurgonetkaStatusRoute,
-  ApiInpostPointsRoute: ApiInpostPointsRoute,
-  ApiWebhooksInpostRoute: ApiWebhooksInpostRoute,
-  ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

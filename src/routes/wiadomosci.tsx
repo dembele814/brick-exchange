@@ -1,17 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeDollarSign, ImagePlus, MessageCircle, Send } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, MessageCircle, Send } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { AccountGate } from "@/components/account-gate";
-import { useAccount } from "@/data/account";
 import {
   formatTime,
   markRead,
-  respondToPriceOffer,
   sendMessage,
-  sendMessageImage,
-  sendPriceOffer,
   useConversations,
 } from "@/data/messages";
 
@@ -21,13 +16,13 @@ export const Route = createFileRoute("/wiadomosci")({
   }),
   head: () => ({
     meta: [
-      { title: "Wiadomości — Klockogram" },
+      { title: "Wiadomości — Klockownia" },
       {
         name: "description",
         content:
-          "Skrzynka odbiorcza Klockogramu: rozmowy ze sprzedającymi o zestawach, wysyłce i stanie klocków.",
+          "Skrzynka odbiorcza Klockowni: rozmowy ze sprzedającymi o zestawach, wysyłce i stanie klocków.",
       },
-      { property: "og:title", content: "Wiadomości — Klockogram" },
+      { property: "og:title", content: "Wiadomości — Klockownia" },
       {
         property: "og:description",
         content: "Pisz do sprzedających i śledź odpowiedzi w jednym miejscu.",
@@ -38,47 +33,19 @@ export const Route = createFileRoute("/wiadomosci")({
 });
 
 function Inbox() {
-  const { loggedIn } = useAccount();
-  const { conversations, error: loadError, loading, reload } = useConversations();
+  const conversations = useConversations();
   const { c } = Route.useSearch();
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
-  const [sendError, setSendError] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
-  const [sendingImage, setSendingImage] = useState(false);
-  const [offerOpen, setOfferOpen] = useState(false);
-  const [offerAmount, setOfferAmount] = useState("");
-  const [respondingOfferId, setRespondingOfferId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLLIElement>(null);
 
   const activeId = c ?? conversations[0]?.id;
   const active = conversations.find((x) => x.id === activeId);
 
   useEffect(() => {
-    if (activeId)
-      void markRead(activeId).catch(() =>
-        setSendError("Nie udało się oznaczyć rozmowy jako przeczytanej."),
-      );
+    if (activeId) markRead(activeId);
   }, [activeId]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
-  }, [activeId, active?.messages.length]);
-
   const select = (id: string) => navigate({ to: "/wiadomosci", search: { c: id } });
-
-  if (!loggedIn)
-    return (
-      <div className="min-h-screen">
-        <SiteHeader />
-        <main className="mx-auto max-w-6xl px-4 py-12">
-          <AccountGate feature="wiadomości" />
-        </main>
-        <SiteFooter />
-      </div>
-    );
 
   return (
     <div className="min-h-screen">
@@ -87,37 +54,23 @@ function Inbox() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Link
           to="/"
-          search={{ q: undefined }}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> Wróć do ofert
         </Link>
 
         <h1 className="mt-4 text-2xl font-bold">Wiadomości</h1>
-        {loadError && (
-          <p role="alert" className="mt-3 text-sm text-destructive">
-            {loadError}{" "}
-            <button type="button" onClick={reload} className="underline">
-              Spróbuj ponownie
-            </button>
-          </p>
-        )}
-        {loading && (
-          <p role="status" className="mt-3 text-sm">
-            Wczytujemy rozmowy…
-          </p>
-        )}
         <p className="mt-1 text-sm text-muted-foreground">
           Wybierz rozmowę po lewej i napisz odpowiedź.
         </p>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
-          <ul className="flex gap-2 overflow-x-auto pb-2 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
+          <ul className="space-y-2">
             {conversations.map((conv) => {
               const last = conv.messages[conv.messages.length - 1];
               const isActive = conv.id === activeId;
               return (
-                <li key={conv.id} className="w-[82vw] shrink-0 sm:w-[360px] lg:w-auto">
+                <li key={conv.id}>
                   <button
                     type="button"
                     onClick={() => select(conv.id)}
@@ -139,7 +92,9 @@ function Inbox() {
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold">{conv.sellerName}</span>
+                        <span className="truncate text-sm font-semibold">
+                          {conv.sellerName}
+                        </span>
                         {last && (
                           <span className="shrink-0 text-xs text-muted-foreground">
                             {formatTime(last.at)}
@@ -147,11 +102,7 @@ function Inbox() {
                         )}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {last?.type === "image"
-                          ? "📷 Zdjęcie"
-                          : last?.type === "price_offer"
-                            ? `Propozycja: ${last.offerAmount?.toFixed(2)} zł`
-                            : (last?.text ?? "Nowa rozmowa")}
+                        {last?.text ?? "Nowa rozmowa"}
                       </span>
                     </span>
                     {conv.unread > 0 && !isActive && (
@@ -188,73 +139,6 @@ function Inbox() {
                   </div>
                 </header>
 
-                {active.canMakeOffer && (
-                  <section className="border-b border-brand/25 bg-brand-soft/55 p-3 sm:p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground">
-                          <BadgeDollarSign className="size-5" aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="font-bold">Chcesz negocjować cenę?</p>
-                          <p className="text-xs text-muted-foreground">
-                            Cena oferty: {active.listingPrice.toFixed(2)} zł
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setOfferOpen((open) => !open)}
-                        className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-bold text-brand-foreground sm:w-auto"
-                      >
-                        {offerOpen ? "Zamknij" : "Zaproponuj cenę"}
-                      </button>
-                    </div>
-                    {offerOpen && (
-                      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-                        <label className="sr-only" htmlFor="offer-amount">
-                          Proponowana cena
-                        </label>
-                        <input
-                          id="offer-amount"
-                          type="number"
-                          min="1"
-                          max={Math.max(1, active.listingPrice - 0.01)}
-                          step="0.01"
-                          value={offerAmount}
-                          onChange={(event) => setOfferAmount(event.target.value)}
-                          placeholder="Wpisz swoją cenę w zł"
-                          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none focus:ring-2 focus:ring-ring/40"
-                        />
-                        <button
-                          type="button"
-                          disabled={sending || !offerAmount}
-                          onClick={() => {
-                            setSending(true);
-                            setSendError(null);
-                            void sendPriceOffer(active.id, Number(offerAmount))
-                              .then(() => {
-                                setOfferAmount("");
-                                setOfferOpen(false);
-                              })
-                              .catch((error) =>
-                                setSendError(
-                                  error instanceof Error
-                                    ? error.message
-                                    : "Nie udało się wysłać propozycji.",
-                                ),
-                              )
-                              .finally(() => setSending(false));
-                          }}
-                          className="rounded-xl bg-brand px-5 py-3 text-sm font-bold text-brand-foreground disabled:opacity-50"
-                        >
-                          Wyślij propozycję
-                        </button>
-                      </div>
-                    )}
-                  </section>
-                )}
-
                 <ul className="flex-1 space-y-3 overflow-y-auto p-4">
                   {active.messages.length === 0 && (
                     <li className="text-sm text-muted-foreground">
@@ -266,7 +150,7 @@ function Inbox() {
                       key={m.id}
                       className={m.from === "me" ? "flex justify-end" : "flex justify-start"}
                     >
-                      <div
+                      <span
                         className={
                           "max-w-[75%] rounded-2xl px-4 py-2 text-sm " +
                           (m.from === "me"
@@ -274,189 +158,42 @@ function Inbox() {
                             : "bg-secondary text-secondary-foreground")
                         }
                       >
-                        {m.type === "image" && m.imageUrl ? (
-                          <a href={m.imageUrl} target="_blank" rel="noreferrer">
-                            <img
-                              src={m.imageUrl}
-                              alt="Zdjęcie wysłane w rozmowie"
-                              className="max-h-72 max-w-full rounded-xl object-contain"
-                            />
-                          </a>
-                        ) : m.type === "price_offer" ? (
-                          <div className="min-w-48">
-                            <p className="text-xs opacity-75">Propozycja ceny</p>
-                            <p className="mt-1 text-xl font-bold">{m.offerAmount?.toFixed(2)} zł</p>
-                            <p className="mt-1 text-xs font-semibold">
-                              {m.offerStatus === "accepted"
-                                ? "Zaakceptowana"
-                                : m.offerStatus === "rejected"
-                                  ? "Odrzucona"
-                                  : "Oczekuje na odpowiedź"}
-                            </p>
-                            {m.from === "them" && m.offerStatus === "pending" && (
-                              <div className="mt-3 flex gap-2">
-                                <button
-                                  type="button"
-                                  disabled={respondingOfferId === m.id}
-                                  onClick={() => {
-                                    setRespondingOfferId(m.id);
-                                    setSendError(null);
-                                    void respondToPriceOffer(m.id, true)
-                                      .catch((error) =>
-                                        setSendError(
-                                          error instanceof Error
-                                            ? error.message
-                                            : "Nie udało się przyjąć propozycji.",
-                                        ),
-                                      )
-                                      .finally(() => setRespondingOfferId(null));
-                                  }}
-                                  className="rounded-full bg-mint px-3 py-1 text-xs font-bold text-primary"
-                                >
-                                  Przyjmij
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={respondingOfferId === m.id}
-                                  onClick={() => {
-                                    setRespondingOfferId(m.id);
-                                    setSendError(null);
-                                    void respondToPriceOffer(m.id, false)
-                                      .catch((error) =>
-                                        setSendError(
-                                          error instanceof Error
-                                            ? error.message
-                                            : "Nie udało się odrzucić propozycji.",
-                                        ),
-                                      )
-                                      .finally(() => setRespondingOfferId(null));
-                                  }}
-                                  className="rounded-full border border-current px-3 py-1 text-xs font-semibold"
-                                >
-                                  Odrzuć
-                                </button>
-                              </div>
-                            )}
-                            {active.isBuyer && m.offerStatus === "accepted" && (
-                              <Link
-                                to="/oferta/$id"
-                                params={{ id: active.listingId }}
-                                search={{ offer: m.id }}
-                                className="mt-3 inline-flex rounded-full bg-mint px-3 py-1.5 text-xs font-bold text-primary"
-                              >
-                                Kup za {m.offerAmount?.toFixed(2)} zł
-                              </Link>
-                            )}
-                          </div>
-                        ) : (
-                          m.text
-                        )}
+                        {m.text}
                         <span className="mt-1 block text-[10px] opacity-70">
                           {formatTime(m.at)}
                         </span>
-                      </div>
+                      </span>
                     </li>
                   ))}
-                  <li ref={messagesEndRef} />
                 </ul>
 
                 <form
-                  onSubmit={async (e) => {
+                  onSubmit={(e) => {
                     e.preventDefault();
                     const text = draft.trim();
                     if (!text) return;
-                    setSending(true);
-                    setSendError(null);
-                    try {
-                      await sendMessage(active.id, text);
-                      setDraft("");
-                    } catch (error) {
-                      setSendError(
-                        error instanceof Error
-                          ? error.message
-                          : "Nie udało się wysłać wiadomości. Spróbuj ponownie.",
-                      );
-                    } finally {
-                      setSending(false);
-                    }
+                    sendMessage(active.id, text);
+                    setDraft("");
                   }}
-                  className="border-t border-border p-3"
+                  className="flex items-center gap-2 border-t border-border p-3"
                 >
-                  <div className="flex items-center gap-2">
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        event.target.value = "";
-                        if (!file) return;
-                        setSendingImage(true);
-                        setSendError(null);
-                        void sendMessageImage(active.id, file)
-                          .catch((error) =>
-                            setSendError(
-                              error instanceof Error
-                                ? error.message
-                                : "Nie udało się wysłać zdjęcia.",
-                            ),
-                          )
-                          .finally(() => setSendingImage(false));
-                      }}
-                    />
-                    <button
-                      type="button"
-                      disabled={sendingImage}
-                      onClick={() => imageInputRef.current?.click()}
-                      aria-label="Wyślij zdjęcie"
-                      className="rounded-full border border-border p-2.5 text-muted-foreground hover:text-brand disabled:opacity-60"
-                    >
-                      <ImagePlus className="size-4" aria-hidden />
-                    </button>
-                    <label className="sr-only" htmlFor="msg">
-                      Treść wiadomości
-                    </label>
-                    <input
-                      ref={inputRef}
-                      id="msg"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      maxLength={2000}
-                      placeholder="Napisz wiadomość…"
-                      className="flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/40"
-                    />
-                    <button
-                      type="submit"
-                      disabled={sending || sendingImage}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-                    >
-                      <Send className="size-4" aria-hidden />
-                      {sending || sendingImage ? "Wysyłanie…" : "Wyślij"}
-                    </button>
-                  </div>
-                  {active.messages.length < 2 && (
-                    <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                      {[
-                        "Czy zestaw jest kompletny?",
-                        "Czy pudełko i instrukcja są w zestawie?",
-                        "Czy możesz wysłać dodatkowe zdjęcie?",
-                      ].map((question) => (
-                        <button
-                          key={question}
-                          type="button"
-                          onClick={() => {
-                            setDraft(question);
-                            inputRef.current?.focus();
-                          }}
-                          className="shrink-0 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-brand-soft"
-                        >
-                          {question}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {sendError && <p className="mt-2 px-1 text-xs text-destructive">{sendError}</p>}
+                  <label className="sr-only" htmlFor="msg">
+                    Treść wiadomości
+                  </label>
+                  <input
+                    id="msg"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="Napisz wiadomość…"
+                    className="flex-1 rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90"
+                  >
+                    <Send className="size-4" aria-hidden />
+                    Wyślij
+                  </button>
                 </form>
               </>
             ) : (
@@ -464,11 +201,7 @@ function Inbox() {
                 <div>
                   <MessageCircle className="mx-auto size-8 text-muted-foreground" aria-hidden />
                   <p className="mt-3 text-sm text-muted-foreground">
-                    {loading
-                      ? "Wczytujemy Twoje wiadomości…"
-                      : loadError
-                        ? "Rozmowy są chwilowo niedostępne."
-                        : "Nie masz jeszcze wiadomości. Otwórz ofertę i napisz do sprzedającego."}
+                    Nie masz jeszcze wiadomości. Otwórz ofertę i napisz do sprzedającego.
                   </p>
                 </div>
               </div>
