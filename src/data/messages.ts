@@ -18,6 +18,7 @@ export type ConversationOrder = {
   status: "paid" | "shipped" | "delivered" | "cancelled" | "refunded";
   amount: number;
   createdAt: number;
+  updatedAt: number;
   labelReady: boolean;
   shipmentCreated: boolean;
   shipmentNeedsPurchase: boolean;
@@ -59,6 +60,7 @@ type MessageRow = {
   sender_id: string;
   body: string;
   created_at: string;
+  updated_at: string;
   message_type: Message["type"];
   image_path: string | null;
   offer_amount_grosz: number | null;
@@ -118,7 +120,7 @@ async function load() {
       client
         .from("orders")
         .select(
-          "id,listing_id,buyer_id,amount_grosz,status,payment_status,created_at,carrier_shipment_id,carrier_order_command_id,shipping_label_ready_at",
+          "id,listing_id,buyer_id,amount_grosz,status,payment_status,created_at,updated_at,carrier_shipment_id,carrier_order_command_id,shipping_label_ready_at",
         )
         .neq("payment_status", "pending")
         .order("created_at", { ascending: false }),
@@ -194,6 +196,7 @@ async function load() {
                     : order.status,
               amount: order.amount_grosz / 100,
               createdAt: Date.parse(order.created_at),
+              updatedAt: Date.parse(order.updated_at),
               labelReady: Boolean(order.shipping_label_ready_at && order.carrier_shipment_id),
               shipmentCreated: Boolean(order.carrier_shipment_id),
               shipmentNeedsPurchase: Boolean(
@@ -220,8 +223,8 @@ async function load() {
     })
     .sort(
       (a, b) =>
-        Math.max(b.messages.at(-1)?.at ?? 0, b.order?.createdAt ?? 0) -
-        Math.max(a.messages.at(-1)?.at ?? 0, a.order?.createdAt ?? 0),
+        Math.max(b.messages.at(-1)?.at ?? 0, b.order?.updatedAt ?? 0) -
+        Math.max(a.messages.at(-1)?.at ?? 0, a.order?.updatedAt ?? 0),
     );
 }
 

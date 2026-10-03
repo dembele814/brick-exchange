@@ -213,10 +213,14 @@ function Inbox() {
                         )}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {conv.order && conv.order.createdAt >= (last?.at ?? 0)
-                          ? conv.isBuyer
-                            ? "Zakup został opłacony"
-                            : "Przedmiot został sprzedany"
+                        {conv.order && conv.order.updatedAt >= (last?.at ?? 0)
+                          ? conv.order.status === "cancelled"
+                            ? "Zamówienie anulowane"
+                            : conv.order.status === "refunded"
+                              ? "Płatność została zwrócona"
+                              : conv.isBuyer
+                                ? "Zakup został opłacony"
+                                : "Przedmiot został sprzedany"
                           : last?.type === "image"
                             ? "📷 Zdjęcie"
                             : last?.type === "price_offer"
