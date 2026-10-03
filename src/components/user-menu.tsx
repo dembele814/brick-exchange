@@ -47,7 +47,7 @@ export function UserMenu() {
         align="end"
         sideOffset={10}
         collisionPadding={12}
-        className="z-[100] w-64 rounded-2xl border-border bg-popover p-2 shadow-lift"
+        className="!z-[2147483647] w-64 rounded-2xl border-border bg-popover p-2 shadow-lift"
       >
         {!loggedIn ? (
           <>

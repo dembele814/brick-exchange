@@ -112,7 +112,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "/klockogram-mark.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: "/klockogram-mark.png" },
-      { name: "theme-color", content: "#120f1c" },
+      { name: "theme-color", content: "#faf8ff" },
       {
         name: "keywords",
         content: "Klockogram, używane LEGO, marketplace LEGO, kup klocki, sprzedaj klocki",
