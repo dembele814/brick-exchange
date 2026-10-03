@@ -1,6 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeDollarSign, ImagePlus, MessageCircle, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeDollarSign,
+  ChevronRight,
+  Download,
+  ImagePlus,
+  MessageCircle,
+  PackageCheck,
+  Send,
+} from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccountGate } from "@/components/account-gate";
@@ -14,6 +23,12 @@ import {
   sendPriceOffer,
   useConversations,
 } from "@/data/messages";
+import {
+  checkFurgonetkaOrderShipment,
+  createFurgonetkaOrderShipment,
+  downloadInpostLabel,
+  quoteFurgonetkaOrderShipment,
+} from "@/data/marketplace";
 
 export const Route = createFileRoute("/wiadomosci")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -49,11 +64,13 @@ function Inbox() {
   const [offerOpen, setOfferOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
   const [respondingOfferId, setRespondingOfferId] = useState<string | null>(null);
+  const [labelOrderId, setLabelOrderId] = useState<string | null>(null);
+  const [labelError, setLabelError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLLIElement>(null);
 
-  const activeId = c ?? conversations[0]?.id;
+  const activeId = c;
   const active = conversations.find((x) => x.id === activeId);
 
   useEffect(() => {
@@ -68,6 +85,50 @@ function Inbox() {
   }, [activeId, active?.messages.length]);
 
   const select = (id: string) => navigate({ to: "/wiadomosci", search: { c: id } });
+  const closeConversation = () =>
+    navigate({ to: "/wiadomosci", search: { c: undefined }, replace: true });
+
+  const handleShippingLabel = async () => {
+    const order = active?.order;
+    if (!order || active.isBuyer) return;
+    setLabelOrderId(order.id);
+    setLabelError(null);
+    try {
+      if (order.labelReady) {
+        await downloadInpostLabel(order.id);
+        return;
+      }
+      if (order.shipmentCreated && !order.shipmentNeedsPurchase) {
+        const result = await checkFurgonetkaOrderShipment(order.id);
+        if (result.needsPurchase)
+          throw new Error("Dokończ zakup etykiety, aby Furgonetka mogła ją wygenerować.");
+        if (!result.labelReady)
+          throw new Error("Furgonetka przygotowuje etykietę. Sprawdź ponownie za chwilę.");
+        await downloadInpostLabel(order.id);
+        reload();
+        return;
+      }
+      const quote = await quoteFurgonetkaOrderShipment(order.id);
+      const price = new Intl.NumberFormat("pl-PL", {
+        style: "currency",
+        currency: quote.currency,
+      }).format(quote.priceGrosz / 100);
+      if (
+        !window.confirm(
+          `${order.shipmentNeedsPurchase ? "Dokończyć zakup" : "Zamówić"} etykietę InPost przez Furgonetkę za ${price}? Kwota zostanie pobrana z salda Furgonetki.`,
+        )
+      )
+        return;
+      await createFurgonetkaOrderShipment(order.id, quote.priceGrosz);
+      reload();
+    } catch (cause) {
+      setLabelError(
+        cause instanceof Error ? cause.message : "Nie udało się przygotować etykiety wysyłkowej.",
+      );
+    } finally {
+      setLabelOrderId(null);
+    }
+  };
 
   if (!loggedIn)
     return (
@@ -84,16 +145,18 @@ function Inbox() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className={`mx-auto max-w-6xl ${active ? "px-0 py-0 sm:px-4 sm:py-6" : "px-4 py-6"}`}>
         <Link
           to="/"
           search={{ q: undefined }}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className={`${active ? "hidden lg:inline-flex" : "inline-flex"} items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground`}
         >
           <ArrowLeft className="size-4" /> Wróć do ofert
         </Link>
 
-        <h1 className="mt-4 text-2xl font-bold">Wiadomości</h1>
+        <h1 className={`${active ? "hidden lg:block" : "block"} mt-4 text-2xl font-bold`}>
+          Wiadomości
+        </h1>
         {loadError && (
           <p role="alert" className="mt-3 text-sm text-destructive">
             {loadError}{" "}
@@ -107,17 +170,20 @@ function Inbox() {
             Wczytujemy rozmowy…
           </p>
         )}
-        <p className="mt-1 text-sm text-muted-foreground">
-          Wybierz rozmowę po lewej i napisz odpowiedź.
+        <p className={`${active ? "hidden lg:block" : "block"} mt-1 text-sm text-muted-foreground`}>
+          Wybierz rozmowę, aby otworzyć pełny czat.
         </p>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
-          <ul className="flex gap-2 overflow-x-auto pb-2 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
+        <div className={`${active ? "mt-0 lg:mt-6" : "mt-6"} grid gap-4 lg:grid-cols-[320px_1fr]`}>
+          <ul
+            aria-label="Lista rozmów"
+            className={`${active ? "hidden lg:block" : "block"} max-h-[calc(100dvh-12rem)] space-y-2 overflow-y-auto pr-1 lg:max-h-[calc(100dvh-15rem)]`}
+          >
             {conversations.map((conv) => {
               const last = conv.messages[conv.messages.length - 1];
               const isActive = conv.id === activeId;
               return (
-                <li key={conv.id} className="w-[82vw] shrink-0 sm:w-[360px] lg:w-auto">
+                <li key={conv.id}>
                   <button
                     type="button"
                     onClick={() => select(conv.id)}
@@ -147,11 +213,15 @@ function Inbox() {
                         )}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {last?.type === "image"
-                          ? "📷 Zdjęcie"
-                          : last?.type === "price_offer"
-                            ? `Propozycja: ${last.offerAmount?.toFixed(2)} zł`
-                            : (last?.text ?? "Nowa rozmowa")}
+                        {conv.order && conv.order.createdAt >= (last?.at ?? 0)
+                          ? conv.isBuyer
+                            ? "Zakup został opłacony"
+                            : "Przedmiot został sprzedany"
+                          : last?.type === "image"
+                            ? "📷 Zdjęcie"
+                            : last?.type === "price_offer"
+                              ? `Propozycja: ${last.offerAmount?.toFixed(2)} zł`
+                              : (last?.text ?? "Nowa rozmowa")}
                       </span>
                     </span>
                     {conv.unread > 0 && !isActive && (
@@ -159,16 +229,32 @@ function Inbox() {
                         {conv.unread}
                       </span>
                     )}
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground lg:hidden" />
                   </button>
                 </li>
               );
             })}
+            {!loading && !loadError && conversations.length === 0 && (
+              <li className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+                Nie masz jeszcze rozmów. Otwórz ofertę i napisz do sprzedającego.
+              </li>
+            )}
           </ul>
 
-          <section className="flex min-h-[420px] flex-col rounded-xl border border-border bg-card">
+          <section
+            className={`${active ? "flex" : "hidden lg:flex"} h-[calc(100dvh-4.5rem)] min-h-[420px] flex-col overflow-hidden border-y border-border bg-card sm:h-[calc(100dvh-8rem)] sm:rounded-xl sm:border`}
+          >
             {active ? (
               <>
-                <header className="flex items-center gap-3 border-b border-border p-4">
+                <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card p-3 sm:p-4">
+                  <button
+                    type="button"
+                    onClick={closeConversation}
+                    aria-label="Wróć do listy rozmów"
+                    className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-secondary lg:hidden"
+                  >
+                    <ArrowLeft className="size-5" aria-hidden />
+                  </button>
                   <img
                     src={active.listingImage}
                     alt=""
@@ -176,7 +262,7 @@ function Inbox() {
                     height={96}
                     className="size-11 rounded-lg object-cover"
                   />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{active.sellerName}</p>
                     <Link
                       to="/oferta/$id"
@@ -357,6 +443,54 @@ function Inbox() {
                       </div>
                     </li>
                   ))}
+                  {active.order && (
+                    <li className="flex justify-center py-2">
+                      <article className="w-full max-w-md rounded-2xl border border-brand/25 bg-brand-soft/60 p-4 text-center shadow-sm">
+                        <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand text-brand-foreground">
+                          <PackageCheck className="size-6" aria-hidden />
+                        </span>
+                        <p className="mt-3 text-lg font-bold">
+                          {active.order.status === "refunded"
+                            ? "Płatność została zwrócona"
+                            : active.order.status === "cancelled"
+                              ? "Zamówienie anulowane"
+                              : active.isBuyer
+                                ? "Zakup opłacony"
+                                : "Sprzedane!"}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {active.isBuyer
+                            ? `Zapłacono ${active.order.amount.toFixed(2)} zł. Sprzedający przygotowuje przesyłkę.`
+                            : `Kupujący zapłacił ${active.order.amount.toFixed(2)} zł. Przygotuj paczkę do wysyłki.`}
+                        </p>
+                        {!active.isBuyer &&
+                          active.order.status !== "cancelled" &&
+                          active.order.status !== "refunded" && (
+                            <button
+                              type="button"
+                              disabled={labelOrderId === active.order.id}
+                              onClick={() => void handleShippingLabel()}
+                              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-3 text-sm font-bold text-brand-foreground disabled:opacity-60"
+                            >
+                              <Download className="size-4" aria-hidden />
+                              {labelOrderId === active.order.id
+                                ? "Przygotowywanie…"
+                                : active.order.labelReady
+                                  ? "Pobierz etykietę wysyłkową"
+                                  : active.order.shipmentCreated &&
+                                      !active.order.shipmentNeedsPurchase
+                                    ? "Sprawdź i pobierz etykietę"
+                                    : "Przygotuj etykietę wysyłkową"}
+                            </button>
+                          )}
+                        {labelError && (
+                          <p role="alert" className="mt-3 text-xs font-medium text-destructive">
+                            {labelError}
+                          </p>
+                        )}
+                      </article>
+                    </li>
+                  )}
                   <li ref={messagesEndRef} />
                 </ul>
 
@@ -477,7 +611,9 @@ function Inbox() {
         </div>
       </main>
 
-      <SiteFooter />
+      <div className={active ? "hidden lg:block" : "block"}>
+        <SiteFooter />
+      </div>
     </div>
   );
 }

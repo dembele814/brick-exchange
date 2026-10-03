@@ -13,6 +13,15 @@ export type Message = {
   offerAmount?: number | undefined;
   offerStatus?: "pending" | "accepted" | "rejected" | undefined;
 };
+export type ConversationOrder = {
+  id: string;
+  status: "paid" | "shipped" | "delivered" | "cancelled" | "refunded";
+  amount: number;
+  createdAt: number;
+  labelReady: boolean;
+  shipmentCreated: boolean;
+  shipmentNeedsPurchase: boolean;
+};
 export type Conversation = {
   id: string;
   sellerName: string;
@@ -22,8 +31,50 @@ export type Conversation = {
   listingPrice: number;
   canMakeOffer: boolean;
   isBuyer: boolean;
+  order?: ConversationOrder;
   messages: Message[];
   unread: number;
+};
+
+type ListingImageRow = { storage_path: string; position: number };
+type ConversationRow = {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  listings: {
+    title: string;
+    price_grosz: number;
+    status: string;
+    listing_images: ListingImageRow[];
+  } | null;
+};
+type ParticipantRow = {
+  conversation_id: string;
+  user_id: string;
+  profiles: { username?: string } | { username?: string }[] | null;
+};
+type MessageRow = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  message_type: Message["type"];
+  image_path: string | null;
+  offer_amount_grosz: number | null;
+  offer_status: Message["offerStatus"] | null;
+};
+type OrderRow = {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  amount_grosz: number;
+  status: ConversationOrder["status"];
+  payment_status: string;
+  created_at: string;
+  carrier_shipment_id: string | null;
+  carrier_order_command_id: string | null;
+  shipping_label_ready_at: string | null;
 };
 
 const listeners = new Set<() => void>();
@@ -45,29 +96,52 @@ async function load() {
   if (mineError) throw mineError;
   const ids = (mine ?? []).map((participant) => participant.conversation_id);
   if (!ids.length) return [] as Conversation[];
-  const [conversationsResult, participantsResult, messagesResult] = await Promise.all([
-    client
-      .from("conversations")
-      .select(
-        "id,listing_id,buyer_id,listings(title,price_grosz,status,listing_images(storage_path,position))",
-      )
-      .in("id", ids),
-    client
-      .from("conversation_participants")
-      .select("conversation_id,user_id,profiles!conversation_participants_user_id_fkey(username)")
-      .in("conversation_id", ids),
-    client
-      .from("messages")
-      .select(
-        "id,conversation_id,sender_id,body,created_at,message_type,image_path,offer_amount_grosz,offer_status",
-      )
-      .in("conversation_id", ids)
-      .order("created_at"),
-  ]);
-  if (conversationsResult.error || participantsResult.error || messagesResult.error)
-    throw conversationsResult.error ?? participantsResult.error ?? messagesResult.error;
-  const imagePaths = (messagesResult.data ?? [])
-    .map((message: any) => message.image_path as string | null)
+  const [conversationsResult, participantsResult, messagesResult, ordersResult] = await Promise.all(
+    [
+      client
+        .from("conversations")
+        .select(
+          "id,listing_id,buyer_id,listings(title,price_grosz,status,listing_images(storage_path,position))",
+        )
+        .in("id", ids),
+      client
+        .from("conversation_participants")
+        .select("conversation_id,user_id,profiles!conversation_participants_user_id_fkey(username)")
+        .in("conversation_id", ids),
+      client
+        .from("messages")
+        .select(
+          "id,conversation_id,sender_id,body,created_at,message_type,image_path,offer_amount_grosz,offer_status",
+        )
+        .in("conversation_id", ids)
+        .order("created_at"),
+      client
+        .from("orders")
+        .select(
+          "id,listing_id,buyer_id,amount_grosz,status,payment_status,created_at,carrier_shipment_id,carrier_order_command_id,shipping_label_ready_at",
+        )
+        .neq("payment_status", "pending")
+        .order("created_at", { ascending: false }),
+    ],
+  );
+  if (
+    conversationsResult.error ||
+    participantsResult.error ||
+    messagesResult.error ||
+    ordersResult.error
+  )
+    throw (
+      conversationsResult.error ??
+      participantsResult.error ??
+      messagesResult.error ??
+      ordersResult.error
+    );
+  const conversationRows = (conversationsResult.data ?? []) as ConversationRow[];
+  const participantRows = (participantsResult.data ?? []) as ParticipantRow[];
+  const messageRows = (messagesResult.data ?? []) as MessageRow[];
+  const orderRows = (ordersResult.data ?? []) as OrderRow[];
+  const imagePaths = messageRows
+    .map((message) => message.image_path)
     .filter((path): path is string => Boolean(path));
   const signedImages = new Map<string, string>();
   if (imagePaths.length) {
@@ -83,19 +157,22 @@ async function load() {
       participant.last_read_at ? Date.parse(participant.last_read_at) : 0,
     ]),
   );
-  return (conversationsResult.data ?? [])
-    .map((conversation: any) => {
+  return conversationRows
+    .map((conversation) => {
       const listing = conversation.listings;
       const picture = [...(listing?.listing_images ?? [])].sort(
-        (a: any, b: any) => a.position - b.position,
+        (a, b) => a.position - b.position,
       )[0];
-      const other = (participantsResult.data ?? []).find(
-        (participant: any) =>
+      const other = participantRows.find(
+        (participant) =>
           participant.conversation_id === conversation.id && participant.user_id !== auth.user!.id,
       );
       const otherProfile = Array.isArray(other?.profiles) ? other.profiles[0] : other?.profiles;
-      const messages = (messagesResult.data ?? []).filter(
-        (message: any) => message.conversation_id === conversation.id,
+      const messages = messageRows.filter((message) => message.conversation_id === conversation.id);
+      const order = orderRows.find(
+        (candidate) =>
+          candidate.listing_id === conversation.listing_id &&
+          candidate.buyer_id === conversation.buyer_id,
       );
       return {
         id: conversation.id,
@@ -106,7 +183,25 @@ async function load() {
         canMakeOffer: listing?.status === "active",
         isBuyer: conversation.buyer_id === auth.user!.id,
         sellerName: otherProfile?.username ?? "Kolekcjoner",
-        messages: messages.map((message: any) => ({
+        order: order
+          ? {
+              id: order.id,
+              status:
+                order.payment_status === "refunded"
+                  ? "refunded"
+                  : order.status === "cancelled"
+                    ? "cancelled"
+                    : order.status,
+              amount: order.amount_grosz / 100,
+              createdAt: Date.parse(order.created_at),
+              labelReady: Boolean(order.shipping_label_ready_at && order.carrier_shipment_id),
+              shipmentCreated: Boolean(order.carrier_shipment_id),
+              shipmentNeedsPurchase: Boolean(
+                order.carrier_shipment_id && !order.carrier_order_command_id,
+              ),
+            }
+          : undefined,
+        messages: messages.map((message) => ({
           id: message.id,
           from: message.sender_id === auth.user!.id ? "me" : "them",
           text: message.body,
@@ -117,13 +212,17 @@ async function load() {
           offerStatus: message.offer_status ?? undefined,
         })),
         unread: messages.filter(
-          (message: any) =>
+          (message) =>
             message.sender_id !== auth.user!.id &&
             Date.parse(message.created_at) > (readAt.get(conversation.id) ?? 0),
         ).length,
       } satisfies Conversation;
     })
-    .sort((a, b) => (b.messages.at(-1)?.at ?? 0) - (a.messages.at(-1)?.at ?? 0));
+    .sort(
+      (a, b) =>
+        Math.max(b.messages.at(-1)?.at ?? 0, b.order?.createdAt ?? 0) -
+        Math.max(a.messages.at(-1)?.at ?? 0, a.order?.createdAt ?? 0),
+    );
 }
 
 export function useConversations() {
@@ -169,6 +268,7 @@ export function useConversations() {
     const channel = client
       .channel(`marketplace-inbox:${channelId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, queueReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, queueReload)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "conversation_participants" },
