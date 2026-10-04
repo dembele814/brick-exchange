@@ -2,6 +2,39 @@ import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkoutInput, sessionParameters, type CheckoutOrder } from "./payments.ts";
 import { RateLimitExceededError } from "./rate-limit.ts";
+import { connectAccountIdFor, connectState } from "./connect.ts";
+
+async function requireSellerPayouts(admin: SupabaseClient, stripe: Stripe, listingId: string) {
+  const { data: listing, error: listingError } = await admin
+    .from("listings")
+    .select("seller_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (listingError) throw new Error("Seller lookup failed");
+  if (!listing?.seller_id)
+    return Response.json({ error: "Oferta jest niedostępna." }, { status: 409 });
+
+  const { data: seller, error: sellerError } = await admin.auth.admin.getUserById(
+    listing.seller_id,
+  );
+  if (sellerError) throw new Error("Seller account lookup failed");
+  const accountId = seller.user ? connectAccountIdFor(seller.user, true) : undefined;
+  if (!accountId)
+    return Response.json(
+      { error: "Sprzedający nie skonfigurował jeszcze wypłat Stripe." },
+      { status: 409 },
+    );
+
+  const account = await stripe.v2.core.accounts.retrieve(accountId, {
+    include: ["configuration.recipient", "requirements"],
+  });
+  if (connectState(account).state !== "active")
+    return Response.json(
+      { error: "Sprzedający musi dokończyć weryfikację wypłat Stripe." },
+      { status: 409 },
+    );
+  return null;
+}
 
 export async function handleCheckout(
   request: Request,
@@ -39,6 +72,12 @@ export async function handleCheckout(
   const parsed = checkoutInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return Response.json({ error: "Nieprawidłowe dane zamówienia." }, { status: 400 });
+  // In production, never reserve stock or accept money until the seller has a
+  // verified destination for the eventual transfer.
+  if (expectedLiveMode) {
+    const payoutError = await requireSellerPayouts(admin, stripe, parsed.data.listingId);
+    if (payoutError) return payoutError;
+  }
   if (parsed.data.carrier === "inpost") {
     try {
       await validatePickupPoint(parsed.data.lockerId);

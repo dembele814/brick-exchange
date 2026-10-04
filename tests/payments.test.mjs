@@ -693,6 +693,36 @@ test("malformed JSON and missing authentication create no orders or Stripe calls
   assert.equal(await count("orders"), 0);
 });
 
+test("live checkout is blocked before reservation when seller payouts are not configured", async () => {
+  let reserved = false;
+  const admin = {
+    auth: {
+      getUser: async () => ({ data: { user: { id: buyer } }, error: null }),
+      admin: {
+        getUserById: async () => ({
+          data: { user: { id: seller, app_metadata: {} } },
+          error: null,
+        }),
+      },
+    },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: { seller_id: seller }, error: null }),
+        }),
+      }),
+    }),
+    rpc: async () => {
+      reserved = true;
+      throw new Error("must not reserve");
+    },
+  };
+  const response = await handleCheckout(request(), admin, {}, env.APP_URL, true);
+  assert.equal(response.status, 409);
+  assert.equal(reserved, false);
+  assert.match((await response.json()).error, /wypłat Stripe/);
+});
+
 test("timeout after Stripe creates a session preserves the reservation and retries the same key", async () => {
   const calls = [];
   const sessions = {
