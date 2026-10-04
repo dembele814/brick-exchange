@@ -1,5 +1,5 @@
 import { legoSeries } from "@/data/listings";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { Camera, ChevronLeft, ChevronRight, ImagePlus, Star, Trash2, Upload } from "lucide-react";
@@ -533,12 +533,20 @@ function SellPage() {
             {saving ? "Publikuję…" : "Opublikuj ofertę"}
           </button>
           {error && (
-            <p
+            <div
               role="alert"
               className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
             >
-              {error}
-            </p>
+              <p>{error}</p>
+              {error.includes("wypłat Stripe") && (
+                <Link
+                  to="/portfel"
+                  className="mt-2 inline-flex rounded-full bg-brand px-4 py-2 font-semibold text-brand-foreground"
+                >
+                  Skonfiguruj wypłaty
+                </Link>
+              )}
+            </div>
           )}
 
           {sent && (

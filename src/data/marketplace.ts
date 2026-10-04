@@ -394,6 +394,17 @@ export async function createListing(input: CreateListingInput) {
   const client = requireSupabase();
   const { data: auth, error: authError } = await client.auth.getUser();
   if (authError || !auth.user) throw new Error("Zaloguj się, aby opublikować ofertę.");
+  const payoutResponse = await authenticatedRequest(client, "/api/connect", { method: "GET" });
+  const payout = (await payoutResponse.json().catch(() => null)) as {
+    state?: "missing" | "pending" | "restricted" | "active";
+    error?: string;
+  } | null;
+  if (!payoutResponse.ok)
+    throw new Error(payout?.error ?? "Nie udało się sprawdzić gotowości wypłat Stripe.");
+  if (payout?.state !== "active")
+    throw new Error(
+      "Najpierw skonfiguruj wypłaty Stripe. Po ich aktywacji możesz opublikować ofertę.",
+    );
   if (input.title.trim().length < 3 || input.title.trim().length > 80)
     throw new Error("Tytuł musi mieć od 3 do 80 znaków.");
   if (!(input.price > 0)) throw new Error("Podaj cenę większą od zera.");
